@@ -69,11 +69,21 @@ export function isCitationKey(key: unknown): key is string {
   return typeof key === 'string' && key.length <= CITATION_KEY_MAX_LENGTH && CITATION_KEY_RE.test(key)
 }
 
+/** C0 control characters and DEL replaced by spaces. */
+function withoutControlChars(v: string): string {
+  let out = ''
+  for (const ch of v) {
+    const c = ch.codePointAt(0) ?? 0
+    out += c < 0x20 || c === 0x7F ? ' ' : ch
+  }
+  return out
+}
+
 function cleanText(v: unknown, max = CSL_TEXT_MAX_LENGTH): string | undefined {
   if (typeof v === 'number' && Number.isFinite(v)) return String(v)
   if (typeof v !== 'string') return undefined
   // Control characters out, whitespace runs collapsed.
-  const s = v.replace(/[\u0000-\u001F\u007F]+/g, ' ').replace(/\s+/g, ' ').trim()
+  const s = withoutControlChars(v).replace(/\s+/g, ' ').trim()
   return s ? s.slice(0, max) : undefined
 }
 
@@ -122,6 +132,27 @@ export function parseDateString(s: string): CslDate | undefined {
   return { literal: t.slice(0, 100) }
 }
 
+function nameList(raw: unknown): CslName[] {
+  if (!Array.isArray(raw)) return []
+  return raw.slice(0, CSL_NAMES_MAX).map(normalizeName).filter((n): n is CslName => n !== null)
+}
+
+/** The known text, name and date fields of `r`, cleaned, onto `item`. */
+function copyFields(r: Record<string, unknown>, item: CslItem): void {
+  for (const f of CSL_TEXT_FIELDS) {
+    const v = cleanText(r[f])
+    if (v) item[f] = v
+  }
+  for (const f of CSL_NAME_FIELDS) {
+    const names = nameList(r[f])
+    if (names.length > 0) item[f] = names
+  }
+  for (const f of CSL_DATE_FIELDS) {
+    const d = normalizeDate(r[f])
+    if (d) item[f] = d
+  }
+}
+
 /**
  * A CSL JSON entry reduced to known fields and bounded, or null when it
  * has no usable id or content. `id` falls back to `fallbackId`
@@ -134,20 +165,7 @@ export function normalizeCslItem(raw: unknown, fallbackId?: string): CslItem | n
   if (!id) return null
   const rawType = typeof r.type === 'string' ? r.type : ''
   const item: CslItem = { id, type: CSL_TYPES.has(rawType) ? rawType : 'document' }
-  for (const f of CSL_TEXT_FIELDS) {
-    const v = cleanText(r[f])
-    if (v) item[f] = v
-  }
-  for (const f of CSL_NAME_FIELDS) {
-    const list = r[f]
-    if (!Array.isArray(list)) continue
-    const names = list.slice(0, CSL_NAMES_MAX).map(normalizeName).filter((n): n is CslName => n !== null)
-    if (names.length > 0) item[f] = names
-  }
-  for (const f of CSL_DATE_FIELDS) {
-    const d = normalizeDate(r[f])
-    if (d) item[f] = d
-  }
+  copyFields(r, item)
   if (item.DOI) item.DOI = item.DOI.replace(/^(?:https?:\/\/(?:dx\.)?doi\.org\/|doi:\s*)/i, '')
   if (!item.title && !item.author && !item.editor && !item['container-title']) return null
   return item

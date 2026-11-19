@@ -587,6 +587,7 @@ useHead({
             @open-import="showImportModal = true"
             @open-server-pdf="openServerPdf"
             @export-markdown="exportMarkdown"
+            @open-references="rightSidebar = 'references'"
           />
         </RightPanelHost>
 

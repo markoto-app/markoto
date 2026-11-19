@@ -1,13 +1,13 @@
 ---
 title: Academic paper Markdown template with math
-description: An academic paper template in Markdown with abstract, LaTeX math and footnotes, set like an arXiv preprint. No BibTeX; you type the references.
+description: An academic paper template in Markdown with abstract, LaTeX math, footnotes and citations from BibTeX or Zotero, set like an arXiv preprint.
 keywords:
   - academic paper markdown template
   - markdown thesis template
   - scientific paper in markdown
   - markdown latex math
   - markdown paper to pdf
-updated: '2026-11-08'
+updated: '2026-11-19'
 navGroup: templates
 navLabel: Academic paper template
 navOrder: 40
@@ -87,7 +87,7 @@ The notes are Markdown comments: they show in the editor and to the AI assistant
 
 ## What it doesn't do
 
-markoto has **no BibTeX, no citation manager and no automatic reference list**. You type the references as a numbered list and cite them by hand, as [1] or with footnotes. Apart from the arXiv preprint and IEEE conference paper looks there are no journal or university templates, and no LaTeX beyond math formulas. If you need those, [Overleaf](/compare/overleaf) or [Typst](/compare/typst) are the better tools.
+Citations come from the document's bibliography: import a BibTeX or CSL JSON file (a Zotero export works), or add a work by its DOI, and cite it as `[@key]`. markoto formats them in **six built-in styles** (APA, Chicago author-date, Harvard, IEEE, Vancouver, DIN 1505-2); other CSL styles and footnote citation styles are not available, and there is no live Zotero sync. Apart from the arXiv preprint and IEEE conference paper looks there are no journal or university templates, and no LaTeX beyond math formulas. If you need those, [Overleaf](/compare/overleaf) or [Typst](/compare/typst) are the better tools.
 
 ## Who it's for
 
@@ -101,7 +101,7 @@ items:
   - q: Can I write LaTeX math in Markdown here?
     a: Yes. Inline math goes between single dollar signs and display math between double dollar signs, in LaTeX syntax. KaTeX renders it in the preview and in the PDF.
   - q: Does the template support BibTeX or Zotero?
-    a: No. markoto has no citation support. Type the reference list by hand and cite with numbers or footnotes.
+    a: Yes. Import a .bib or CSL JSON file in the References panel (export it from Zotero) or add works by DOI, cite them as [@key], and the reference list is generated in the style you pick.
   - q: Can I set the paper in two columns?
     a: Yes. Pick the IEEE conference paper theme, or set the layout to two columns in the document theme.
   - q: Can I submit the PDF to a journal?

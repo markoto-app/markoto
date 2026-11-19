@@ -60,7 +60,7 @@ const EN: CitationTerms = {
 const DE: CitationTerms = {
   and: 'und',
   etAl: 'et al.',
-  noDate: 'o. J.',
+  noDate: 'o.\u00A0J.',
   locators: {
     page: ['S.', 'S.'], chapter: ['Kap.', 'Kap.'], section: ['Abschn.', 'Abschn.'], paragraph: ['Abs.', 'Abs.'],
     figure: ['Abb.', 'Abb.'], volume: ['Bd.', 'Bd.'], line: ['Z.', 'Z.'], note: ['Anm.', 'Anm.'], column: ['Sp.', 'Sp.']
@@ -83,7 +83,7 @@ const DE: CitationTerms = {
 const FR: CitationTerms = {
   ...EN,
   and: 'et',
-  noDate: 's. d.',
+  noDate: 's.\u00A0d.',
   locators: {
     page: ['p.', 'p.'], chapter: ['chap.', 'chap.'], section: ['sect.', 'sect.'], paragraph: ['par.', 'par.'],
     figure: ['fig.', 'fig.'], volume: ['vol.', 'vol.'], line: ['l.', 'l.'], note: ['n.', 'n.'], column: ['col.', 'col.']
@@ -105,7 +105,7 @@ const FR: CitationTerms = {
 const ES: CitationTerms = {
   ...EN,
   and: 'y',
-  noDate: 's. f.',
+  noDate: 's.\u00A0f.',
   locators: {
     page: ['p.', 'pp.'], chapter: ['cap.', 'caps.'], section: ['sec.', 'secs.'], paragraph: ['párr.', 'párrs.'],
     figure: ['fig.', 'figs.'], volume: ['vol.', 'vols.'], line: ['l.', 'll.'], note: ['n.', 'nn.'], column: ['col.', 'cols.']

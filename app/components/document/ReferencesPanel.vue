@@ -233,6 +233,7 @@ const problemText = (p: ReferenceProblem) => t(`references.problem.${p.kind}`, {
             type="file"
             accept=".bib,.bibtex,.json,.yaml,.yml,application/json,text/x-bibtex"
             class="hidden"
+            :aria-label="t('references.addFile')"
             data-testid="references-file-input"
             @change="onFile"
           >
@@ -254,7 +255,6 @@ const problemText = (p: ReferenceProblem) => t(`references.problem.${p.kind}`, {
             :placeholder="t('references.doiPlaceholder')"
             class="flex-1"
             size="sm"
-            autofocus
             data-testid="references-doi-input"
           />
           <UButton
@@ -276,7 +276,6 @@ const problemText = (p: ReferenceProblem) => t(`references.problem.${p.kind}`, {
             :placeholder="t('references.pastePlaceholder')"
             :rows="6"
             class="w-full font-mono text-xs"
-            autofocus
             data-testid="references-paste-input"
           />
           <div class="flex justify-end">

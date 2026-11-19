@@ -8,7 +8,7 @@ keywords:
   - markdown resume template
   - markdown meeting notes template
   - academic paper markdown template
-updated: '2026-11-09'
+updated: '2026-11-19'
 navGroup: templates
 navLabel: All templates
 navOrder: 0
@@ -41,7 +41,7 @@ items:
   - to: /templates/academic-paper
     title: Academic paper
     image: /templates/academic-paper.webp
-    text: Abstract to references, set like an arXiv preprint, with LaTeX math and footnotes. No BibTeX.
+    text: Abstract to references, set like an arXiv preprint, with LaTeX math, footnotes and citations from BibTeX.
     link: The academic paper template
   - to: /templates/business-plan
     title: Business plan

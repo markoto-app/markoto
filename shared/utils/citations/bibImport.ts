@@ -38,6 +38,32 @@ export function cslItemsFrom(list: unknown[]): { items: CslItem[], skipped: numb
   return { items, skipped }
 }
 
+function tryCslJson(text: string): BibliographyImport | null {
+  if (!text.startsWith('[') && !text.startsWith('{')) return null
+  try {
+    const list = cslList(JSON.parse(text))
+    return list ? { format: 'csl-json', ...cslItemsFrom(list) } : null
+  } catch {
+    return null
+  }
+}
+
+function tryBibtex(text: string): BibliographyImport | null {
+  if (!/@[a-z]+\s*[{(]/i.test(text)) return null
+  const bib = parseBibtex(text)
+  return bib.items.length > 0 || bib.skipped > 0 ? { format: 'bibtex', ...bib } : null
+}
+
+function tryCslYaml(text: string): BibliographyImport | null {
+  try {
+    const body = text.replace(/^---\n/, '').replace(/\n(?:---|\.\.\.)\s*$/, '')
+    const list = cslList(parseYaml(body, { maxAliasCount: 0 }))
+    return list ? { format: 'csl-yaml', ...cslItemsFrom(list) } : null
+  } catch {
+    return null
+  }
+}
+
 /**
  * Read a bibliography in any supported format: BibTeX / BibLaTeX (`.bib`,
  * Zotero's "Better BibTeX" or plain BibTeX export, a pasted entry), CSL
@@ -47,29 +73,9 @@ export function cslItemsFrom(list: unknown[]): { items: CslItem[], skipped: numb
  */
 export function parseBibliographyText(text: string): BibliographyImport {
   const src = text.length > BIBLIOGRAPHY_IMPORT_MAX_BYTES ? text.slice(0, BIBLIOGRAPHY_IMPORT_MAX_BYTES) : text
-  const trimmed = src.replace(/^﻿/, '').trim()
+  const trimmed = src.replace(/^\uFEFF/, '').trim()
   if (!trimmed) return { format: null, items: [], skipped: 0 }
-  let result: BibliographyImport | null = null
-  if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
-    try {
-      const list = cslList(JSON.parse(trimmed))
-      if (list) result = { format: 'csl-json', ...cslItemsFrom(list) }
-    } catch {
-      // Not JSON: try the other formats.
-    }
-  }
-  if (!result && /@[a-z]+\s*[{(]/i.test(trimmed)) {
-    const bib = parseBibtex(trimmed)
-    if (bib.items.length > 0 || bib.skipped > 0) result = { format: 'bibtex', ...bib }
-  }
-  if (!result) {
-    try {
-      const list = cslList(parseYaml(trimmed.replace(/^---\n/, '').replace(/\n(?:---|\.\.\.)\s*$/, ''), { maxAliasCount: 0 }))
-      if (list) result = { format: 'csl-yaml', ...cslItemsFrom(list) }
-    } catch {
-      // Not YAML either.
-    }
-  }
+  const result = tryCslJson(trimmed) ?? tryBibtex(trimmed) ?? tryCslYaml(trimmed)
   if (!result) return { format: null, items: [], skipped: 0 }
   const byKey = new Map<string, CslItem>()
   for (const item of result.items) byKey.set(item.id, item)

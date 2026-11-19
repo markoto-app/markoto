@@ -5,7 +5,7 @@ category: writing
 order: 1
 featured: true
 icon: i-lucide-file-text
-updated: '2026-11-06'
+updated: '2026-11-19'
 ---
 
 # Markdown reference
@@ -162,6 +162,14 @@ flowchart LR
 Supported: flowchart, sequence, class, state, ER, Gantt, pie, mind map, Git
 graph and timeline diagrams.
 
+## Citations and cross-references
+
+- `[@key]`, `[@key, p. 12]`, `[see @a; @b]`, `[-@key]` and `@key` cite sources from the document's bibliography; `[[bibliography]]` places the reference list.
+- `{#fig:x}`, `{#tbl:x}`, `{#eq:x}` and `{#sec:x}` label a figure, table, equation or section; `@fig:x` refers to it ("Figure 1").
+- `[[lof]]` and `[[lot]]` insert a list of figures and a list of tables.
+
+Details: [Citations, bibliography and cross-references](/docs/writing/citations).
+
 ## Table of contents and page breaks
 
 - `[[toc]]` on its own line inserts a table of contents of headings 1 to 4, with page numbers in the PDF.
@@ -183,4 +191,5 @@ for it.
 ## What's next
 
 - [Tables, alerts, math, and diagrams](/docs/writing/rich-content): insert them from the menu.
+- [Citations, bibliography and cross-references](/docs/writing/citations): cite sources and number figures.
 - [Pick a theme](/docs/themes/pick-a-theme): how the result looks on the page.

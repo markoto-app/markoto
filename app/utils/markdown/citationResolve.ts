@@ -235,94 +235,127 @@ function headingNumbers(root: DocumentFragment, theme: DocTheme): Map<Element, s
   return out
 }
 
-export function resolveCrossrefs(bodyHtml: string, theme: DocTheme, locale: string, captionLabels: CaptionLabels): { html: string, problems: ReferenceProblem[] } {
-  const hasLabel = /(?:id|data-markoto-label)="(?:fig|tbl|eq|sec):/.test(bodyHtml)
-  if (!hasLabel && !bodyHtml.includes(CITE_CLASS) && !bodyHtml.includes(LIST_SLOT_CLASS)) return { html: bodyHtml, problems: [] }
-  const tpl = parse(bodyHtml)
-  const root = tpl.content
-  const doc = root.ownerDocument
-  const problems: ReferenceProblem[] = []
-  const captions = resolveCaptions(theme)
-  const chapterMode = captions.numbering === 'chapter'
-
-  // Labels.
+/** Labels in the document (`{#fig:x}` ids, `{#sec:x}` heading labels); duplicates reported. */
+function collectLabels(root: DocumentFragment, problems: ReferenceProblem[]): Map<string, Element> {
   const labels = new Map<string, Element>()
   for (const el of Array.from(root.querySelectorAll(`[id], [${LABEL_ATTR}]`))) {
     const id = el.getAttribute(LABEL_ATTR) ?? el.id
     if (!crossrefKind(id)) continue
-    if (labels.has(id)) {
-      problems.push({ kind: 'duplicate-label', key: id })
-      continue
+    if (labels.has(id)) problems.push({ kind: 'duplicate-label', key: id })
+    else labels.set(id, el)
+  }
+  return labels
+}
+
+interface Numbered { el: Element, number: string }
+
+interface NumberingInput {
+  doc: Document
+  root: DocumentFragment
+  labels: Map<string, Element>
+  theme: DocTheme
+  captionLabels: CaptionLabels
+  /** `[[lof]]` / `[[lot]]` present. */
+  lists: { lof: boolean, lot: boolean }
+}
+
+interface NumberingResult {
+  targets: Map<string, Target>
+  figures: Numbered[]
+  tables: Numbered[]
+}
+
+/**
+ * Walks figures, tables and labelled equations in document order and
+ * numbers them like the theme prints captions (per chapter with
+ * `blocks.captionNumbering: 'chapter'`).
+ */
+class CaptionNumberer {
+  readonly result: NumberingResult = { targets: new Map(), figures: [], tables: [] }
+  private chapter = 0
+  private inChapter = false
+  private counts = { fig: 0, tbl: 0, eq: 0 }
+  private readonly chapterMode: boolean
+  private readonly numberFigures: boolean
+  private readonly numberTables: boolean
+  private readonly labelFor = new Map<Element, string>()
+  private readonly captions: ReturnType<typeof resolveCaptions>
+
+  constructor(private readonly input: NumberingInput) {
+    this.captions = resolveCaptions(input.theme)
+    this.chapterMode = this.captions.numbering === 'chapter'
+    const labelled = (k: CrossrefKind) => [...input.labels.keys()].some(l => crossrefKind(l) === k)
+    // Which captions carry numbers: all, when the theme labels them or the
+    // document refers to / lists them; CSS counters then count the same set.
+    this.numberFigures = this.captions.figureLabel || labelled('fig') || input.lists.lof
+    this.numberTables = this.captions.tableLabel || labelled('tbl') || input.lists.lot
+    // The element a label names: a figure's label sits on its <img>.
+    for (const [label, el] of input.labels) {
+      this.labelFor.set(crossrefKind(label) === 'fig' ? (el.closest('figure') ?? el) : el, label)
     }
-    labels.set(id, el)
-  }
-  const kindOf = (label: string) => crossrefKind(label)
-  const labelled = (k: CrossrefKind) => [...labels.keys()].some(l => kindOf(l) === k)
-  const slots = Array.from(root.querySelectorAll(`nav.${LIST_SLOT_CLASS}`))
-  const wantsList = (kind: 'lof' | 'lot') => slots.some(s => s.getAttribute('data-markoto-list') === kind)
-  // Which captions carry numbers: all, when the theme labels them or the
-  // document refers to / lists them; CSS counters then count the same set.
-  const numberFigures = captions.figureLabel || labelled('fig') || wantsList('lof')
-  const numberTables = captions.tableLabel || labelled('tbl') || wantsList('lot')
-
-  // The element a label names: a figure's label sits on its <img>.
-  const figureOf = (el: Element) => el.closest('figure') ?? el
-  const labelFor = new Map<Element, string>()
-  for (const [label, el] of labels) {
-    const k = kindOf(label)
-    labelFor.set(k === 'fig' ? figureOf(el) : el, label)
   }
 
-  const targets = new Map<string, Target>()
-  const figures: Array<{ el: Element, number: string }> = []
-  const tables: Array<{ el: Element, number: string }> = []
-  let chapter = 0
-  let inChapter = false
-  let nFig = 0
-  let nTbl = 0
-  let nEq = 0
-  const numberOf = (n: number) => (chapterMode && inChapter ? `${chapter}.${n}` : String(n))
-  const ordered = root.querySelectorAll(`.${SECTION_HEADING_CLASS}, figure, table, div.${EQUATION_CLASS}, img[id^="fig:"]`)
-  for (const el of Array.from(ordered)) {
+  run(): NumberingResult {
+    const ordered = this.input.root.querySelectorAll(`.${SECTION_HEADING_CLASS}, figure, table, div.${EQUATION_CLASS}, img[id^="fig:"]`)
+    for (const el of Array.from(ordered)) this.visit(el)
+    return this.result
+  }
+
+  private next(kind: 'fig' | 'tbl' | 'eq'): string {
+    const n = ++this.counts[kind]
+    return this.chapterMode && this.inChapter ? `${this.chapter}.${n}` : String(n)
+  }
+
+  private visit(el: Element): void {
     if (el.classList.contains(SECTION_HEADING_CLASS)) {
-      inChapter = !el.classList.contains(UNNUMBERED_CLASS)
-      if (inChapter) chapter++
-      nFig = 0
-      nTbl = 0
-      nEq = 0
-      continue
+      this.inChapter = !el.classList.contains(UNNUMBERED_CLASS)
+      if (this.inChapter) this.chapter++
+      this.counts = { fig: 0, tbl: 0, eq: 0 }
+      return
     }
-    if (el.tagName === 'IMG' && el.closest('figure')) continue
-    const label = labelFor.get(el)
-    if (el.tagName === 'FIGURE' || el.tagName === 'IMG') {
-      const caption = el.tagName === 'FIGURE' ? el.querySelector(':scope > figcaption') : null
-      const hasText = !!caption && caption.childNodes.length > 0
-      if (!numberFigures || (!hasText && !label)) continue
-      const number = numberOf(++nFig)
-      figures.push({ el, number })
-      if (label) targets.set(label, { kind: 'fig', el, number })
-      labelCaption(doc, el, caption, captions.figureLabel, `${captionLabels.figure} ${number}`, captionLabels.separator)
-    } else if (el.tagName === 'TABLE') {
-      const caption = el.querySelector(':scope > caption')
-      const hasText = !!caption && caption.childNodes.length > 0
-      if (!numberTables || (!hasText && !label)) continue
-      const number = numberOf(++nTbl)
-      tables.push({ el, number })
-      if (label) targets.set(label, { kind: 'tbl', el, number })
-      labelCaption(doc, el, caption, captions.tableLabel, `${captionLabels.table} ${number}`, captionLabels.separator)
-    } else if (label) {
-      const number = `(${numberOf(++nEq)})`
-      el.setAttribute('data-markoto-number', number)
-      targets.set(label, { kind: 'eq', el, number })
-    }
+    if (el.tagName === 'IMG' && el.closest('figure')) return
+    const label = this.labelFor.get(el)
+    if (el.tagName === 'FIGURE' || el.tagName === 'IMG') this.figure(el, label)
+    else if (el.tagName === 'TABLE') this.table(el, label)
+    else if (label) this.equation(el, label)
   }
-  const sectionNumbers = headingNumbers(root, theme)
-  for (const [label, el] of labels) {
-    if (kindOf(label) !== 'sec') continue
-    targets.set(label, { kind: 'sec', el, number: sectionNumbers.get(el) ?? '', title: (el.textContent ?? '').trim() })
+
+  private figure(el: Element, label: string | undefined): void {
+    const caption = el.tagName === 'FIGURE' ? el.querySelector(':scope > figcaption') : null
+    if (!this.numberFigures || (!hasContent(caption) && !label)) return
+    const number = this.next('fig')
+    this.result.figures.push({ el, number })
+    if (label) this.result.targets.set(label, { kind: 'fig', el, number })
+    const { captionLabels: labels } = this.input
+    labelCaption(this.input.doc, el, caption, this.captions.figureLabel, `${labels.figure} ${number}`, labels.separator)
   }
-  // Ids without ':' (paged.js reads `#…` hrefs as selectors); links to the
-  // old id (the TOC's, for a labelled heading) follow.
+
+  private table(el: Element, label: string | undefined): void {
+    const caption = el.querySelector(':scope > caption')
+    if (!this.numberTables || (!hasContent(caption) && !label)) return
+    const number = this.next('tbl')
+    this.result.tables.push({ el, number })
+    if (label) this.result.targets.set(label, { kind: 'tbl', el, number })
+    const { captionLabels: labels } = this.input
+    labelCaption(this.input.doc, el, caption, this.captions.tableLabel, `${labels.table} ${number}`, labels.separator)
+  }
+
+  private equation(el: Element, label: string): void {
+    const number = `(${this.next('eq')})`
+    el.setAttribute('data-markoto-number', number)
+    this.result.targets.set(label, { kind: 'eq', el, number })
+  }
+}
+
+function hasContent(el: Element | null): boolean {
+  return !!el && el.childNodes.length > 0
+}
+
+/**
+ * Ids without ':' (paged.js reads `#…` hrefs as selectors); links to the
+ * old id (the TOC's, for a labelled heading) follow.
+ */
+function renameLabelIds(root: DocumentFragment, labels: Map<string, Element>, targets: Map<string, Target>): void {
   const renamed = new Map<string, string>()
   for (const [label, t] of targets) {
     // A labelled heading keeps its slug id (the TOC links to it).
@@ -342,46 +375,68 @@ export function resolveCrossrefs(bodyHtml: string, theme: DocTheme, locale: stri
     const next = renamed.get((a.getAttribute('href') ?? '').slice(1))
     if (next) a.setAttribute('href', `#${next}`)
   }
+}
 
-  // References.
+/** One `[[lof]]` / `[[lot]]` entry: linked label + caption text. */
+function listEntry(doc: Document, kind: 'lof' | 'lot', entry: Numbered, idx: number, captionLabels: CaptionLabels): HTMLLIElement {
+  const { el, number } = entry
+  if (!el.id) el.id = `xref-${kind}-${idx + 1}`
+  const caption = el.querySelector(kind === 'lof' ? ':scope > figcaption' : ':scope > caption')
+  const li = doc.createElement('li')
+  const a = doc.createElement('a')
+  a.setAttribute('href', `#${el.id}`)
+  const num = doc.createElement('span')
+  num.className = 'markoto-list-number'
+  num.textContent = `${kind === 'lof' ? captionLabels.figure : captionLabels.table} ${number}`
+  const text = doc.createElement('span')
+  text.className = 'markoto-list-text'
+  const clone = caption?.cloneNode(true) as Element | undefined
+  clone?.querySelectorAll(`.${CAPTION_LABEL_CLASS}`).forEach(n => n.remove())
+  text.textContent = (clone?.textContent ?? '').trim()
+  a.append(num, text)
+  li.append(a)
+  return li
+}
+
+function fillList(doc: Document, slot: Element, numbering: NumberingResult, locale: string, captionLabels: CaptionLabels): void {
+  const kind = slot.getAttribute('data-markoto-list') === 'lot' ? 'lot' : 'lof'
+  const entries = kind === 'lof' ? numbering.figures : numbering.tables
+  const nav = doc.createElement('nav')
+  nav.className = `markoto-list markoto-${kind}`
+  const title = doc.createElement('div')
+  title.className = 'markoto-list-title'
+  title.textContent = listTitle(kind, locale)
+  const ul = doc.createElement('ul')
+  entries.forEach((entry, idx) => ul.append(listEntry(doc, kind, entry, idx, captionLabels)))
+  nav.append(title, ul)
+  slot.replaceWith(nav)
+}
+
+export function resolveCrossrefs(bodyHtml: string, theme: DocTheme, locale: string, captionLabels: CaptionLabels): { html: string, problems: ReferenceProblem[] } {
+  const hasLabel = /(?:id|data-markoto-label)="(?:fig|tbl|eq|sec):/.test(bodyHtml)
+  if (!hasLabel && !bodyHtml.includes(CITE_CLASS) && !bodyHtml.includes(LIST_SLOT_CLASS)) return { html: bodyHtml, problems: [] }
+  const tpl = parse(bodyHtml)
+  const root = tpl.content
+  const doc = root.ownerDocument
+  const problems: ReferenceProblem[] = []
+  const labels = collectLabels(root, problems)
+  const slots = Array.from(root.querySelectorAll(`nav.${LIST_SLOT_CLASS}`))
+  const wantsList = (kind: 'lof' | 'lot') => slots.some(s => s.getAttribute('data-markoto-list') === kind)
+  const numbering = new CaptionNumberer({ doc, root, labels, theme, captionLabels, lists: { lof: wantsList('lof'), lot: wantsList('lot') } }).run()
+  const { targets } = numbering
+  const sectionNumbers = headingNumbers(root, theme)
+  for (const [label, el] of labels) {
+    if (crossrefKind(label) !== 'sec') continue
+    targets.set(label, { kind: 'sec', el, number: sectionNumbers.get(el) ?? '', title: (el.textContent ?? '').trim() })
+  }
+  renameLabelIds(root, labels, targets)
   for (const el of Array.from(root.querySelectorAll(`span.${CITE_CLASS}[data-cite]`))) {
     const data = citeData(el)
     const first = data?.refs[0]
     if (!data || !first || !crossrefKind(first.key)) continue
     el.replaceWith(renderXref(doc, data, targets, locale, captionLabels, problems))
   }
-
-  // Lists of figures / tables.
-  for (const slot of slots) {
-    const kind = slot.getAttribute('data-markoto-list') === 'lot' ? 'lot' : 'lof'
-    const entries = kind === 'lof' ? figures : tables
-    const nav = doc.createElement('nav')
-    nav.className = `markoto-list markoto-${kind}`
-    const title = doc.createElement('div')
-    title.className = 'markoto-list-title'
-    title.textContent = listTitle(kind, locale)
-    const ul = doc.createElement('ul')
-    entries.forEach(({ el, number }, idx) => {
-      if (!el.id) el.id = `xref-${kind}-${idx + 1}`
-      const caption = el.querySelector(kind === 'lof' ? ':scope > figcaption' : ':scope > caption')
-      const li = doc.createElement('li')
-      const a = doc.createElement('a')
-      a.setAttribute('href', `#${el.id}`)
-      const num = doc.createElement('span')
-      num.className = 'markoto-list-number'
-      num.textContent = `${kind === 'lof' ? captionLabels.figure : captionLabels.table} ${number}`
-      const text = doc.createElement('span')
-      text.className = 'markoto-list-text'
-      const clone = caption?.cloneNode(true) as Element | undefined
-      clone?.querySelectorAll(`.${CAPTION_LABEL_CLASS}`).forEach(n => n.remove())
-      text.textContent = (clone?.textContent ?? '').trim()
-      a.append(num, text)
-      li.append(a)
-      ul.append(li)
-    })
-    nav.append(title, ul)
-    slot.replaceWith(nav)
-  }
+  for (const slot of slots) fillList(doc, slot, numbering, locale, captionLabels)
   return { html: serialize(tpl), problems }
 }
 

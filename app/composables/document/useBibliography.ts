@@ -48,19 +48,21 @@ export function useBibliography(ydoc: Y.Doc, ymeta: Y.Map<unknown>, isReadOnly: 
 
   /** Add entries; an existing key is replaced (the import is the newer source). */
   function addItems(next: readonly CslItem[]): AddResult {
-    const result: AddResult = { added: 0, replaced: 0, dropped: 0 }
-    if (isReadOnly.value || next.length === 0) return result
+    if (isReadOnly.value || next.length === 0) return { added: 0, replaced: 0, dropped: 0 }
+    let added = 0
+    let replaced = 0
+    let dropped = 0
     ydoc.transact(() => {
       for (const item of next) {
-        if (map.has(item.id)) result.replaced++
+        if (map.has(item.id)) replaced++
         else if (map.size >= BIBLIOGRAPHY_MAX_ENTRIES) {
-          result.dropped++
+          dropped++
           continue
-        } else result.added++
+        } else added++
         map.set(item.id, serializeItem(item))
       }
     }, BIBLIOGRAPHY_ORIGIN)
-    return result
+    return { added, replaced, dropped }
   }
 
   function removeItem(key: string) {

@@ -8,7 +8,7 @@ keywords:
   - overleaf alternative markdown
   - obsidian alternative
   - typora alternative
-updated: '2026-11-04'
+updated: '2026-11-19'
 navGroup: compare
 navLabel: All comparisons
 navOrder: 0
@@ -32,13 +32,13 @@ HedgeDoc is AGPL open source, has slide mode and is less to run on your own serv
 
 ## Overleaf
 
-Overleaf is the right tool for LaTeX, BibTeX and journal templates; markoto suits people who would rather write Markdown and still get a paged PDF, with collaborators on the free plan.
+Overleaf is the right tool for LaTeX and journal templates; markoto suits people who would rather write Markdown and still get a paged PDF, with collaborators on the free plan.
 
 [markoto vs Overleaf: the full comparison](/compare/overleaf)
 
 ## Google Docs
 
-Google Docs wins on familiarity, suggesting mode, offline use and citations; markoto keeps the text as Markdown, lays it out with print themes, and can be self-hosted or used on EU infrastructure.
+Google Docs wins on familiarity, suggesting mode and offline use; markoto keeps the text as Markdown, lays it out with print themes, and can be self-hosted or used on EU infrastructure.
 
 [markoto vs Google Docs: the full comparison](/compare/google-docs)
 
@@ -56,13 +56,13 @@ Typora is a polished desktop editor that formats as you type, for a one-time pri
 
 ## Typst
 
-Typst is a typesetting language with far more layout control and real bibliographies; markoto asks you to learn nothing beyond Markdown and has comments and history on the free plan.
+Typst is a typesetting language with far more layout control and every CSL citation style; markoto asks you to learn nothing beyond Markdown and has comments and history on the free plan.
 
 [markoto vs Typst: the full comparison](/compare/typst)
 
 ## What markoto doesn't do
 
-So you can rule it out quickly: markoto has no slide mode, no GitHub or Git sync, no citations or BibTeX, no suggestion or track-changes mode, no offline editing and no end-to-end encryption. It is source-available under the Functional Source License (FSL-1.1, Apache-2.0 two years after each release), not OSI open source.
+So you can rule it out quickly: markoto has no slide mode, no GitHub or Git sync, no citation styles beyond its six built-in ones, no suggestion or track-changes mode, no offline editing and no end-to-end encryption. It is source-available under the Functional Source License (FSL-1.1, Apache-2.0 two years after each release), not OSI open source.
 
 ::cta{title="Try it with your own Markdown." secondary-label="Read the docs" secondary-to="/docs"}
 Free on markoto.app, no sign-up needed.

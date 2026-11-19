@@ -132,19 +132,30 @@ class Reader {
   }
 }
 
+/** A bare value word: a number, a `@string` macro, a month name, else the word itself. */
+function bareWord(word: string, macros: Map<string, string>): string {
+  if (/^\d+$/.test(word)) return word
+  const lower = word.toLowerCase()
+  const macro = macros.get(lower)
+  if (macro !== undefined) return macro
+  const month = MONTHS[lower.slice(0, 3)]
+  return month && lower.length <= 9 ? String(month) : word
+}
+
+function readPart(r: Reader, macros: Map<string, string>): string {
+  const ch = r.peek()
+  if (ch === '{') return r.braced()
+  if (ch === '"') return r.quoted()
+  const word = r.ident()
+  if (!word) throw new Error('expected a value')
+  return bareWord(word, macros)
+}
+
 function readValue(r: Reader, macros: Map<string, string>): string {
   const parts: string[] = []
   for (;;) {
     r.skipSpace()
-    const ch = r.peek()
-    if (ch === '{') parts.push(r.braced())
-    else if (ch === '"') parts.push(r.quoted())
-    else {
-      const word = r.ident()
-      if (!word) throw new Error('expected a value')
-      const lower = word.toLowerCase()
-      parts.push(/^\d+$/.test(word) ? word : (macros.get(lower) ?? (MONTHS[lower.slice(0, 3)] && lower.length <= 9 ? String(MONTHS[lower.slice(0, 3)]) : word)))
-    }
+    parts.push(readPart(r, macros))
     r.skipSpace()
     if (r.peek() !== '#') return parts.join('')
     r.pos++
@@ -218,7 +229,7 @@ export function latexToUnicode(input: string): string {
     .replace(/\\\\/g, ' ')
     .replace(/---/g, '\u2014')
     .replace(/--/g, '–')
-    .replace(/~/g, ' ')
+    .replace(/~/g, '\u00A0')
     .replace(/``|''/g, '"')
     .replace(/\\[a-zA-Z]+/g, '')
     .replace(/[{}]/g, '')
@@ -295,19 +306,26 @@ export function parseBibtexName(raw: string): CslName | null {
     return { literal: latexToUnicode(name) }
   }
   const commaParts = splitTopLevel(name, ',')
-  const clean = (s: string | undefined) => (s ? latexToUnicode(s) : '')
-  if (commaParts.length >= 2) {
-    // von Last, Jr, First  |  von Last, First
-    const lastWords = words(commaParts[0] ?? '')
-    const particle = lastWords.filter((w, i) => i < lastWords.length - 1 && isLowerWord(w))
-    const family = lastWords.slice(particle.length).join(' ')
-    const given = commaParts.length >= 3 ? commaParts.slice(2).join(', ') : commaParts[1]
-    const out: CslName = { family: clean(family), given: clean(given) }
-    if (particle.length > 0) out['non-dropping-particle'] = clean(particle.join(' '))
-    if (commaParts.length >= 3 && commaParts[1]) out.suffix = clean(commaParts[1])
-    return out.family ? trimName(out) : null
-  }
-  // First von Last
+  return commaParts.length >= 2 ? invertedName(commaParts) : firstVonLast(name)
+}
+
+const cleanPart = (s: string | undefined) => (s ? latexToUnicode(s) : '')
+
+/** `von Last, Jr, First` | `von Last, First`. */
+function invertedName(commaParts: string[]): CslName | null {
+  const lastWords = words(commaParts[0] ?? '')
+  const particle = lastWords.filter((w, i) => i < lastWords.length - 1 && isLowerWord(w))
+  const family = lastWords.slice(particle.length).join(' ')
+  const given = commaParts.length >= 3 ? commaParts.slice(2).join(', ') : commaParts[1]
+  const out: CslName = { family: cleanPart(family), given: cleanPart(given) }
+  if (particle.length > 0) out['non-dropping-particle'] = cleanPart(particle.join(' '))
+  if (commaParts.length >= 3 && commaParts[1]) out.suffix = cleanPart(commaParts[1])
+  return out.family ? trimName(out) : null
+}
+
+/** `First von Last`. */
+function firstVonLast(name: string): CslName {
+  const clean = cleanPart
   const ws = words(name)
   if (ws.length === 1) return { family: clean(ws[0]) }
   const vonStart = ws.findIndex((w, i) => i > 0 && i < ws.length - 1 && isLowerWord(w))
@@ -373,7 +391,7 @@ function toCsl(type: string, key: string, fields: Map<string, string>): Record<s
     set('number', text('number'))
     set('issue', text('issue'))
   }
-  set('page', text('pages')?.replace(/\s*[-–]+\s*/g, '-'))
+  set('page', text('pages')?.split(/[-–]+/).map(p => p.trim()).join('-'))
   set('edition', text('edition'))
   set('DOI', text('doi'))
   set('URL', text('url') ?? (text('howpublished')?.startsWith('http') ? text('howpublished') : undefined))
@@ -395,6 +413,27 @@ function toCsl(type: string, key: string, fields: Map<string, string>): Record<s
   return out
 }
 
+/**
+ * The entry body after `@type`, at its opening delimiter: the item, null
+ * for an unusable entry, undefined for a `@string` definition (stored in
+ * `macros`). Throws on a syntax error.
+ */
+function readEntry(r: Reader, type: string, close: string, macros: Map<string, string>): CslItem | null | undefined {
+  r.pos++
+  if (type === 'string') {
+    for (const [k, v] of readFields(r, close, macros)) macros.set(k, v)
+    return undefined
+  }
+  r.skipSpace()
+  const keyMatch = /^[^,\s{}()]*/.exec(r.src.slice(r.pos, r.pos + 300))
+  const key = keyMatch?.[0] ?? ''
+  r.pos += key.length
+  r.skipSpace()
+  if (r.peek() === ',') r.pos++
+  const fields = readFields(r, close, macros)
+  return normalizeCslItem(toCsl(type, key, fields))
+}
+
 export function parseBibtex(src: string): BibtexResult {
   const r = new Reader(src)
   const macros = new Map<string, string>()
@@ -412,25 +451,11 @@ export function parseBibtex(src: string): BibtexResult {
       skipGroup(r)
       continue
     }
-    const close = open === '(' ? ')' : '}'
     const entryStart = r.pos
     try {
-      r.pos++
-      if (type === 'string') {
-        const defs = readFields(r, close, macros)
-        for (const [k, v] of defs) macros.set(k, v)
-        continue
-      }
-      r.skipSpace()
-      const keyMatch = /^[^,\s{}()]*/.exec(src.slice(r.pos, r.pos + 300))
-      const key = keyMatch?.[0] ?? ''
-      r.pos += key.length
-      r.skipSpace()
-      if (r.peek() === ',') r.pos++
-      const fields = readFields(r, close, macros)
-      const item = normalizeCslItem(toCsl(type, key, fields))
+      const item = readEntry(r, type, open === '(' ? ')' : '}', macros)
       if (item) items.push(item)
-      else skipped++
+      else if (item === null) skipped++
     } catch {
       skipped++
       r.pos = entryStart + 1

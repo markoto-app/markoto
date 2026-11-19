@@ -7,8 +7,10 @@ import type { CrossrefKind } from './citeSyntax'
  */
 type Forms = Readonly<Record<CrossrefKind, readonly [string, string]>>
 
+const WORDS_EN: { forms: Forms, and: string } = { forms: { fig: ['Figure', 'Figures'], tbl: ['Table', 'Tables'], eq: ['Equation', 'Equations'], sec: ['Section', 'Sections'] }, and: 'and' }
+
 const WORDS: Record<string, { forms: Forms, and: string }> = {
-  en: { forms: { fig: ['Figure', 'Figures'], tbl: ['Table', 'Tables'], eq: ['Equation', 'Equations'], sec: ['Section', 'Sections'] }, and: 'and' },
+  en: WORDS_EN,
   de: { forms: { fig: ['Abbildung', 'Abbildungen'], tbl: ['Tabelle', 'Tabellen'], eq: ['Gleichung', 'Gleichungen'], sec: ['Abschnitt', 'Abschnitte'] }, and: 'und' },
   fr: { forms: { fig: ['Figure', 'Figures'], tbl: ['Tableau', 'Tableaux'], eq: ['Équation', 'Équations'], sec: ['Section', 'Sections'] }, and: 'et' },
   es: { forms: { fig: ['Figura', 'Figuras'], tbl: ['Tabla', 'Tablas'], eq: ['Ecuación', 'Ecuaciones'], sec: ['Sección', 'Secciones'] }, and: 'y' },
@@ -20,7 +22,7 @@ const WORDS: Record<string, { forms: Forms, and: string }> = {
 }
 
 function wordsFor(locale: string) {
-  return WORDS[(locale.split('-')[0] ?? 'en').toLowerCase()] ?? WORDS.en!
+  return WORDS[(locale.split('-')[0] ?? 'en').toLowerCase()] ?? WORDS_EN
 }
 
 /** Whether the language writes the number without a space after the word (CJK). */
@@ -34,7 +36,7 @@ export function crossrefText(kind: CrossrefKind, numbers: readonly string[], loc
   // A language without its own words here: the caption label the theme prints ("Rysunek") for both forms.
   const known = (locale.split('-')[0] ?? 'en').toLowerCase() in WORDS
   const [one, many] = !known && captionWord ? [captionWord, captionWord] : forms[kind]
-  const sep = tight(locale) ? '' : ' '
+  const sep = tight(locale) ? '' : '\u00A0'
   if (numbers.length <= 1) return `${one}${sep}${numbers[0] ?? ''}`
   const list = numbers.length === 2
     ? `${numbers[0]} ${and} ${numbers[1]}`
@@ -48,8 +50,10 @@ export function crossrefWord(kind: CrossrefKind, locale: string): string {
 }
 
 /** List-of-figures / list-of-tables heading. */
+const LIST_TITLES_EN = ['List of Figures', 'List of Tables'] as const
+
 const LIST_TITLES: Record<string, readonly [string, string]> = {
-  en: ['List of Figures', 'List of Tables'],
+  en: LIST_TITLES_EN,
   de: ['Abbildungsverzeichnis', 'Tabellenverzeichnis'],
   fr: ['Table des figures', 'Liste des tableaux'],
   es: ['Índice de figuras', 'Índice de tablas'],
@@ -61,7 +65,7 @@ const LIST_TITLES: Record<string, readonly [string, string]> = {
 }
 
 export function listTitle(kind: 'lof' | 'lot', locale: string): string {
-  const titles = LIST_TITLES[(locale.split('-')[0] ?? 'en').toLowerCase()] ?? LIST_TITLES.en!
+  const titles = LIST_TITLES[(locale.split('-')[0] ?? 'en').toLowerCase()] ?? LIST_TITLES_EN
   return kind === 'lof' ? titles[0] : titles[1]
 }
 

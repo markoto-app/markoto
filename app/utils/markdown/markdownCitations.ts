@@ -108,7 +108,54 @@ function slotRule(state: StateBlock, startLine: number, _endLine: number, silent
   return true
 }
 
-const EQ_LABEL = /\$\$\s*\{#(eq:[\p{L}\p{N}_:.\-]+)\}\s*$/u
+const LABEL_RE = /^(?:eq|tbl):[\p{L}\p{N}_:.-]+$/u
+
+/**
+ * A `{#eq:x}` / `{#tbl:x}` label at the end of `text` (trailing spaces
+ * allowed): the label and the text before it (right-trimmed), or null.
+ */
+function trailingLabel(text: string, kind: 'eq' | 'tbl'): { label: string, before: string } | null {
+  const t = text.trimEnd()
+  if (!t.endsWith('}')) return null
+  const open = t.lastIndexOf('{#')
+  if (open < 0) return null
+  const label = t.slice(open + 2, -1)
+  if (!LABEL_RE.test(label) || !label.startsWith(`${kind}:`)) return null
+  return { label, before: t.slice(0, open).trimEnd() }
+}
+
+interface LabelledMath { label: string, content: string, last: number }
+
+/** `$$ x $$ {#eq:a}` on one line. */
+function singleLineEquation(firstLine: string, startLine: number): LabelledMath | null {
+  const found = trailingLabel(firstLine, 'eq')
+  if (!found?.before.endsWith('$$') || found.before.length <= 4) return null
+  return { label: found.label, content: `${found.before.slice(2, -2).trim()}\n`, last: startLine }
+}
+
+function lineText(state: StateBlock, line: number): string {
+  const ls = (state.bMarks[line] ?? 0) + (state.tShift[line] ?? 0)
+  return state.src.slice(ls, state.eMarks[line] ?? 0)
+}
+
+/** `$$`, lines, `$$ {#eq:a}`: the closing line carries the label. */
+function multiLineEquation(state: StateBlock, firstLine: string, startLine: number, endLine: number): LabelledMath | null {
+  if (firstLine.slice(2).includes('$$')) return null
+  const lines: string[] = [firstLine.slice(2)]
+  for (let line = startLine + 1; line < endLine; line++) {
+    const text = lineText(state, line)
+    if (!text.includes('$$')) {
+      lines.push(text)
+      continue
+    }
+    const found = trailingLabel(text, 'eq')
+    if (!found?.before.endsWith('$$')) return null
+    lines.push(found.before.slice(0, -2))
+    const kept = lines.map(l => l.trimEnd()).filter((l, i, a) => l !== '' || (i > 0 && i < a.length - 1))
+    return { label: found.label, content: `${kept.join('\n').trim()}\n`, last: line }
+  }
+  return null
+}
 
 /**
  * Labelled display math: the math block rule of @mdit/plugin-tex needs the
@@ -118,47 +165,22 @@ const EQ_LABEL = /\$\$\s*\{#(eq:[\p{L}\p{N}_:.\-]+)\}\s*$/u
  */
 function labelledEquation(state: StateBlock, startLine: number, endLine: number, silent: boolean): boolean {
   if ((state.sCount[startLine] ?? 0) - state.blkIndent >= 4) return false
-  const start = (state.bMarks[startLine] ?? 0) + (state.tShift[startLine] ?? 0)
-  const firstLine = state.src.slice(start, state.eMarks[startLine] ?? 0)
+  const firstLine = lineText(state, startLine)
   if (!firstLine.startsWith('$$')) return false
-  let label: string | null = null
-  let content = ''
-  let last = startLine
-  const single = /^\$\$(.+?)\$\$\s*\{#(eq:[\p{L}\p{N}_:.\-]+)\}\s*$/u.exec(firstLine)
-  if (single) {
-    label = single[2] ?? null
-    content = `${(single[1] ?? '').trim()}\n`
-  } else {
-    if (firstLine.slice(2).includes('$$')) return false
-    const lines: string[] = [firstLine.slice(2)]
-    for (let line = startLine + 1; line < endLine; line++) {
-      const ls = (state.bMarks[line] ?? 0) + (state.tShift[line] ?? 0)
-      const text = state.src.slice(ls, state.eMarks[line] ?? 0)
-      if (text.includes('$$')) {
-        const m = EQ_LABEL.exec(text)
-        if (!m) return false
-        label = m[1] ?? null
-        lines.push(text.slice(0, m.index))
-        last = line
-        break
-      }
-      lines.push(text)
-    }
-    if (!label) return false
-    content = `${lines.map(l => l.trimEnd()).filter((l, i, a) => l !== '' || (i > 0 && i < a.length - 1)).join('\n').trim()}\n`
-  }
+  const eq = singleLineEquation(firstLine, startLine) ?? multiLineEquation(state, firstLine, startLine, endLine)
+  if (!eq) return false
   if (silent) return true
   const open = state.push('equation_open', 'div', 1)
   open.attrSet('class', EQUATION_CLASS)
-  open.attrSet('id', label ?? '')
-  open.map = [startLine, last + 1]
+  open.attrSet('id', eq.label)
+  open.map = [startLine, eq.last + 1]
   const math = state.push('math_block', 'math', 0)
   math.block = true
-  math.content = content
+  math.content = eq.content
   math.markup = '$$'
-  math.map = [startLine, last + 1]
+  math.map = [startLine, eq.last + 1]
   state.push('equation_close', 'div', -1)
-  state.line = last + 1
+  state.line = eq.last + 1
   return true
 }
 
@@ -172,16 +194,19 @@ function tableCaptionLabels(state: StateCore): void {
     if (tokens[i]?.type !== 'caption_open') continue
     const inline: Token | undefined = tokens[i + 1]
     if (inline?.type !== 'inline') continue
-    const m = /\s*\{#(tbl:[\p{L}\p{N}_:.\-]+)\}\s*$/u.exec(inline.content)
-    if (!m) continue
-    inline.content = inline.content.slice(0, m.index)
-    for (let j = i - 1; j >= 0; j--) {
-      if (tokens[j]?.type === 'table_open') {
-        tokens[j]?.attrSet('id', m[1] ?? '')
-        break
-      }
-    }
+    const found = trailingLabel(inline.content, 'tbl')
+    if (!found) continue
+    inline.content = found.before
+    tableOpenBefore(tokens, i)?.attrSet('id', found.label)
   }
+}
+
+/** The `table_open` token before index `i`. */
+function tableOpenBefore(tokens: Token[], i: number): Token | undefined {
+  for (let j = i - 1; j >= 0; j--) {
+    if (tokens[j]?.type === 'table_open') return tokens[j]
+  }
+  return undefined
 }
 
 /** Attribute carrying a heading's `{#sec:…}` label (its id stays the slug the TOC links to). */

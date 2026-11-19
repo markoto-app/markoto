@@ -70,7 +70,8 @@ export class EditorPage {
       comments: this.page.locator(sel(TESTID.SIDEBAR_TAB_COMMENTS)),
       activity: this.page.locator(sel(TESTID.SIDEBAR_TAB_ACTIVITY)),
       theme: this.page.locator(sel(TESTID.SIDEBAR_TAB_THEME)),
-      knowledge: this.page.locator(sel(TESTID.SIDEBAR_TAB_KNOWLEDGE))
+      knowledge: this.page.locator(sel(TESTID.SIDEBAR_TAB_KNOWLEDGE)),
+      references: this.page.locator(sel(TESTID.SIDEBAR_TAB_REFERENCES))
     }
   }
 

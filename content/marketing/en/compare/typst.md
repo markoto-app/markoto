@@ -7,7 +7,7 @@ keywords:
   - typst vs markdown
   - typst markdown
   - typst web app alternative
-updated: '2026-11-04'
+updated: '2026-11-19'
 navGroup: compare
 navLabel: markoto vs Typst
 navOrder: 70
@@ -29,7 +29,7 @@ Both turn plain text into well-set PDF pages, and both have a web app where seve
 ## Where Typst is better
 
 - **Layout control.** Typst is a programming language for documents: you can define functions, loop over data, compute values and build any layout a template author can imagine. markoto gives you themes, a theme editor and custom CSS, but you can't script the document.
-- **Bibliographies and citations.** Typst reads BibLaTeX `.bib` and Hayagriva files and formats citations in CSL styles. markoto has no citations yet.
+- **Citation styles.** Typst reads BibLaTeX `.bib` and Hayagriva files and formats citations in any CSL style. markoto reads BibTeX and CSL JSON too, but formats only its six built-in styles (APA, Chicago author-date, Harvard, IEEE, Vancouver, DIN 1505-2).
 - **Templates.** Typst Universe, its package collection, has templates for journal and conference papers, theses, reports, CVs and posters. markoto has a handful of templates and eight print themes.
 - **Slides.** Typst has presentation templates, and Pro adds a presentation mode in the web app. markoto makes documents, not slide decks.
 - **Offline and local.** The Typst compiler runs on your own computer from the command line, and its source is open. markoto runs only in the browser and needs a connection.
@@ -55,7 +55,7 @@ On markoto.app the free plan has no price but has limits (for example 30 days of
 
 ## Who should pick which
 
-Pick **Typst** for papers, theses and books where layout and citations matter, if you are happy to learn a new language for it, or if you are leaving LaTeX.
+Pick **Typst** for papers, theses and books where layout control and a specific citation style matter, if you are happy to learn a new language for it, or if you are leaving LaTeX.
 
 Pick **markoto** if you would rather write plain Markdown, if a print theme gives you the layout you need, or if your co-authors need comments and history without a paid plan.
 
@@ -71,7 +71,7 @@ items:
   - q: Can Typst read Markdown?
     a: Not by itself. Packages such as cmarker convert Markdown inside a Typst document. markoto works with Markdown directly.
   - q: Does markoto support citations or BibTeX?
-    a: Not yet. If your document needs a bibliography, Typst or LaTeX is the better choice today.
+    a: Yes. Import a BibTeX or CSL JSON file (for example a Zotero export), add works by DOI, cite them as [@key] and pick APA, Chicago author-date, Harvard, IEEE, Vancouver or DIN 1505-2. Other CSL styles are not available.
   - q: Is markoto easier than Typst?
     a: For people who know Markdown, yes, because there is nothing new to learn. Typst asks you to learn its markup and gives you much more control over the layout in return.
   - q: Where do the two services store data?
