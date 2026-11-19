@@ -40,7 +40,7 @@ export const ReadProjectContextArgs = z.object({
     .describe('Optional 1-indexed inclusive line range [start, end] of the context document; -1 as end reads to the end. Without it a short document is returned whole, a long one as an outline with line ranges.')
 }).describe('List or read the project context documents (the project\'s standing reference: characters, glossary, style guide, facts) that apply to this document.')
 
-export const EditProjectContextArgs = z.object({
+const EditProjectContextArgs = z.object({
   context_doc_id: contextDocId
     .describe('The context_doc_id of the context document to change (from <project_context>).'),
   old_str: z.string().max(EDIT_MAX_CHARS).optional()

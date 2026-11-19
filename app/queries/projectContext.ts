@@ -7,7 +7,7 @@ import { apiFetch } from '~/utils/api/client'
 import { invalidate } from './invalidate'
 import type { ContextScope } from '~~/shared/config/projectContext'
 
-export const projectContextKeys = {
+const projectContextKeys = {
   root: ['project-context'] as const,
   doc: (docId: string) => [...projectContextKeys.root, docId] as const
 }
