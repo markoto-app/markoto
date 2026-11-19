@@ -259,6 +259,17 @@ export default defineNuxtConfig({
     }
   },
 
+  // The explorer's drag-and-drop libraries are client-side code that SSR
+  // still imports (the composables are set up in components that render on
+  // the server). Their subpath entries (`adapter/element-adapter`, ...) are
+  // directories with their own package.json, which Nitro's NFT tracer does
+  // not copy into .output: production then failed with "Cannot find
+  // package". Bundling them into the server build avoids the external
+  // lookup entirely.
+  build: {
+    transpile: ['@atlaskit/pragmatic-drag-and-drop', '@atlaskit/pragmatic-drag-and-drop-auto-scroll']
+  },
+
   // Vite's dev server has DNS-rebinding protection that 403s any request whose
   // Host header isn't in an allowlist. The sync-server container reaches the
   // Nuxt dev server via `host.docker.internal`, so without this entry every
