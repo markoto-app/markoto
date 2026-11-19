@@ -492,7 +492,7 @@ useHead({
             @focus="onCommentPanelFocus"
             @close="closeSidebar"
           />
-          <SuggestionsSuggestionsPanel
+          <SuggestionsPanel
             v-else-if="rightSidebar === 'suggestions'"
             ref="suggestionsPanelRef"
             :doc-id="docId"

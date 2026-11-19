@@ -113,6 +113,9 @@ async function acceptAsAuthors(docId: string, chosen: readonly ResolvedSuggestio
         }
       }, `suggestion-accept:${principal}`)
       await c.acknowledged()
+      // Store now, while this author is the document's last editor: the
+      // sync server's `edit` row names whoever wrote last before a store.
+      await flushSyncDocument(docId)
       return n
     })
   }
