@@ -41,6 +41,13 @@ describe('buildCallUsageRecord', () => {
   it('defaults missing values to zero / null', () => {
     const r = buildCallUsageRecord({ sessionId: 's', turn: 1, requestedModel: 'm', startedAt: 5, endedAt: 4, phase: 'closing' })
     expect(r).toMatchObject({ docId: null, providerModel: null, promptTokens: 0, cachedTokens: 0, outputTokens: 0, reasoningTokens: 0, latencyMs: 0, firstTokenMs: null, finishReason: null, retry: false, phase: 'closing' })
+    expect(r).not.toHaveProperty('tools')
+  })
+
+  it('names the tools the call asked for, so a session can be read from the log', () => {
+    const r = buildCallUsageRecord({ sessionId: 's', turn: 4, requestedModel: 'm', startedAt: 0, endedAt: 1, tools: ['read_section', 'read_section'] })
+    expect(r.tools).toEqual(['read_section', 'read_section'])
+    expect(buildCallUsageRecord({ sessionId: 's', turn: 4, requestedModel: 'm', startedAt: 0, endedAt: 1, tools: [] })).not.toHaveProperty('tools')
   })
 })
 

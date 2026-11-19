@@ -34,6 +34,8 @@ export interface CallUsageRecord {
   finishReason: string | null
   /** This call re-requested a turn whose stream failed mid-way. */
   retry: boolean
+  /** Names of the tool calls the model made in this call (never their arguments); absent when none. */
+  tools?: string[]
 }
 
 export interface CallUsageInput {
@@ -55,6 +57,7 @@ export interface CallUsageInput {
   endedAt: number
   finishReason?: string | null
   retry?: boolean
+  tools?: readonly string[]
 }
 
 function count(n: number | undefined): number {
@@ -78,7 +81,8 @@ export function buildCallUsageRecord(input: CallUsageInput): CallUsageRecord {
     latencyMs: Math.max(0, input.endedAt - input.startedAt),
     firstTokenMs: firstChunkAt === null ? null : Math.max(0, firstChunkAt - input.startedAt),
     finishReason: input.finishReason ?? null,
-    retry: input.retry === true
+    retry: input.retry === true,
+    ...(input.tools && input.tools.length > 0 ? { tools: [...input.tools] } : {})
   }
 }
 
