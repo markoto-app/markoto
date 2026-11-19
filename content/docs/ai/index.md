@@ -19,6 +19,7 @@ what each feature needs. AI features require an account.
 - [Rewrite a selection with the AI](/docs/ai/rewrite-selection): highlight, prompt, replace.
 - [Summon the AI from a comment](/docs/ai/comments): `@markoto` mention in any thread.
 - [Tell the AI who you're writing for](/docs/ai/document-context): audience + language steering.
+- [Keep a project bible for the AI](/docs/ai/project-context): characters, glossary, style guide in every request.
 
 **Large documents and large edits**
 - [Work with long documents](/docs/ai/long-documents): ask about one section, rename a term everywhere.

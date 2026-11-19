@@ -76,6 +76,8 @@ The section tools of the loop have wrappers ([ai-tools.md](ai-tools.md), "Long d
 
 The document list, search and folder tools have wrappers too. `list_workspace_documents` (workspace builder) and `list_my_documents` are paged (`limit`, `cursor`, `folder_id`). `search_documents` and `list_folders` (class `read`, `documents:read`) and `create_folder` and `move_document` (class `write`, `documents:write`, so plans without `mcpWrite` don't get them) use the user-only builder: their `workspace_id` is optional (omitted = everything for the search, the personal folders otherwise; an MCP call has no current document) and the handler proves the role itself through the explorer (`server/utils/explorer/`). A refusal is "not found" for a missing and a forbidden document, folder or workspace alike.
 
+`read_project_context` (class `read`, `documents:read`, doc-bound) lists or reads the project context documents that apply to a document, decided for the token's user like in the editor. `edit_project_context` has no wrapper: an MCP client edits a context document with the normal edit tools and its id.
+
 Not every loop tool has a wrapper. `load_skill` has none (an MCP client brings its own instructions). `delegate_scan` and `delegate_rewrite` (delegated jobs, `server/utils/ai/jobs/`) stay in-app for now: an MCP client is its own planner and can call the section tools itself, a job's cost confirmation goes through the prompt bar (MCP has no channel to ask the person), and a job outlives the call that started it, which the MCP tool shape has no way to report. A later version may offer them as a `cost`-class tool with an explicit budget argument.
 
 ## Limits of the current design
