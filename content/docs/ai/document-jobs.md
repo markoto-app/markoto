@@ -44,6 +44,8 @@ expected time, for example *Translate 4 sections to English, about 1 min
 (about 3 % of this month's AI allowance).* With your own AI provider it
 shows an estimate in tokens instead, since your provider bills you.
 
+In the editor's prompt bar the card always asks. When a job is started where nobody can be asked right away (an `@markoto` comment or a connected app), a small job starts at once and only a larger one asks first: more than 30 parts, more than about $0.05, or more than a tenth of what is left of your AI allowance.
+
 - **Start** runs the edit.
 - **Cancel** changes nothing. You can type a short note first (*"only chapter 3"*), and the AI follows it instead.
 - No answer within about a minute and a half counts as Cancel.

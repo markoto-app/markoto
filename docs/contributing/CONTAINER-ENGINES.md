@@ -61,6 +61,8 @@ Fix: set `CONTAINER_HOST_ADDRESS` to a real private address of the host (your Wi
 
 ## Hosted deployment
 
+_Operator docs for the hosted markoto.app deployment. Self-hosters can skip this section; it records how that one deployment is set up._
+
 Staging and prod are Debian 13 VPSs running the stack on rootless Podman
 5.4 as the unprivileged `markoto` user. Provisioning (Ansible,
 `infra/playbooks/provision.yml`) installs Debian's Podman and pasta, the

@@ -1,6 +1,6 @@
 # Testing
 
-markoto has seven test tiers. Six run under Vitest (`vitest.config.ts` defines one Vitest project per tier); the browser flows run under Playwright.
+markoto has seven test tiers plus a manual benchmark project. Six tiers run under Vitest (`vitest.config.ts` defines one Vitest project per tier); the browser flows run under Playwright.
 
 | Tier | Location | Runs in | Needs | Command |
 |---|---|---|---|---|
@@ -10,6 +10,7 @@ markoto has seven test tiers. Six run under Vitest (`vitest.config.ts` defines o
 | repos | `tests/repos/` | Node, serial | test Postgres + Valkey | `bun run test:repos` |
 | integration | `tests/integration/` | Node, serial, against a production build | full test stack | `bun run test:integration` |
 | e2e flows | `tests/e2e/flows/` | Playwright (Chromium) | full test stack (started for you) | `bun run flows:test` |
+| bench | `tests/bench/` | Node, offline AI benchmarks, manual only | `AI_BENCH=1` and provider keys | `bun run bench:ai` |
 | billing-sandbox | `tests/billing-sandbox/` | Node, against a production build and Stripe's test-mode API | test Postgres + Valkey + LiteLLM, `STRIPE_SANDBOX_SECRET_KEY` | `bun run test:billing-sandbox` |
 
 `bun run test` runs unit + dom + nuxt (no Docker needed). `bun run test:all` runs every Vitest project; the billing-sandbox project reports its tests as skipped unless `STRIPE_SANDBOX_SECRET_KEY` is set. `make test` runs lint, typecheck, unit, dom and repos; `make test-all` adds integration and flows.
@@ -114,7 +115,7 @@ See [flow-docs.md](flow-docs.md). `bun run flows:test` starts the test stack its
 
 ## Smoke tests
 
-`tests/smoke/` (`tests/smoke/playwright.config.ts`, `bun run smoke`) runs against a deployed instance, by default `https://staging.markoto.app`; set `PLAYWRIGHT_BASE_URL` for another. Staging sits behind a basic-auth login at the edge: set `EDGE_BASIC_AUTH_USER` and `EDGE_BASIC_AUTH_PASSWORD` to run against it. `staging-gate.yml` runs it after each staging deploy.
+`tests/smoke/` (`tests/smoke/playwright.config.ts`, `bun run smoke`) runs against a deployed instance, against the instance named by `PLAYWRIGHT_BASE_URL` (the hosted project's staging host by default). If the target sits behind a basic-auth login at the edge, set `EDGE_BASIC_AUTH_USER` and `EDGE_BASIC_AUTH_PASSWORD`. `staging-gate.yml` runs it after each staging deploy.
 
 ## Coverage
 

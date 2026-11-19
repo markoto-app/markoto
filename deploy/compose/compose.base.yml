@@ -74,7 +74,7 @@ services:
       - pg_data:/var/lib/postgresql
       # `/docker-entrypoint-initdb.d/` runs once on a fresh data dir,
       # used to create the `litellm` DB alongside the app DB. For
-      # already-initialised volumes, the litellm-db-init one-shot service
+      # already-initialised volumes, the db-init one-shot service
       # below ensures the DB exists.
       - ../config/postgres/init:/docker-entrypoint-initdb.d:ro,z
     healthcheck:

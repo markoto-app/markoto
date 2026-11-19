@@ -50,7 +50,7 @@ The accounts chart in the investor summary is the running total of sign-ups per 
 
 Cost comes from LiteLLM's `LiteLLM_SpendLogs` (its own database) and, for older days, from the daily rollup `ai_spend_daily`.
 
-- **Why 90 days.** LiteLLM itself deletes nothing (no retention is configured in `deploy/config/litellm/config.yaml`). The 90 days are ours: `spend-logs-sweep` (`server/utils/litellm/spendLogsSweep.ts`, `SPEND_LOG_RETENTION_DAYS`) deletes older rows, matching the 90-day retention of `ai_assistance` in `server/legal/lawfulBasis.ts`. Each row names the user, the workspace and the document (`request_tags`) and the key, so it is personal data and kept only as long as the free-pool, budget and credit accounting needs it.
+- **Why 90 days.** LiteLLM itself deletes nothing (no retention is configured in `deploy/config/litellm/config.yaml`). The 90 days are ours: `spend-logs-sweep` (`server/utils/litellm/spendLogsSweep.ts`, the constant `SPEND_LOG_RETENTION_DAYS`, not configurable) deletes older rows, matching the 90-day retention of `ai_assistance` in `server/legal/lawfulBasis.ts`. Each row names the user, the workspace and the document (`request_tags`) and the key, so it is personal data and kept only as long as the free-pool, budget and credit accounting needs it.
 - **Rollup.** `ai-spend-rollup` (every 6 hours, advisory-locked) recomputes every finished day the raw rows still fully cover (the last 88 days) into `ai_spend_daily`: per UTC day, feature tag and model, the cost, the request count, the number of distinct users and whether the call was platform-paid (not `byok/*`). No user, workspace, document or key id. The first run backfills everything the logs hold; a day keeps its last full count after its raw rows are gone. The rollup is kept indefinitely.
 - **Reading.** Days older than the last 88 come from the rollup, the rest from the raw rows, so a 12-month or all-time chart is seamless from the first rolled-up day on. Comparisons with the previous window are shown when the history covers it.
 - **People using AI** needs the raw rows (a daily count of distinct users cannot be added up over days), so it covers at most the last 90 days; the page says from which day.
@@ -140,7 +140,7 @@ The AI cost is all spend-log cost of the last 30 days. Calls on a user's own key
 
 ## Privacy
 
-New personal data, privacy policy v14:
+New personal data, privacy policy (current version in `shared/legal/versions.ts`):
 
 - `users.last_active_on` (a date, overwritten daily, no history), under `account_authentication` in `server/legal/lawfulBasis.ts`; in the data export (`profile.json`), deleted with the account. Admins see only counts built from it.
 - The subscription history `subscription_events`, under `billing` (category `subscription_history`); in the data export, anonymised on account deletion.

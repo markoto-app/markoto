@@ -1,5 +1,7 @@
 # markoto: Ansible deploy
 
+_Operator docs for the hosted markoto.app deployment. The values and host details below describe that setup; adapt them to your own environment._
+
 Agentless, GPL-3.0, OVH-targeted automation. From "fresh Debian 13 VPS +
 clicked managed Postgres + clicked S3 bucket" to a running stack in ~25
 minutes. The hosted stack (staging and prod) runs on **rootless Podman** as

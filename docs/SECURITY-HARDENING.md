@@ -548,6 +548,8 @@ On the hosted stack use `markoto-compose` (as `markoto`) instead of
 
 ## C.8 Hosted deployment: rootless Podman
 
+_Operator docs for the hosted markoto.app deployment. Self-hosters can skip this section; it records how that one deployment is set up._
+
 Staging and prod run the stack on Debian 13 with rootless Podman 5.4, as the
 unprivileged `markoto` user (`infra/README.md`). What that adds, and what it
 does not:

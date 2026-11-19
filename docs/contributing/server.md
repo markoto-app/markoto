@@ -133,6 +133,11 @@ Options for the exceptions: `enabled` (checked once at boot, e.g. `isBillingEnab
 | `data-export-worker` / `data-export-expiry-sweep` | 1 min / hourly | builds queued exports / expires old ones |
 | `waitlist-sweep`, `workspace-invite-sweep` | hourly | unconfirmed waitlist sign-ups, expired invites |
 | `mcp-sessions-sweep` | daily | old MCP sessions |
+| `ai-jobs-sweep` | 1 min | marks delegated AI jobs that lost their instance as interrupted, deletes old jobs and their undo copies |
+| `import-worker` | 15 s | runs queued bulk imports, interrupts stale ones ([explorer.md](explorer.md)) |
+| `search-index-backfill` | 1 min | indexes documents without a `document_search` row |
+| `ad-conversion-sweep` | hourly | click-id conversion retention and the Google Ads upload (a dry run for now), only with `NUXT_PUBLIC_ANALYTICS_ADS_CONVERSIONS` |
+| `analytics-retention-sweep` | daily | deletes Umami events and sessions past `NUXT_ANALYTICS_RETENTION_DAYS` |
 | `custom-domain-recheck` | 15 min | DNS re-checks of custom domains (only with `NUXT_PUBLISH_DOMAINS_TARGET`) |
 | `litellm-key-reconcile` | at boot + 6 h | aligns LiteLLM keys and teams with plans (`utils/litellm/keyReconcile.ts`) |
 | `spend-logs-sweep` | daily | LiteLLM spend-log retention |

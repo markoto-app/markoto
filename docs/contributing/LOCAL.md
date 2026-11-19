@@ -42,8 +42,10 @@ The two `.pem` files are gitignored. The bare name covers the app; the wildcard 
 ## 3. Start the stack
 
 ```bash
-make local-up     # = docker compose --env-file .env -f deploy/compose/compose.local.yml up -d --build
+make local-up     # = the Postgres major-upgrade check, then docker compose --env-file .env -f deploy/compose/compose.local.yml up -d --build
 ```
+
+`make local-up` needs the certificate files from step 2 (it makes them when they are missing) and runs the Postgres major-upgrade check first.
 
 The first build takes a few minutes (base images, the Nuxt app, the sync server, the renderer and markitdown).
 

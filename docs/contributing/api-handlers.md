@@ -31,7 +31,7 @@ A step that must run between two of these (a cheap input check that must not spe
 
 A validation failure answers `apiError(invalidCode ?? 'request/invalid', { field, fields })`: `field` is the first failing path, `fields` lists every issue (`path`, zod `issue` code, `minimum` / `maximum` / `format` / `expected`). The client turns `fields` into translated texts (`apiErrors.validation.<issue>`).
 
-**Status changes to list in the PR** when they apply: a body-sourced document id is now checked for shape (400) before access (403/404); rate limits now run after access and input validation, so an over-limit caller with a bad body gets 400, not 429; an unconditional plan check moves after access and input.
+**Status changes to list in the PR** when you convert an existing route to `defineApiHandler`: a body-sourced document id is now checked for shape (400) before access (403/404); rate limits now run after access and input validation, so an over-limit caller with a bad body gets 400, not 429; an unconditional plan check moves after access and input.
 
 ## Form uploads: `body: 'multipart'`
 
@@ -89,12 +89,12 @@ Options: `anonymous: true` (session optional; the route must be on the public al
 
 1. `grep` the route in `tests/integration/` and note every asserted status, `data.code`, `data.field` and message regex.
 2. Pick the policy from the tables above. If nothing fits, `allow.custom(reason, …)` and say why in the PR.
-3. Move params, query and body into zod schemas in `shared/api/<domain>.ts` (`docs`, `ai`, `workspaces`, `brand`, `sso`, `billing`, `account`, `legal`, `platform`; create the file with its first schema). Names: `<verb><Resource>Body` / `…Query`. Query fields use `z.coerce.*`. No `.strict()`: clients that send extra fields keep working. A route that accepted a missing body uses `.nullish()` (or `.optional()`) and reads `body?.x`. Drop the `readBody<T>` casts and the `typeof` checks the schema now covers. Keep a route's existing 400 code with `invalidCode`.
+3. Move params, query and body into zod schemas in `shared/api/<domain>.ts` (`docs`, `ai`, `workspaces`, `brand`, `sso`, `billing`, `account`, `legal`, `platform`, `sharing`, `explorer`, `imports`, `ids`, `contract`; create the file with its first schema). Names: `<verb><Resource>Body` / `…Query`. Query fields use `z.coerce.*`. No `.strict()`: clients that send extra fields keep working. A route that accepted a missing body uses `.nullish()` (or `.optional()`) and reads `body?.x`. Drop the `readBody<T>` casts and the `typeof` checks the schema now covers. Keep a route's existing 400 code with `invalidCode`.
 4. Turn each unconditional gate into an option (`instance`, `recentLogin`, `plan`, `rateLimit`, `idempotency`). A gate that depends on the input or the current state stays inline in the handler (the share-settings plan check runs only when a restriction is added).
 5. Replace every `createError` with `apiError(code, params)`. Keep each code a test asserts; use one code per distinct user-facing sentence. Code-less 401 / 403 / 404 become `auth/required`, `auth/forbidden`, `<ns>/not-found`; developer-only 400s become `request/invalid`.
 6. Do not change the response shape and do not move database access.
 7. Delete helpers that no longer have callers (knip reports them).
-8. Convert the route's client call sites to `apiFetch` when you touch them (the app-side wave converts the rest).
+8. Convert the route's client call sites to `apiFetch` when you touch them (call sites not yet converted are moved over when their file is next changed).
 9. Verify (below).
 
 ## Errors: adding or changing a code
@@ -137,4 +137,4 @@ The route is the pattern (`:param`), not a template literal, so the response typ
 
 ## Verify
 
-`bun run typecheck`, `bun run lint` (no errors, and no budget growth: see CONTRIBUTING), `bun run test`, `bun run test:integration` on the batch's files (the full suite once per wave), `bun run knip`, `bun run depcruise`. In the integration output, look for `[api-error] unregistered code` lines.
+`bun run typecheck`, `bun run lint` (no errors, and no budget growth: see CONTRIBUTING), `bun run test`, `bun run test:integration` on the files you touched (the full suite once before you open the PR), `bun run knip`, `bun run depcruise`. In the integration output, look for `[api-error] unregistered code` lines.

@@ -25,7 +25,7 @@ Logged-out visitors on the marketing site see `ProductTour.vue` on `/`; signed-i
 
 ## Marketing pages
 
-- **Content:** `content/marketing/<locale>/<slug>.md` (collection `marketing` in `content.config.ts`), rendered by `app/pages/[...marketing].vue`; rules in `shared/seo/marketing.ts`. English at `/<slug>`, German and French at `/<locale>/<slug>`. Pages with `reviewed: false` are `noindex`, show a notice and get no hreflang; their review status is tracked in the operator runbook, kept outside this repository.
+- **Content:** `content/marketing/<locale>/<slug>.md` (collection `marketing` in `content.config.ts`), rendered by `app/pages/[...marketing].vue`; rules in `shared/seo/marketing.ts`. English at `/<slug>`, German and French at `/<locale>/<slug>`. Pages with `reviewed: false` are `noindex`, show a notice and get no hreflang; the review flag is `reviewed: false` in the frontmatter of the `content/marketing/de` and `content/marketing/fr` files.
 - **UI language on `/de/…`, `/fr/…`** follows the URL (`app/plugins/marketing-locale.ts`) without writing the language cookie.
 - **Shell:** `app/components/marketing/Header.vue` (short: Pricing, Self-host, Docs, GitHub) and `app/components/common/LegalFooter.vue` (columns for product, use cases, comparisons, templates, legal). Use-case, comparison and template pages are linked from the footer only. Built from Nuxt UI page components (`UFooter`, `UPageCTA`, `UPageGrid`, `UPageCard`) and utilities; scoped CSS only where no class reaches.
 - **MDC blocks** (`app/components/content/`): `::cta`, `::flow-strip`, `::tour-clip`, `::faq`, `::sample`, `::try-it`, `::sub-processors`, `::compare-table`, `::compare-facts`, `::compare-note`, `::template-cards`, `::page-shots`.

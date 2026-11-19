@@ -118,7 +118,7 @@ One project per locale and variant: `en-light-desktop`, `en-dark-desktop`, `en-l
 
 Tag a test with `test('…', { tag: '@marketing' }, …)` when it needs the hosted marketing pages, which return 404 otherwise. `playwright.config.ts` excludes both tags unless the matching variable is set.
 
-`FLOWS_SERVE_ONLY=1 bun run flows:test` keeps one server running for `flows:test:against-running`; `FLOWS_BILLING=on` or `FLOWS_MARKETING=on` serve the other shapes.
+`FLOWS_SERVE_ONLY=1 bun run flows:test` keeps one server running for `flows:test:against-running`; `FLOWS_BILLING=on` or `FLOWS_MARKETING=on` serve the other shapes; `FLOWS_HOSTED_AI=1` gives the app the AI of markoto.app's free plan (no platform image, voice or strong model).
 
 The flows use the same compose file as the integration tests (`deploy/compose/compose.test.yml`, see [testing.md](testing.md)). Teardown runs `down -v` without `--remove-orphans`.
 
