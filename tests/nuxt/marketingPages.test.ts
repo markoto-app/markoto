@@ -237,7 +237,7 @@ describe('Templates link', () => {
 })
 
 describe('Use cases menu in another UI language', () => {
-  it('links a reviewed translation under its own label, an unreviewed one not at all', async () => {
+  it('links every translation that exists under its own label (links stay in the page\'s language), English otherwise', async () => {
     setConfig({ marketingSite: true })
     content.items = [
       { ...item('/marketing/en/markdown-to-pdf'), navGroup: 'use-cases', navLabel: 'Markdown to PDF', navOrder: 10 },
@@ -256,8 +256,9 @@ describe('Use cases menu in another UI language', () => {
       const footer = await mountSuspended(CommonLegalFooter)
       await vi.waitFor(() => expect(footer.find('a[href="/de/markdown-to-pdf"]').exists()).toBe(true))
       expect(footer.find('a[href="/de/markdown-to-pdf"]').text()).toBe('Markdown in PDF')
-      expect(footer.find('a[href="/markdown-cheat-sheet"]').text()).toBe('Markdown cheat sheet')
-      expect(footer.find('a[href="/de/markdown-cheat-sheet"]').exists()).toBe(false)
+      // Unreviewed (noindex) translations are linked too: a German page links German pages.
+      expect(footer.find('a[href="/de/markdown-cheat-sheet"]').text()).toBe('Markdown-Spickzettel')
+      expect(footer.find('a[href="/markdown-cheat-sheet"]').exists()).toBe(false)
       // The hub pages exist in English only; their generic label is a UI string.
       expect(footer.find('a[href="/templates"]').text()).toBe('Alle Vorlagen')
       expect(footer.find('a[href="/compare"]').text()).toBe('Alle Vergleiche')

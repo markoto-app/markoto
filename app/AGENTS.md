@@ -43,7 +43,7 @@ Contributor docs: [design system](../docs/contributing/design-system.md), [marke
 - **Page titles:** set only the page's own title; the template adds `· markoto`. Use `useMarketingSeo()` on indexable pages. Canonical and Open Graph URLs come from the configured site URL, never the Host header.
 - **Hosted-only pages** use `definePageMeta({ middleware: 'marketing-pages' })`. `/pricing` is not hosted-only.
 - **Pricing numbers come from live config** (`/api/billing/tiers`, `/api/billing/prices`); never hard-code a price or limit. Planned ("coming soon") prices stay out of the Offer JSON-LD. No `aggregateRating` / `review` in structured data.
-- **Marketing copy:** markoto is "source-available", never "open source". German uses "Sie" and "ss" (never `ß`), French "vous". Don't state counts that change (presets, templates). Header links stay short; use-case, comparison and template pages are linked from the footer only.
+- **Marketing copy:** markoto is "source-available", never "open source". German uses "du" and "ss" (never `ß`), French "vous". Don't state counts that change (presets, templates). Header links stay short; use-case, comparison and template pages are linked from the footer only.
 - **`::sample` / `renderTrustedMarkdown` skip DOMPurify on the server: committed content only, never visitor input.**
 - **`::sub-processors` renders the live registry; never retype the sub-processor list in a page.**
 - **Comparison facts** live in `content/compare/<slug>.yml` with a source and `checked` date; re-verify at the source before bumping a date.
