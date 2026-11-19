@@ -11,6 +11,8 @@ import { numberCaptionsByChapter } from '../markdown/captionNumbers'
 import { markDocumentStructure } from './documentMarkers'
 import { headingNumbering, resolveCaptions, resolveSectionToken } from '~~/shared/utils/theme/themeOptions'
 import { showsTitleItself } from '~~/shared/utils/markdown/markdownTitle'
+import { documentTexts } from '~~/shared/utils/documents/documentLocale'
+import { resolveCitations, resolveCrossrefs, type CitationInputs, type ReferenceProblem } from '../markdown/citationResolve'
 
 /**
  * Combines the cover page, the rendered body and the optional drop cap
@@ -41,9 +43,19 @@ export function composeFinalHtml(opts: {
   title: string
   date: string
   bodyHtml: string
+  /** Document language (`ymeta.language`): citation and cross-reference words. */
+  language?: string
+  /** The document's bibliography and citation style; null = none. */
+  citations?: CitationInputs | null
+  /** Unknown citation keys, unknown or duplicate labels (for the editor's warning list). */
+  onReferenceProblems?: (problems: ReferenceProblem[]) => void
 }): string {
   const { theme, title, date } = opts
-  let bodyHtml = pruneTocDepth(opts.bodyHtml, theme.toc.maxDepth)
+  const texts = documentTexts(theme, opts.language)
+  // Citations first: a bibliography appended under a new heading takes
+  // part in the heading passes below.
+  const cites = resolveCitations(opts.bodyHtml, opts.citations ?? null, texts.locale)
+  let bodyHtml = pruneTocDepth(cites.html, theme.toc.maxDepth)
   let abstractHtml = ''
   // A title block prints the title: a leading `# <title>` in the text
   // would repeat it (and, as the first heading, hide the abstract below).
@@ -69,6 +81,11 @@ export function composeFinalHtml(opts: {
   const captions = resolveCaptions(theme)
   if (captions.tablePosition === 'below') bodyHtml = moveCaptionsBelow(bodyHtml)
   if (captions.numbering === 'chapter') bodyHtml = numberCaptionsByChapter(bodyHtml)
+  // Labelled figures / tables / equations / sections and the references
+  // to them; needs the section markers and caption numbers above.
+  const xrefs = resolveCrossrefs(bodyHtml, theme, texts.locale, texts.captionLabels)
+  bodyHtml = xrefs.html
+  opts.onReferenceProblems?.([...cites.problems, ...xrefs.problems])
   if (theme.body.dropCap === true) bodyHtml = wrapFirstLetterAsDropCap(bodyHtml)
   // Lead paragraph + opening words (+ the every-chapter drop cap).
   bodyHtml = markDocumentStructure(bodyHtml, { capChapters: theme.body.dropCap === 'every-chapter' })
