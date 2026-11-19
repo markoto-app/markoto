@@ -75,6 +75,27 @@ export function useEditorExports(opts: {
     })
     downloadMarkdown(content, opts.title.value)
   }
+  /**
+   * Markdown with the open suggestions in CriticMarkup ({++ ++}, {-- --},
+   * {~~ ~> ~~}). Same front matter as the plain export; the plain export,
+   * the preview, the PDF and published pages have the accepted text only.
+   */
+  async function exportMarkdownWithSuggestions(suggestions: ReadonlyArray<{ from: number, to: number, text: string }>) {
+    if (refuseDownload()) return
+    const [{ buildMarkdownExport }, { toCriticMarkup }] = await Promise.all([
+      import('~~/shared/utils/markdown/markdownFrontmatter'),
+      import('~~/shared/utils/suggestions/criticMarkup')
+    ])
+    const content = buildMarkdownExport(toCriticMarkup(opts.textContent.value, suggestions), {
+      title: opts.title.value,
+      description: opts.description.value,
+      audience: opts.audience.value,
+      language: opts.language.value,
+      templateId: opts.templateId.value,
+      theme: structuredClone(toRaw(opts.theme.value)) as DocTheme
+    })
+    downloadMarkdown(content, `${opts.title.value} (suggestions)`)
+  }
 
   // Server-rendered PDF from the Playwright renderer, served by /api/docs/:id/pdf
   // as a 302 to a presigned S3 URL. Unlike `exportPdf()` (browser print dialog +
@@ -99,7 +120,7 @@ export function useEditorExports(opts: {
 
   usePrintShortcut(exportPdf)
 
-  return { exporting, exportPdf, exportMarkdown, openServerPdf }
+  return { exporting, exportPdf, exportMarkdown, exportMarkdownWithSuggestions, openServerPdf }
 }
 
 /**

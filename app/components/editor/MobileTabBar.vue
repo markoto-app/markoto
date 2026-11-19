@@ -19,7 +19,9 @@ import type { TabName } from './tabBarTypes'
 
 const props = defineProps<{
   /** Currently-open panel; null when no drawer is open. */
-  activePanel: 'document' | 'comments' | 'activity' | 'theme' | 'knowledge' | 'editor' | null
+  activePanel: TabName | null
+  /** Open suggestions; the Suggestions tab shows only while there are any. */
+  suggestionCount?: number
   /** Hides Theme tab when the user can't edit theme. */
   canEditTheme: boolean
   /** Hides Knowledge tab when the doc isn't in a workspace with files. */
@@ -76,6 +78,7 @@ const tabs = computed<TabDef[]>(() => [
   { name: 'editor', icon: 'i-lucide-pencil', label: t('mobileTabBar.editor'), visible: true, isPanel: true },
   { name: 'document', icon: 'i-lucide-info', label: t('mobileTabBar.documentShort'), visible: true, isPanel: true },
   { name: 'comments', icon: 'i-lucide-message-circle', label: t('mobileTabBar.commentsShort'), visible: true, isPanel: true },
+  { name: 'suggestions', icon: 'i-lucide-file-diff', label: t('mobileTabBar.suggestionsShort'), visible: (props.suggestionCount ?? 0) > 0, isPanel: true },
   { name: 'activity', icon: 'i-lucide-activity', label: t('mobileTabBar.activityShort'), visible: true, isPanel: true },
   { name: 'theme', icon: 'i-lucide-palette', label: t('mobileTabBar.themeShort'), visible: props.canEditTheme, isPanel: true },
   { name: 'knowledge', icon: 'i-lucide-library', label: t('mobileTabBar.knowledgeShort'), visible: props.hasKnowledgeAccess, isPanel: true }

@@ -3,7 +3,6 @@ import RightPanelHost from './RightPanelHost.vue'
 import MobileTabBar from './MobileTabBar.vue'
 import EditorCommandsPanel from './EditorCommandsPanel.vue'
 import type { TabName } from './tabBarTypes'
-import type { ImportedDocProperties } from '~~/shared/utils/markdown/markdownFrontmatter'
 import { customCssForPlan } from '~~/shared/utils/theme/themePresets'
 import { applyBrandLock } from '~~/shared/utils/theme/brandLock'
 import type { DocTheme } from '~~/shared/types/theme'
@@ -28,6 +27,9 @@ const {
   synced,
   userCount,
   isReadOnly: tokenReadOnly,
+  suggestOnly,
+  suggestionsRequired,
+  contentWriter,
   syncAuthFailed,
   syncRejection,
   syncBusy,
@@ -85,10 +87,10 @@ const renderTheme = computed(() => {
 // snapshots the caret/selection at submit time so the model can resolve
 // "here" / "this" to a concrete location.
 const ai = useAI(computed(() => props.docId), awareness, {
-  getEditorSelection: () => snapshotEditorSelection(editorView.value, editorEverFocused.value)
+  getEditorSelection: () => snapshotEditorSelection(editorView.value, editorEverFocused.value),
+  getSuggest: () => suggestionMode.aiSuggestRequest()
 })
 
-const toast = useToast()
 const { loggedIn, user: sessionUser } = useUserSession()
 
 const dictation = useEditorDictation({
@@ -136,6 +138,19 @@ const { commentRanges, commentsPanelRef, onCommentClickInEditor, triggerCreateCo
   flashRange: (from, to) => editorPaneRef.value?.flashCommentRange?.(from, to)
 })
 
+// Suggestion mode: Editing / Suggesting (fixed on Suggesting when the token
+// says so), marks, the suggestions panel, the AI's "suggest" switch.
+const suggestionMode = useEditorSuggestions({
+  ydoc,
+  awareness,
+  docId: props.docId,
+  isReadOnly,
+  suggestOnly,
+  rightSidebar,
+  flashRange: (from, to) => editorPaneRef.value?.flashCommentRange?.(from, to)
+})
+const { api: suggestions, suggestingChosen, suggesting, panelRef: suggestionsPanelRef } = suggestionMode
+
 const { hasKnowledgeAccess } = useDocWorkspaceContext(docWorkspaceId, docWorkspaceRole, rightSidebar)
 
 const { passwordModalOpen, deletedNoticeOpen } = useDocAccessPrompts(requiresPassword, deletedByOther)
@@ -145,7 +160,7 @@ const pageCount = ref(0)
 
 const { textContent, wordCount, charCount } = useDocTextStats({ docId: props.docId, ydoc, ytext, synced, isOwner, requiresPassword })
 
-const { exportPdf, exportMarkdown, openServerPdf } = useEditorExports({
+const { exportPdf, exportMarkdown, exportMarkdownWithSuggestions, openServerPdf } = useEditorExports({
   docId: props.docId,
   ytext,
   renderTheme,
@@ -161,28 +176,7 @@ const { exportPdf, exportMarkdown, openServerPdf } = useEditorExports({
   getDocJwt
 })
 
-// Theme + properties from an imported markoto Markdown file. The server has
-// validated every field (server/utils/documents/markdownImport.ts); the
-// setters check again (setTheme: schema; ymeta: the sync server).
-function applyImportedProperties(
-  properties: ImportedDocProperties,
-  notes: { ignored: string[], droppedCustomCssRules: number }
-) {
-  if (isReadOnly.value) return
-  if (properties.title !== undefined) title.value = properties.title
-  if (properties.description !== undefined) description.value = properties.description
-  if (properties.audience !== undefined) audience.value = properties.audience
-  if (properties.language !== undefined) language.value = properties.language
-  if (properties.templateId !== undefined) setTemplateId(properties.templateId)
-  if (properties.theme && canEditTheme.value) setTheme(properties.theme)
-  const skipped = notes.ignored.length > 0 || notes.droppedCustomCssRules > 0
-  toast.add({
-    title: t('import.propertiesApplied'),
-    description: skipped ? t('import.propertiesPartlyApplied') : undefined,
-    icon: 'i-lucide-file-check-2',
-    color: skipped ? 'neutral' : 'success'
-  })
-}
+const applyImportedProperties = useImportedProperties({ isReadOnly, title, description, audience, language, setTemplateId, canEditTheme, setTheme: theme => setTheme(theme) })
 
 const { tableModalOpen, onTableModalSelect, openImagePicker } = useEditorInserts(props.docId, () => editorView.value, isReadOnly)
 
@@ -198,18 +192,6 @@ const showUserContentBar = computed(() =>
   && !hasOwner.value
   && !docWorkspaceId.value
 )
-
-// Anonymous visitors pass the same terms + bot-check gate as the new-document dialog (useAnonDocCreate).
-const anonDoc = useAnonDocCreate()
-async function newDocument() {
-  try {
-    const docId = await anonDoc.createDocument()
-    void navigateTo(`/d/${docId}`)
-  } catch (e) {
-    if (e instanceof AnonGateCancelled) return
-    toast.add({ title: t('error.documentCreateFailed'), color: 'error' })
-  }
-}
 
 // Dispatched on the local UndoManager, same as the keyboard shortcut, so menu and keyboard agree.
 function undo() {
@@ -231,24 +213,7 @@ const { syncRejectionMessage } = useSyncProblemToasts(syncAuthFailed, syncReject
 
 const { editorPaneRef, editorView, editorEverFocused } = useEditorViewRef()
 
-// Logout clears localStorage/sessionStorage/IDB, broadcasts to other tabs and
-// tears down awareness BEFORE the session goes, so collaborators see the
-// leaving frame on a still-open WS. See `composables/useLogout.ts`.
-const { logout: performAuthLogout } = useLogout()
-function handleLogout() {
-  return performAuthLogout({
-    beforeClear: () => {
-      try {
-        awareness.setLocalStateField('user', null)
-      } catch { /* awareness may already be torn down */ }
-    }
-  })
-}
-
-// Help → Documentation opens in a new tab so the document stays open.
-function openDocs(): void {
-  window.open('/docs', '_blank', 'noopener')
-}
+const { newDocument, handleLogout, openDocs } = useEditorActions(awareness)
 
 const showShortcuts = ref(false)
 
@@ -303,6 +268,14 @@ useHead({
            group to center and only two icons here: they take their own
            width and the title gets the rest. -->
       <div class="shrink-0 sm:shrink sm:flex-1 min-w-0 flex items-center gap-2 justify-end">
+        <!-- Editing / Suggesting. Hidden for read-only viewers. -->
+        <EditorLayoutEditModeToggle
+          v-if="!isReadOnly"
+          v-model="suggestingChosen"
+          :forced="suggestOnly"
+          :required="suggestionsRequired"
+        />
+
         <!-- Also under Sharing → Access; kept here because the open/closed lock doubles as an access indicator. -->
         <EditorLayoutAccessButton
           :access-mode="accessMode"
@@ -414,6 +387,7 @@ useHead({
         <!-- Desktop: 5-button strip; hidden on mobile, where it plus the title would overflow at 390px. -->
         <EditorLayoutSidebarTabs
           :right-sidebar="rightSidebar"
+          :suggestion-count="suggestionMode.count.value"
           :can-edit-theme="canEditTheme"
           :has-knowledge-access="hasKnowledgeAccess"
           @toggle="toggleSidebar"
@@ -456,6 +430,10 @@ useHead({
             :read-only="isReadOnly"
             :comment-ranges="commentRanges"
             :on-comment-click="onCommentClickInEditor"
+            :suggesting="suggesting"
+            :suggestion-marks="suggestions.marks.value"
+            :on-suggestion-plan="suggestions.applyPlan"
+            :on-suggestion-click="suggestionMode.onSuggestionClick"
           />
         </EditorImageDropZone>
 
@@ -514,6 +492,17 @@ useHead({
             @focus="onCommentPanelFocus"
             @close="closeSidebar"
           />
+          <SuggestionsPanel
+            v-else-if="rightSidebar === 'suggestions'"
+            ref="suggestionsPanelRef"
+            :doc-id="docId"
+            :awareness="awareness"
+            :can-review="suggestionMode.canReview.value"
+            :can-write="!isReadOnly"
+            @focus="suggestionMode.onSuggestionFocus"
+            @export="exportMarkdownWithSuggestions(suggestions.suggestions.value)"
+            @close="closeSidebar"
+          />
           <EditorLayoutActivitySidebar
             v-else-if="rightSidebar === 'activity'"
             :doc-id="docId"
@@ -563,7 +552,7 @@ useHead({
         <!-- Overlay at the bottom of the content area (editor + preview + sidebar), hidden in
              preview-only mode and read-only; absolutely positioned, so `<main>` stays `relative`. -->
         <AIPromptBar
-          v-if="!isReadOnly && viewMode !== 'preview'"
+          v-if="!isReadOnly && contentWriter && viewMode !== 'preview'"
           :ai="ai"
           :workspace-id="docWorkspaceId"
           :doc-id="docId"
@@ -575,6 +564,7 @@ useHead({
         <MobileTabBar
           v-if="!isReadOnly && viewMode !== 'preview'"
           :active-panel="rightSidebar"
+          :suggestion-count="suggestionMode.count.value"
           :can-edit-theme="canEditTheme"
           :has-knowledge-access="hasKnowledgeAccess"
           :dictation-state="dictation.state.value"
@@ -598,6 +588,7 @@ useHead({
         :view-mode="viewMode"
         :synced="synced && !deletedByOther"
         :read-only="isReadOnly"
+        :suggesting="suggesting"
       />
     </template>
 
@@ -618,7 +609,7 @@ useHead({
     <DocumentImportModal
       v-model:open="showImportModal"
       :ytext="ytext"
-      :read-only="isReadOnly"
+      :read-only="isReadOnly || suggesting"
       :doc-id="docId"
       @apply-properties="applyImportedProperties"
     />
@@ -638,6 +629,7 @@ useHead({
       :current-access-mode="accessMode"
       :can-manage="canManageDoc"
       :can-share-with-guests="!!docWorkspaceId && (docWorkspaceRole === 'admin' || docWorkspaceRole === 'editor')"
+      :in-workspace="!!docWorkspaceId"
       @updated="(mode: string) => { setAccessMode(mode); showShareModal = false }"
     />
 

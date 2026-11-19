@@ -5,6 +5,7 @@ import { HocuspocusProvider } from '@hocuspocus/provider'
 import { Awareness } from 'y-protocols/awareness'
 import type { SessionJwtPayload } from '~~/shared/contracts/jwt'
 import { useEnv } from '~~/shared/env/load'
+import { waitForServerAck } from './restoreDoc'
 
 // Minimal trusted-client helper for server-side comment mutations.
 //
@@ -22,6 +23,8 @@ import { useEnv } from '~~/shared/env/load'
 export interface TrustedClient {
   ydoc: Y.Doc
   ycomments: Y.Array<Y.Map<unknown>>
+  /** Resolves once the sync server applied everything this client sent (rejects after 10 s). */
+  acknowledged(): Promise<void>
   destroy(): Promise<void>
 }
 
@@ -37,7 +40,9 @@ const SYNC_TIMEOUT_MS = 10_000
  */
 export async function openTrustedCommentClient(
   docId: string,
-  actorPrincipal: string
+  actorPrincipal: string,
+  /** Name in the JWT (activity attribution) and in awareness. */
+  userName = 'Comments Service'
 ): Promise<TrustedClient> {
   const env = useEnv()
   if (!env.auth.jwtSecret) throw new Error('jwtSecret not configured')
@@ -45,7 +50,7 @@ export async function openTrustedCommentClient(
   const payload = {
     docId,
     userId: actorPrincipal,
-    userName: 'Comments Service',
+    userName,
     readOnly: false
   } satisfies SessionJwtPayload
   const token = jwt.sign(payload, env.auth.jwtSecret, { expiresIn: '5m' })
@@ -143,7 +148,7 @@ export async function openTrustedCommentClient(
     }
   }
 
-  return { ydoc, ycomments, destroy }
+  return { ydoc, ycomments, acknowledged: () => waitForServerAck(provider), destroy }
 }
 
 /**

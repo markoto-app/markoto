@@ -326,3 +326,50 @@ export function decideDocDelete(doc: DocState, actor: ActorState): DeleteDecisio
   }
   return { outcome: 'deny', reason: 'not-authorized' }
 }
+
+/** Suggestion settings of a document, as `decideSuggestionAccess` reads them. */
+export interface SuggestionPolicyState {
+  /** Everyone not exempt must suggest instead of editing. */
+  required: boolean
+  /** Workspace roles that keep editing directly while `required` is on. */
+  exemptRoles: readonly ('admin' | 'editor')[]
+  /** Signed-in viewers may suggest (and comment). */
+  viewersMaySuggest: boolean
+}
+
+export interface SuggestionDecision {
+  /** No writes at all. */
+  readOnly: boolean
+  /** Writes only suggestions and comments (implies `readOnly: false`). */
+  suggestOnly: boolean
+}
+
+/**
+ * Turn a granted token decision into the write level of the connection:
+ * full, suggest-only or read-only. Applied after `decideTokenAccess`.
+ *
+ *   - The (effective) owner always edits directly.
+ *   - With suggestion mode required, every other writer suggests, except
+ *     workspace members whose role is exempt. Visitors of an open-edit
+ *     link (also anonymous ones) and guests are never exempt.
+ *   - Viewers who are signed in may suggest when the document allows it:
+ *     workspace viewers, guests with a view share, visitors of an
+ *     open-view or password link. Anonymous viewers stay read-only
+ *     (a suggestion needs an author to answer to).
+ */
+export function decideSuggestionAccess(
+  doc: DocState,
+  actor: ActorState,
+  policy: SuggestionPolicyState,
+  token: TokenDecision
+): SuggestionDecision {
+  if (token.outcome !== 'allow') return { readOnly: true, suggestOnly: false }
+  if (!token.readOnly) {
+    if (!policy.required || isDocOwner(doc, actor)) return { readOnly: false, suggestOnly: false }
+    const role = actor.isGuest ? null : actor.workspaceRole
+    const exempt = (role === 'admin' || role === 'editor') && policy.exemptRoles.includes(role)
+    return exempt ? { readOnly: false, suggestOnly: false } : { readOnly: false, suggestOnly: true }
+  }
+  if (policy.viewersMaySuggest && actor.userId !== null) return { readOnly: false, suggestOnly: true }
+  return { readOnly: true, suggestOnly: false }
+}

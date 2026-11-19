@@ -49,7 +49,8 @@
       "updateTooLarge": "此更改太大，无法一次同步。请重新加载，然后分几次添加内容。",
       "documentTooLarge": "此文档已达到最大大小。请重新加载，然后删除部分内容或将其拆分为多个文档。",
       "invalidMeta": "某个文档设置（标题、主题或详细信息）的值无法被服务器接受。请重新加载以继续。",
-      "invalidUpdate": "服务器无法处理来自此标签页的更改。请重新加载以继续。"
+      "invalidUpdate": "服务器无法处理来自此标签页的更改。请重新加载以继续。",
+      "invalidSuggestion": "此标签页试图修改只能提出建议的内容(例如所有者开启建议模式之后)。请重新加载,以在建议模式下继续。"
     },
     "bold": "加粗",
     "italic": "斜体",
@@ -203,6 +204,10 @@
         "search_knowledge": "搜索了知识库",
         "get_knowledge_file": "读取了一个知识文件",
         "replace_all": "在整个文档中替换了文本"
+      },
+      "suggestion": {
+        "accepted": "接受了一条建议 | 接受了一条建议 | 接受了 {n} 条建议",
+        "rejected": "拒绝了一条建议 | 拒绝了一条建议 | 拒绝了 {n} 条建议"
       }
     },
     "detail": {
@@ -210,7 +215,8 @@
       "replacedAll": "{count}× “{from}” → “{to}”",
       "restoredFrom": "来自 {ago}",
       "jobProgress": "已更改 {done}/{total} 部分",
-      "jobReverted": "恢复了 {reverted} 部分,{skipped} 部分保留编辑后的内容"
+      "jobReverted": "恢复了 {reverted} 部分,{skipped} 部分保留编辑后的内容",
+      "suggestions": "{preview}({authors}) | {preview}({authors}) | 来自 {authors} 的 {count} 条,例如 {preview}"
     },
     "restore": {
       "button": {
@@ -858,7 +864,8 @@
     "commentsShort": "评论",
     "activityShort": "活动",
     "themeShort": "主题",
-    "knowledgeShort": "知识库"
+    "knowledgeShort": "知识库",
+    "suggestionsShort": "建议"
   },
   "editorCommands": {
     "formatting": "格式",
@@ -3530,5 +3537,63 @@
       "hint": "搜索你的文档、你的工作区以及与你共享的文档的标题和正文。"
     },
     "subfolders": "{n} 个文件夹 | {n} 个文件夹"
+  },
+  "suggestions": {
+    "title": "建议",
+    "aiAuthor": "markoto AI",
+    "kind": {
+      "insert": "添加",
+      "delete": "删除",
+      "replace": "替换",
+      "obsolete": "没有可更改的内容"
+    },
+    "accept": "接受",
+    "reject": "拒绝",
+    "withdraw": "撤回你的建议",
+    "obsoleteHint": "在此期间有人删除了这段文字。拒绝该建议即可清除它。",
+    "changedHint": "自提出此建议以来,文字已发生变化。接受后将应用到当前的文字上。",
+    "replyPlaceholder": "回复此建议…",
+    "allAuthors": "所有人",
+    "filterAuthor": "显示以下作者的建议",
+    "acceptAll": "全部接受",
+    "rejectAll": "全部拒绝",
+    "acceptShown": "接受这些",
+    "rejectShown": "拒绝这些",
+    "acceptedN": "没有已接受的建议 | 已接受 {n} 条建议 | 已接受 {n} 条建议",
+    "rejectedN": "没有已拒绝的建议 | 已拒绝 {n} 条建议 | 已拒绝 {n} 条建议",
+    "failed": "无法更新建议。请重试。",
+    "empty": "还没有建议。切换到“建议”模式,即可提出供他人接受或拒绝的修改。",
+    "emptyReadOnly": "此文档中没有建议。",
+    "mode": {
+      "editing": "编辑",
+      "suggesting": "建议",
+      "editingHint": "你直接编辑文字。切换到“建议”模式可改为提出修改建议。",
+      "suggestingHint": "你的修改会变成建议,供他人接受或拒绝。",
+      "requiredHint": "此文档的所有者要求使用建议:你的修改会变成建议,由他人接受或拒绝。",
+      "viewerHint": "你可以对此文档提出修改建议。有编辑权限的人会接受或拒绝。",
+      "suggestingFooter": "建议中"
+    },
+    "ai": {
+      "toggle": "AI 提出修改建议",
+      "on": "AI 会将其修改作为建议提出,由你接受或拒绝。点击可让它直接编辑。",
+      "off": "AI 直接编辑文字。点击可让它改为提出建议。",
+      "forced": "此文档要求使用建议,因此 AI 也会将其修改作为建议提出。",
+      "settingTitle": "建议",
+      "settingLabel": "AI 提出建议而不是直接编辑",
+      "settingDescription": "AI 对文档所做的修改,包括在后台运行的大型编辑,都会作为建议送达,由你或你的团队接受或拒绝。你可以在 AI 栏中按每次提示单独切换。",
+      "saveFailed": "无法保存该设置。请重试。"
+    },
+    "settings": {
+      "title": "建议",
+      "required": "所有人都提出建议",
+      "requiredHelp": "他人的修改会变成建议,由你接受或拒绝,就像主管审阅草稿一样。你自己始终直接编辑。",
+      "exemptTitle": "以下工作区角色仍可直接编辑:",
+      "exemptAdmins": "工作区管理员",
+      "exemptEditors": "工作区编辑者",
+      "viewers": "查看者可以提出建议",
+      "viewersHelp": "已登录且只能查看此文档的用户可以提出修改建议并回复建议。",
+      "saveFailed": "无法保存建议设置"
+    },
+    "exportCritic": "下载带建议的 Markdown(CriticMarkup)"
   }
 }

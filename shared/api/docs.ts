@@ -10,6 +10,7 @@ import { DOC_DESCRIPTION_MAX_LENGTH, DOC_TITLE_MAX_LENGTH } from '../config/docC
 import { DOC_PASSWORD_MAX_LENGTH } from '../config/docPassword'
 import { isValidTheme } from '../utils/theme/themeValidation'
 import type { DocTheme } from '../types/theme'
+import { suggestionPolicy } from '../utils/suggestions/record'
 
 /** An ISO 8601 date-time with a zone (what the client sends: `toISOString()`). */
 const ISO_DATE_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?(Z|[+-]\d{2}:\d{2})$/
@@ -19,6 +20,19 @@ export const updateShareSettingsBody = z.object({
   expiresAt: z.string().regex(ISO_DATE_TIME).refine(s => Number.isFinite(Date.parse(s))).nullable().optional(),
   noDownload: z.boolean().optional()
 }).nullish()
+
+/** PUT /api/docs/:docId/suggestion-settings. A field left out keeps its value. */
+export const updateSuggestionSettingsBody = suggestionPolicy.partial()
+
+/**
+ * POST /api/docs/:docId/suggestions/resolve: accept or reject suggestions,
+ * the listed ones, one author's, or (neither given) all of them.
+ */
+export const resolveSuggestionsBody = z.object({
+  action: z.enum(['accept', 'reject']),
+  ids: z.array(z.string().regex(/^[\w-]{6,40}$/)).min(1).max(500).optional(),
+  authorKey: z.string().min(1).max(80).optional()
+})
 
 const DOC_ACCESS_MODES = ['private', 'open-edit', 'open-view', 'password-protected'] as const
 

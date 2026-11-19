@@ -140,6 +140,12 @@ const ACTIVITY_SUMMARIES: Readonly<Record<ActivityEntry['action'], (row: Activit
   'ai.job.reverted': ({ metadata: m }) => (m?.kind === 'ai.job.reverted'
     ? `AI job ${m.jobId} undone: ${m.reverted} parts restored, ${m.skipped} kept`
     : 'AI job undone'),
+  'suggestion.accepted': ({ metadata: m }) => (m?.kind === 'suggestion.accepted'
+    ? `accepted ${m.count} suggestion(s) from ${m.authors.join(', ')}`
+    : 'accepted suggestions'),
+  'suggestion.rejected': ({ metadata: m }) => (m?.kind === 'suggestion.rejected'
+    ? `rejected ${m.count} suggestion(s) from ${m.authors.join(', ')}`
+    : 'rejected suggestions'),
   'join': row => row.action,
   'leave': row => row.action
 }

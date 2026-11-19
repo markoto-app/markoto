@@ -3,6 +3,7 @@
 import { pgTable, serial, integer, bigint, text, timestamp, primaryKey, index, jsonb, boolean, date } from 'drizzle-orm/pg-core'
 import { sql, type SQL } from 'drizzle-orm'
 import type { DocTheme } from '~~/shared/types/theme'
+import type { SuggestionPolicy } from '~~/shared/utils/suggestions/record'
 import { tsvector } from './columns'
 import { users } from './users'
 import { workspaces } from './workspaces'
@@ -40,6 +41,10 @@ export const documents = pgTable('documents', {
   // no print. NULL / false = off.
   shareExpiresAt: timestamp('share_expires_at', { withTimezone: true }),
   shareNoDownload: boolean('share_no_download').notNull().default(false),
+  // Suggestion mode (`shared/utils/suggestions/record.ts` SuggestionPolicy):
+  // whether everyone but the owner and exempt roles must suggest, and
+  // whether signed-in viewers may. NULL = the default (off).
+  suggestionPolicy: jsonb('suggestion_policy').$type<SuggestionPolicy>(),
   // Set when a moderator restricts the document on an abuse report: it
   // stays private and unpublished, no access mode but `private`, no
   // password, no guest share, no web page, no move into a workspace,

@@ -28,6 +28,7 @@ export function useSyncProblemToasts(syncAuthFailed: Readonly<Ref<boolean>>, syn
       case 'document-too-large': return t('editor.syncRejected.documentTooLarge')
       case 'invalid-meta': return t('editor.syncRejected.invalidMeta')
       case 'invalid-update': return t('editor.syncRejected.invalidUpdate')
+      case 'invalid-suggestion': return t('editor.syncRejected.invalidSuggestion')
       case null:
       default: return null
     }

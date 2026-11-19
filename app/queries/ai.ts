@@ -19,7 +19,9 @@ export const aiKeys = {
   creditsFor: (workspaceId: WorkspaceScope) => [...aiKeys.credits(), workspaceId] as const,
   availability: () => [...aiKeys.root, 'availability'] as const,
   availabilityFor: (workspaceId: WorkspaceScope) => [...aiKeys.availability(), workspaceId] as const,
-  providers: () => [...aiKeys.root, 'providers'] as const
+  providers: () => [...aiKeys.root, 'providers'] as const,
+  /** Whether the AI suggests instead of editing (the user's default). */
+  suggest: () => [...aiKeys.root, 'suggest'] as const
 }
 
 const aiCreditsQuery = defineQueryOptions(({ api, workspaceId }: { api: ApiFetcher, workspaceId: WorkspaceScope }) => ({
@@ -67,6 +69,24 @@ export function useAiAvailabilityQuery(workspaceId: MaybeRefOrGetter<WorkspaceSc
     // screen until this one arrives, instead of flashing "unknown".
     placeholderData: (previous: AiAvailabilityResponse | undefined) => previous
   }))
+}
+
+const aiSuggestQuery = defineQueryOptions(({ api }: { api: ApiFetcher }) => ({
+  key: aiKeys.suggest(),
+  query: ({ signal }) => api('/api/user/ai-suggest', { signal })
+}))
+
+export function useAiSuggestQuery() {
+  const enabled = useSignedInClient()
+  return useQuery(() => ({ ...aiSuggestQuery({ api: apiFetch }), enabled: enabled() }))
+}
+
+export function useSetAiSuggest() {
+  const cache = useQueryCache()
+  return useMutation({
+    mutation: (suggest: boolean) => apiFetch('/api/user/ai-suggest', { method: 'put', body: { suggest } }),
+    onSuccess: () => invalidate(cache, aiKeys.suggest())
+  })
 }
 
 export function useAiProvidersQuery() {

@@ -37,6 +37,8 @@ export type DocJwtPayload = SessionJwtPayload & { scope?: string }
 
 export interface AuthContext {
   readOnly: boolean
+  /** Writable, but only suggestions and comments (see update-guard.ts). */
+  suggestOnly: boolean
   userId: string | number
   userName: string | null
   /** When the token stops authorizing this connection (epoch ms). */
@@ -135,8 +137,12 @@ export function createTokenVerifier({ secret, previousSecret, notBeforeFor }: Cr
     //   - future mint changes that forget the field
     //   - hand-crafted JWTs from a leaked/rotated-out secret that omit
     //     the field to escalate from view-only to write
+    const readOnly = payload.readOnly !== false
     return {
-      readOnly: payload.readOnly !== false,
+      readOnly,
+      // Only meaningful on a writable connection; a malformed claim counts
+      // as restricted (the safe side), like `readOnly`.
+      suggestOnly: !readOnly && payload.suggestOnly !== undefined && payload.suggestOnly !== false,
       userId: payload.userId,
       userName: payload.userName ?? null,
       tokenExpiresAt: payload.exp * 1000

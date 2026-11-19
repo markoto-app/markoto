@@ -56,6 +56,10 @@ export const users = pgTable('users', {
   // default, 'strong' = NUXT_AI_DEFAULT_CHAT_STRONG_MODEL, only applied
   // while the plan includes `aiStrongModel`. Own keys are unaffected.
   aiModelTier: text('ai_model_tier', { enum: ['fast', 'strong'] }).notNull().default('fast'),
+  // The AI's document edits arrive as suggestions this user accepts or
+  // rejects, instead of changing the text (the prompt bar can override it
+  // per request). Forced on where the document requires suggestions of the user.
+  aiSuggestEdits: boolean('ai_suggest_edits').notNull().default(false),
   // LiteLLM virtual-key handle: the single source of truth for the
   // user's AI budget. Every billable AI call goes through
   // `useLitellmForUser(litellmKeyToken)` and LiteLLM enforces the plan's

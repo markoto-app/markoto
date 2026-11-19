@@ -128,6 +128,15 @@ export async function getWorkspaceCreationFacts(self: UserScope): Promise<{ plan
   }).from(users).where(eq(users.id, self.userId)).limit(1))[0] ?? null
 }
 
+/** Whether the AI suggests (instead of editing) by default for this user. */
+export async function setAiSuggestEdits(self: UserScope, on: boolean): Promise<void> {
+  await useDatabase().update(users).set({ aiSuggestEdits: on }).where(eq(users.id, self.userId))
+}
+
+export async function getAiSuggestEdits(user: UserScope): Promise<boolean> {
+  return (await useDatabase().select({ on: users.aiSuggestEdits }).from(users).where(eq(users.id, user.userId)).limit(1))[0]?.on ?? false
+}
+
 /** The user's platform chat model pick (`fast` / `strong`). */
 export async function setAiModelTier(self: UserScope, tier: 'fast' | 'strong'): Promise<void> {
   await useDatabase().update(users).set({ aiModelTier: tier }).where(eq(users.id, self.userId))

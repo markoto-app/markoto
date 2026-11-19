@@ -129,6 +129,10 @@ export const AUDIT_DOC_UNSHARED = 'doc.unshared'
 // Share-link controls changed. Before / after: expiresAt, noDownload.
 export const AUDIT_DOC_SHARE_SETTINGS_CHANGED = 'doc.share_settings_changed'
 
+// Suggestion mode settings changed. Before / after: required, exemptRoles,
+// viewersMaySuggest.
+export const AUDIT_DOC_SUGGESTION_SETTINGS_CHANGED = 'doc.suggestion_settings_changed'
+
 // Workspace brand kit. Metadata: asset id, kind, name (font family
 // or file name), weight/style; lock: before/after; templates: template id
 // + document id.
@@ -210,6 +214,7 @@ export type ComplianceAuditAction
     | typeof AUDIT_DOC_SHARED
     | typeof AUDIT_DOC_UNSHARED
     | typeof AUDIT_DOC_SHARE_SETTINGS_CHANGED
+    | typeof AUDIT_DOC_SUGGESTION_SETTINGS_CHANGED
     | typeof AUDIT_WORKSPACE_BRAND_ASSET_ADDED
     | typeof AUDIT_WORKSPACE_BRAND_ASSET_REMOVED
     | typeof AUDIT_WORKSPACE_BRAND_LOCK_CHANGED

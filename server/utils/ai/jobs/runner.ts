@@ -1,4 +1,6 @@
 import * as Y from 'yjs'
+import { changedRuns, SuggestionLimitError, writeSuggestions, type SuggestSink } from '../tools/textWrite'
+import { aiJobClientUserId } from '../../../../shared/contracts/jwt'
 import { applyMinimalDiff } from '../tools/sections/ytextDiff'
 import { parseSections } from '../tools/sections/parse'
 import { leadingWhitespace, trailingWhitespace, unitContext, unitRev, type JobMode, type JobUnit } from './units'
@@ -424,13 +426,39 @@ export class JobRunner {
       next = addStableAnchors(at.text, next, slugs).text
     }
     const { ydoc, ytext } = this.deps.doc
-    ydoc.transact(() => {
-      applyMinimalDiff(ytext, at.start, at.end, next)
-    }, jobOrigin(this.job.id))
-    const rels = relativeRange(ytext, at.start, at.start + next.length)
+    if (this.job.params.suggest) {
+      const refused = this.suggestUnit(unit, at, next)
+      if (refused) return this.skip(unit, 'skipped', refused, stats)
+    } else {
+      ydoc.transact(() => {
+        applyMinimalDiff(ytext, at.start, at.end, next)
+      }, jobOrigin(this.job.id))
+    }
+    const rels = relativeRange(ytext, at.start, at.start + (this.job.params.suggest ? at.text.length : next.length))
     await this.deps.store.updateUnit(unit.ordinal, { ...base, ...rels, status: 'applied', afterHash: unitRev(next), sessionAfterHash: null, reason: stats.note })
     await this.progress(delta, unit.headingPath)
     return { status: 'applied' }
+  }
+
+  /**
+   * Suggestion mode: the unit's change becomes suggestions (one per changed
+   * run of words) and the text stays as it is. `afterHash` still names the
+   * job's text, so undo finds a unit a person accepted. Returns why the
+   * unit could not be suggested, or null.
+   */
+  private suggestUnit(unit: AiJobUnitRow, at: { start: number, text: string }, next: string): string | null {
+    const { ydoc, ytext } = this.deps.doc
+    const sink: SuggestSink = { principal: aiJobClientUserId(this.job.id), name: 'markoto', jobId: this.job.id, forced: false, written: 0 }
+    const hunks = changedRuns(at.text, next).map(h => ({ from: at.start + h.from, to: at.start + h.to, text: h.text }))
+    try {
+      ydoc.transact(() => {
+        writeSuggestions(ydoc, ytext, hunks, sink, `job:${this.job.id}:${unit.ordinal}`)
+      }, jobOrigin(this.job.id))
+      return null
+    } catch (e) {
+      if (e instanceof SuggestionLimitError) return e.message
+      throw e
+    }
   }
 
   private async progress(delta: Parameters<JobRunnerDeps['store']['addProgress']>[0], heading: string | null): Promise<void> {

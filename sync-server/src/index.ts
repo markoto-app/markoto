@@ -145,7 +145,11 @@ const server = new Server({
 
   async beforeHandleMessage(data) {
     try {
-      updateGuard.check(data.document, data.update, data.connection.readOnly)
+      const ctx = (data as { context?: { suggestOnly?: boolean, userId?: string | number } }).context
+      updateGuard.check(data.document, data.update, data.connection.readOnly, {
+        suggestOnly: ctx?.suggestOnly === true,
+        userId: ctx?.userId ?? null
+      })
     } catch (e) {
       // Anything unexpected inside the guard fails closed too, with a
       // reason the editor recognises (so it stops resending the update).

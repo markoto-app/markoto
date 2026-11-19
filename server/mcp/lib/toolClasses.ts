@@ -32,6 +32,7 @@ export const MCP_TOOL_CLASSES: Readonly<Record<string, McpToolClass>> = {
   search_activity_log: 'read',
   view_image: 'read',
   export_document_as_markdown: 'read',
+  list_suggestions: 'read',
 
   insert_text: 'write',
   replace_text: 'write',
@@ -55,6 +56,9 @@ export const MCP_TOOL_CLASSES: Readonly<Record<string, McpToolClass>> = {
   delete_comment: 'write',
   update_theme: 'write',
   save_theme_as_preset: 'write',
+  suggest_edit: 'write',
+  accept_suggestions: 'write',
+  reject_suggestions: 'write',
 
   generate_image: 'cost',
   export_document_as_pdf: 'cost',

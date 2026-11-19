@@ -49,7 +49,8 @@
       "updateTooLarge": "Este cambio es demasiado grande para sincronizarlo de una vez. Recarga y añade el contenido en partes más pequeñas.",
       "documentTooLarge": "Este documento ha alcanzado su tamaño máximo. Recarga y elimina contenido o divídelo en varios documentos.",
       "invalidMeta": "Un ajuste del documento (título, tema o detalles) tenía un valor que el servidor no puede aceptar. Recarga para continuar.",
-      "invalidUpdate": "El servidor no pudo procesar un cambio de esta pestaña. Recarga para continuar."
+      "invalidUpdate": "El servidor no pudo procesar un cambio de esta pestaña. Recarga para continuar.",
+      "invalidSuggestion": "Esta pestaña intentó cambiar algo en lo que solo puedes sugerir cambios (por ejemplo, después de que el propietario activara el modo de sugerencias). Recarga para continuar en modo de sugerencias."
     },
     "bold": "Negrita",
     "italic": "Cursiva",
@@ -203,6 +204,10 @@
         "search_knowledge": "buscó en la base de conocimiento",
         "get_knowledge_file": "leyó un archivo de conocimiento",
         "replace_all": "reemplazó texto en todo el documento"
+      },
+      "suggestion": {
+        "accepted": "aceptó una sugerencia | aceptó una sugerencia | aceptó {n} sugerencias",
+        "rejected": "rechazó una sugerencia | rechazó una sugerencia | rechazó {n} sugerencias"
       }
     },
     "detail": {
@@ -210,7 +215,8 @@
       "replacedAll": "{count}× “{from}” → “{to}”",
       "restoredFrom": "Desde {ago}",
       "jobProgress": "{done} de {total} partes cambiadas",
-      "jobReverted": "{reverted} partes restauradas, {skipped} dejadas tal como se editaron"
+      "jobReverted": "{reverted} partes restauradas, {skipped} dejadas tal como se editaron",
+      "suggestions": "{preview} ({authors}) | {preview} ({authors}) | {count} de {authors}, p. ej. {preview}"
     },
     "restore": {
       "button": {
@@ -858,7 +864,8 @@
     "commentsShort": "Comentarios",
     "activityShort": "Actividad",
     "themeShort": "Tema",
-    "knowledgeShort": "Conocimiento"
+    "knowledgeShort": "Conocimiento",
+    "suggestionsShort": "Sugerir"
   },
   "editorCommands": {
     "formatting": "Formato",
@@ -3530,5 +3537,63 @@
       "hint": "Busca en los títulos y el texto de tus documentos, tus espacios de trabajo y los documentos compartidos contigo."
     },
     "subfolders": "{n} carpeta | {n} carpetas"
+  },
+  "suggestions": {
+    "title": "Sugerencias",
+    "aiAuthor": "markoto AI",
+    "kind": {
+      "insert": "Añadir",
+      "delete": "Eliminar",
+      "replace": "Reemplazar",
+      "obsolete": "Nada que cambiar"
+    },
+    "accept": "Aceptar",
+    "reject": "Rechazar",
+    "withdraw": "Retirar tu sugerencia",
+    "obsoleteHint": "Alguien eliminó este texto entretanto. Rechaza la sugerencia para quitarla.",
+    "changedHint": "El texto cambió desde que se hizo esta sugerencia. Al aceptarla se aplica al texto tal como está ahora.",
+    "replyPlaceholder": "Responder a esta sugerencia…",
+    "allAuthors": "Todos",
+    "filterAuthor": "Mostrar sugerencias de",
+    "acceptAll": "Aceptar todas",
+    "rejectAll": "Rechazar todas",
+    "acceptShown": "Aceptar estas",
+    "rejectShown": "Rechazar estas",
+    "acceptedN": "Ninguna sugerencia aceptada | {n} sugerencia aceptada | {n} sugerencias aceptadas",
+    "rejectedN": "Ninguna sugerencia rechazada | {n} sugerencia rechazada | {n} sugerencias rechazadas",
+    "failed": "No se pudieron actualizar las sugerencias. Inténtalo de nuevo.",
+    "empty": "Aún no hay sugerencias. Cambia a Sugiriendo para proponer cambios que otros puedan aceptar o rechazar.",
+    "emptyReadOnly": "No hay sugerencias en este documento.",
+    "mode": {
+      "editing": "Editando",
+      "suggesting": "Sugiriendo",
+      "editingHint": "Editas el texto directamente. Cambia a Sugiriendo para proponer cambios en su lugar.",
+      "suggestingHint": "Tus cambios se convierten en sugerencias que otros pueden aceptar o rechazar.",
+      "requiredHint": "El propietario de este documento pide sugerencias: tus cambios se convierten en sugerencias que otros aceptan o rechazan.",
+      "viewerHint": "Puedes sugerir cambios en este documento. Quienes lo editan los aceptan o rechazan.",
+      "suggestingFooter": "sugiriendo"
+    },
+    "ai": {
+      "toggle": "La IA sugiere cambios",
+      "on": "La IA propone sus cambios como sugerencias que aceptas o rechazas. Haz clic para que edite directamente.",
+      "off": "La IA edita el texto directamente. Haz clic para que proponga sugerencias en su lugar.",
+      "forced": "Este documento pide sugerencias, así que la IA también propone sus cambios como sugerencias.",
+      "settingTitle": "Sugerencias",
+      "settingLabel": "La IA sugiere en lugar de editar",
+      "settingDescription": "Los cambios que la IA hace en un documento, también en las ediciones grandes que se ejecutan en segundo plano, llegan como sugerencias que tú o tu equipo aceptáis o rechazáis. Puedes cambiarlo por petición en la barra de IA.",
+      "saveFailed": "No se pudo guardar el ajuste. Inténtalo de nuevo."
+    },
+    "settings": {
+      "title": "Sugerencias",
+      "required": "Todos sugieren cambios",
+      "requiredHelp": "Los cambios de los demás se convierten en sugerencias que aceptas o rechazas, como un supervisor que revisa un borrador. Tú siempre editas directamente.",
+      "exemptTitle": "Estos roles del espacio de trabajo siguen editando directamente:",
+      "exemptAdmins": "Administradores del espacio de trabajo",
+      "exemptEditors": "Editores del espacio de trabajo",
+      "viewers": "Los lectores pueden sugerir",
+      "viewersHelp": "Las personas con sesión iniciada que solo pueden ver este documento pueden sugerir cambios y responder a las sugerencias.",
+      "saveFailed": "No se pudo guardar la configuración de sugerencias"
+    },
+    "exportCritic": "Descargar Markdown con sugerencias (CriticMarkup)"
   }
 }

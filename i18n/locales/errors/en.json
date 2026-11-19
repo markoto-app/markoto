@@ -424,6 +424,15 @@
       "cycle": "A folder can't be moved into itself or one of its subfolders.",
       "forbidden": "You can't change folders here.",
       "delete-blocked": "{blocked} documents in this folder can't be deleted by you, so nothing was deleted."
+    },
+    "suggestion": {
+      "invalid": "This suggestion is not valid.",
+      "not-allowed": "You can't make suggestions in this document.",
+      "review-not-allowed": "Only people who can edit this document can accept or reject suggestions.",
+      "not-found": "This suggestion no longer exists. Someone else may have accepted or rejected it.",
+      "too-many": "This document has too many open suggestions ({max}). Accept or reject some first.",
+      "too-many-authors": "Accept the suggestions of at most {max} people at once.",
+      "rate-limited": "Too many requests. Please wait a moment and try again."
     }
   }
 }

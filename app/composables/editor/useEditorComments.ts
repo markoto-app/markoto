@@ -26,7 +26,7 @@ export function useEditorComments(opts: {
   const commentsApi = useProvideComments(opts.ydoc, opts.awareness, opts.docId)
   const commentRanges = computed<CommentRange[]>(() =>
     commentsApi.comments.value
-      .flatMap(c => c.anchor && !c.resolved ? [{ id: c.id, from: c.anchor.from, to: c.anchor.to }] : [])
+      .flatMap(c => c.anchor && !c.resolved && c.suggestionId === null ? [{ id: c.id, from: c.anchor.from, to: c.anchor.to }] : [])
   )
 
   // OS notification on replies to a thread I authored, only while the tab is

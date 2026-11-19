@@ -6,6 +6,7 @@ import { ssoEnforcedSql, ssoSatisfiedSql } from '../sso'
 import type { WorkspaceRole } from '../../../shared/utils/documents/docPermissions'
 import type { AccessMode } from '../documents'
 import { useDatabase } from '../../db/client'
+import { readSuggestionPolicy, type SuggestionPolicy } from '~~/shared/utils/suggestions/record'
 
 // Access bootstrap: the one lookup every document access decision starts
 // from. It takes a bare id because it runs BEFORE anything is proven; only
@@ -41,6 +42,8 @@ export interface DocAuthzRow {
   shareExpiresAt: Date | null
   /** Share-link controls: no PDF / Markdown download or print for visitors. */
   shareNoDownload: boolean
+  /** Suggestion mode settings (the default when never set). */
+  suggestionPolicy: SuggestionPolicy
   /**
    * Document context fields, surfaced through the token endpoint so the editor
    * can hydrate the Document tab before Y.js sync completes. The documents row
@@ -71,6 +74,7 @@ export async function getDocWithActorRole(
       accessMode: documents.accessMode,
       shareExpiresAt: documents.shareExpiresAt,
       shareNoDownload: documents.shareNoDownload,
+      suggestionPolicy: documents.suggestionPolicy,
       anonCreatorKeyHash: documents.anonCreatorKeyHash,
       theme: documents.theme,
       title: documents.title,
@@ -127,6 +131,7 @@ export async function getDocWithActorRole(
     ownerAccessSuspended: row.ownerAccessSuspended === true,
     shareExpiresAt: row.shareExpiresAt,
     shareNoDownload: row.shareNoDownload,
+    suggestionPolicy: readSuggestionPolicy(row.suggestionPolicy),
     title: row.title,
     description: row.description,
     audience: row.audience,

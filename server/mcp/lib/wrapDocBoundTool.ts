@@ -7,7 +7,7 @@ import { defineMcpTool, type McpRequestExtra, type McpToolCallback } from '@nuxt
 import { stripWrapperArgs } from './stripWrapperArgs'
 import { DOWNLOAD_DISABLED_MESSAGE, userMayDownload } from '../../utils/access/shareSettings'
 import { proveWorkspaceAccess } from '../../utils/access/workspaceAccess'
-import { proveDocMembership } from '../../utils/access/docProof'
+import { proveDocMembership, type DocAuthzRow } from '../../utils/access/docProof'
 import { proveSelf } from '../../utils/access/userProof'
 import type { DocAccess, WorkspaceAccess } from '../../repos/proofs'
 import { findUserName } from '../../repos/users'
@@ -26,6 +26,8 @@ import { mcpToolAllowed } from './toolClasses'
 import { PLAN_FEATURE_UNAVAILABLE_CODE, PLAN_LIMIT_REACHED_CODE } from '~~/shared/config/planErrors'
 import { limitRecovery } from '../../utils/billing/billingMode'
 import { apiError } from '../../utils/api/apiError'
+import { sessionSuggestMode } from '../../utils/agentic/sessions/suggestMode'
+import { mcpClientUserId } from '~~/shared/contracts/jwt'
 
 // Wrappers that bake the per-class boilerplate every MCP tool needs.
 // Three flavors based on what context the tool needs to operate on:
@@ -167,29 +169,9 @@ export function buildDocBoundTool<Schema extends ZodRawShape>(opts: WrapDocBound
         throw apiError('mcp/missing-doc-id')
       }
 
-      // `assertDocAccess` returns the resolved authz info so we can
-      // thread `workspaceId` into `connectAsMcpClient` instead of
-      // having that helper re-query `getDoc`. One DB round-trip per
-      // tool call, not two.
-      const authz = await assertDocAccess(auth.userId, docId, opts.access)
-      if (opts.download && !(await userMayDownload(docId, auth.userId))) {
-        return { content: [{ type: 'text', text: DOWNLOAD_DISABLED_MESSAGE }], isError: true }
-      }
-
-      const self = proveSelf(auth.userId)
-      const userName = (await findUserName(self)) ?? `user-${auth.userId}`
-      const mcpSessionId = mcpSessionIdFromEvent(event) ?? `oneshot-${Date.now()}`
-
-      const handle = await connectAsMcpClient({
-        docId,
-        userId: auth.userId,
-        mcpSessionId,
-        userName,
-        workspaceId: authz.workspaceId,
-        docAccess: authz.access,
-        self,
-        workspaceAccess: authz.workspaceId ? await proveWorkspaceAccess(auth.userId, authz.workspaceId, 'member') : null
-      })
+      const opened = await openMcpDoc(event, auth.userId, docId, opts.access, opts.download === true)
+      if ('refused' in opened) return opened.refused
+      const { handle } = opened
       try {
         // The registry runs DOC and META tools alike with handle.ctx
         // (DocToolContext): META handlers via structural subtyping
@@ -206,6 +188,89 @@ export function buildDocBoundTool<Schema extends ZodRawShape>(opts: WrapDocBound
         return toolResultToCallToolResult(await executeFunctionByName(handle.ctx, opts.name, handlerArgs))
       } finally {
         handle.release()
+      }
+    }) as McpToolCallback<Schema>
+  })
+}
+
+/** A document session of one MCP tool call: the pool handle and what the tool may do. */
+export interface McpDocSession {
+  handle: Awaited<ReturnType<typeof connectAsMcpClient>>
+  /** The caller must suggest instead of editing (the document requires it of them). */
+  mustSuggest: boolean
+  mcpSessionId: string
+  userName: string
+}
+
+/**
+ * Open the document for one tool call: membership check (404 shape for
+ * missing and refused), the share-control download check, the pool
+ * connection, and suggestion mode for edit tools (where the document
+ * requires suggestions of this user, or they asked the AI to suggest,
+ * text edits become suggestions of this MCP session).
+ */
+async function openMcpDoc(event: H3Event, userId: number, docId: string, access: 'view' | 'edit', download: boolean): Promise<McpDocSession | { refused: CallToolResult }> {
+  // `assertDocAccess` returns the resolved authz info so we can thread
+  // `workspaceId` into `connectAsMcpClient` instead of having that helper
+  // re-query `getDoc`. One DB round-trip per tool call, not two.
+  const authz = await assertDocAccess(userId, docId, access)
+  if (download && !(await userMayDownload(docId, userId))) {
+    return { refused: { content: [{ type: 'text', text: DOWNLOAD_DISABLED_MESSAGE }], isError: true } }
+  }
+  const self = proveSelf(userId)
+  const userName = (await findUserName(self)) ?? `user-${userId}`
+  const mcpSessionId = mcpSessionIdFromEvent(event) ?? `oneshot-${Date.now()}`
+  const handle = await connectAsMcpClient({
+    docId,
+    userId,
+    mcpSessionId,
+    userName,
+    workspaceId: authz.workspaceId,
+    docAccess: authz.access,
+    self,
+    workspaceAccess: authz.workspaceId ? await proveWorkspaceAccess(userId, authz.workspaceId, 'member') : null
+  })
+  const mode = access === 'edit' ? await sessionSuggestMode(authz.row, self, undefined) : null
+  handle.ctx.suggestSink = mode ? { principal: mcpClientUserId(mcpSessionId), name: 'MCP', forced: mode.forced, written: 0 } : null
+  return { handle, mustSuggest: mode?.forced === true, mcpSessionId, userName }
+}
+
+export interface WrapDocSessionToolOpts<Schema extends ZodRawShape> {
+  /** An MCP-only tool (not in the tool registry). */
+  name: string
+  description: string
+  inputSchema: Schema
+  scope: McpScope
+  access: 'view' | 'edit'
+  annotations?: ToolAnnotations
+  run: (session: McpDocSession, args: ShapeOutput<Schema>) => Promise<CallToolResult>
+}
+
+/**
+ * `buildDocBoundTool` for MCP-only tools with their own logic (the
+ * suggestion tools): same admission, access check and pool session, then
+ * `run` instead of a registry dispatch.
+ */
+export function buildDocSessionTool<Schema extends ZodRawShape>(opts: WrapDocSessionToolOpts<Schema>) {
+  assertSchemaContains(opts.inputSchema, 'doc_id', opts.name)
+  return defineMcpTool({
+    name: opts.name,
+    title: titleFromName(opts.name),
+    description: opts.description,
+    inputSchema: opts.inputSchema,
+    annotations: opts.annotations ?? {},
+    enabled: (event: H3Event): boolean => toolEnabled(event, opts.scope, opts.name),
+    handler: (async (args: ShapeOutput<Schema>, _extra: McpRequestExtra): Promise<CallToolResult> => {
+      const event = useEvent()
+      const auth = await admitToolCall(event, opts.name, opts.scope)
+      const docId = String(args.doc_id ?? '')
+      if (!docId) throw apiError('mcp/missing-doc-id')
+      const opened = await openMcpDoc(event, auth.userId, docId, opts.access, false)
+      if ('refused' in opened) return opened.refused
+      try {
+        return await opts.run(opened, args)
+      } finally {
+        opened.handle.release()
       }
     }) as McpToolCallback<Schema>
   })
@@ -354,14 +419,14 @@ async function assertDocAccess(
   userId: number,
   docId: string,
   kind: 'view' | 'edit'
-): Promise<{ workspaceId: string | null, access: DocAccess<'view'> }> {
+): Promise<{ workspaceId: string | null, access: DocAccess<'view'>, row: DocAuthzRow }> {
   const proven = await proveDocMembership(userId, docId, kind)
   if (!proven) {
     // 404-shape (not 403) for missing and refused alike, matches the
     // in-app endpoints' anti-enumeration policy.
     throw apiError('mcp/doc-not-found')
   }
-  return { workspaceId: proven.workspaceId, access: proven.access }
+  return { workspaceId: proven.workspaceId, access: proven.access, row: proven.row }
 }
 
 /**

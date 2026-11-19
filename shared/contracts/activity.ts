@@ -10,7 +10,8 @@ export const ACTIVITY_ACTIONS = [
   'comment.resolved', 'comment.reopened', 'comment.deleted',
   'theme.changed', 'title.changed', 'ai.tool',
   'restore',
-  'ai.job', 'ai.job.reverted'
+  'ai.job', 'ai.job.reverted',
+  'suggestion.accepted', 'suggestion.rejected'
 ] as const
 
 export type ActivityAction = typeof ACTIVITY_ACTIONS[number]
@@ -47,7 +48,10 @@ export const activityMetadata = z.union([
   z.object({ kind: z.literal('restore'), restoredFromActivityId: z.number(), restoredFromTime: z.string() }),
   // A delegated AI edit (job) started or finished; counts only, never text.
   z.object({ kind: z.literal('ai.job'), jobId: z.string(), mode: z.string(), phase: z.enum(['started', 'finished']), status: z.string(), unitsTotal: z.number(), done: z.number(), skipped: z.number(), flagged: z.number() }),
-  z.object({ kind: z.literal('ai.job.reverted'), jobId: z.string(), mode: z.string(), reverted: z.number(), followUps: z.number().optional(), skipped: z.number() })
+  z.object({ kind: z.literal('ai.job.reverted'), jobId: z.string(), mode: z.string(), reverted: z.number(), followUps: z.number().optional(), skipped: z.number() }),
+  // Someone with edit rights decided suggestions; the accepted text itself
+  // is an `edit` row attributed to each suggester.
+  z.object({ kind: z.enum(['suggestion.accepted', 'suggestion.rejected']), count: z.number(), authors: z.array(z.string()), preview: z.string() })
 ])
 
 export type ActivityMetadata = z.infer<typeof activityMetadata>

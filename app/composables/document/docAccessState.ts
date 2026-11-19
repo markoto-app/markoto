@@ -24,6 +24,15 @@ export function createDocAccessState() {
     // state rather than a hang).
     tokenData: ref<DocTokenState | null>(null),
     isReadOnly: ref(false),
+    // Suggestion mode: this connection may write only suggestions and
+    // comments (the document requires it of this person, or a viewer may
+    // suggest). The editor then stays in suggesting mode.
+    suggestOnly: ref(false),
+    // The document asks everyone not exempt to suggest (owner setting).
+    suggestionsRequired: ref(false),
+    // Holds the content-write right (also when made to suggest); false for
+    // viewers, also those allowed to suggest. Gates the AI prompt bar.
+    contentWriter: ref(false),
     // Set only when the sync layer rejected our auth at handshake time. Both
     // that and a server-declared read-only (`data.readOnly`) flip isReadOnly,
     // but only this one is a fault worth a banner.
@@ -94,6 +103,9 @@ export function applyTokenAnswer(s: DocAccessState, data: TokenAnswer, userId: n
   const denied = data.token === null ? data : null
   s.tokenData.value = { token: data.token ?? '', readOnly: data.readOnly }
   s.isReadOnly.value = data.readOnly
+  s.suggestOnly.value = data.suggestOnly === true
+  s.suggestionsRequired.value = data.suggestionsRequired === true
+  s.contentWriter.value = data.contentWriter === true
   s.requiresPassword.value = !!data.requiresPassword
   s.forbidden.value = !!data.forbidden
   s.canDelete.value = data.canDelete === true
@@ -131,6 +143,7 @@ export function applyAccessEnded(s: DocAccessState, data: TokenAnswer & { token:
   s.ssoLoginUrl.value = data.ssoLoginUrl ?? null
   s.tokenData.value = { token: '', readOnly: true }
   s.isReadOnly.value = true
+  s.suggestOnly.value = false
   if (data.forbidden) s.forbidden.value = true
   if (data.requiresPassword) s.requiresPassword.value = true
 }

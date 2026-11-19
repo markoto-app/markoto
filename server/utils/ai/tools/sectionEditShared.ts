@@ -2,6 +2,7 @@ import type { z } from 'zod'
 import { z as zod } from 'zod'
 import type { DocToolContext } from '../../agentic/toolContext'
 import { applyMinimalDiff } from './sections/ytextDiff'
+import { editText, type EditTextResult } from './textWrite'
 
 // Pieces the section-addressed edit tools share (structuralEditTools.ts,
 // replaceAllTools.ts): the section reference argument, the session origin
@@ -24,9 +25,9 @@ export interface Edit { start: number, end: number, text: string }
  * goes first. Each edit is a minimal word diff, so comment anchors and
  * cursors on unchanged words stay.
  */
-export function applyEdits(ctx: DocToolContext, edits: readonly Edit[]): void {
+export function applyEdits(ctx: DocToolContext, edits: readonly Edit[]): EditTextResult {
   const sorted = [...edits].sort((a, b) => b.start - a.start || (a.end - a.start) - (b.end - b.start))
-  ctx.ydoc.transact(() => {
-    for (const e of sorted) applyMinimalDiff(ctx.ytext, e.start, e.end, e.text)
-  }, originOf(ctx))
+  return editText(ctx, originOf(ctx), (t) => {
+    for (const e of sorted) applyMinimalDiff(t, e.start, e.end, e.text)
+  })
 }
