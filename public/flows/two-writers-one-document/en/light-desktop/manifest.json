@@ -22,7 +22,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/kuxmidGNW4"
+      "path": "/d/9phdaCjN_W"
     },
     {
       "kind": "chapter",
@@ -37,7 +37,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/kuxmidGNW4"
+      "path": "/d/9phdaCjN_W"
     },
     {
       "kind": "outcome",
@@ -47,7 +47,7 @@
         "x": 19,
         "y": 383
       },
-      "path": "/d/kuxmidGNW4"
+      "path": "/d/9phdaCjN_W"
     },
     {
       "kind": "chapter",
@@ -62,14 +62,14 @@
         "x": 319,
         "y": 383
       },
-      "path": "/d/kuxmidGNW4"
+      "path": "/d/9phdaCjN_W"
     },
     {
       "kind": "outcome",
       "file": "04.webp",
       "caption": "Sam lands in the doc. Both avatars show in the topbar, Sam at the front (themselves), Maya right next to them.",
       "cursor": null,
-      "path": "/d/kuxmidGNW4",
+      "path": "/d/9phdaCjN_W",
       "actor": "sam"
     },
     {
@@ -85,7 +85,7 @@
         "x": 319,
         "y": 383
       },
-      "path": "/d/kuxmidGNW4"
+      "path": "/d/9phdaCjN_W"
     },
     {
       "kind": "outcome",
@@ -95,7 +95,7 @@
         "x": 19,
         "y": 383
       },
-      "path": "/d/kuxmidGNW4",
+      "path": "/d/9phdaCjN_W",
       "actor": "sam"
     },
     {
@@ -106,7 +106,7 @@
         "x": 19,
         "y": 383
       },
-      "path": "/d/kuxmidGNW4",
+      "path": "/d/9phdaCjN_W",
       "highlights": [
         {
           "label": "Sam's edit landed live",
@@ -126,33 +126,33 @@
     {
       "kind": "narration",
       "text": "Sam highlights the line you wrote and leaves a thought. The comment thread appears in your sidebar within a second; the anchored passage gets a yellow underline. You can reply inline: same thread, no email loop, no Slack tab-switch.",
-      "file": "07.webp",
+      "file": "08.webp",
       "cursor": {
         "x": 319,
         "y": 383
       },
-      "path": "/d/kuxmidGNW4"
+      "path": "/d/9phdaCjN_W"
     },
     {
       "kind": "outcome",
-      "file": "08.webp",
+      "file": "09.webp",
       "caption": "Sam posts the comment. The thread sits in their sidebar.",
       "cursor": {
         "x": 1067,
         "y": 313
       },
-      "path": "/d/kuxmidGNW4",
+      "path": "/d/9phdaCjN_W",
       "actor": "sam"
     },
     {
       "kind": "outcome",
-      "file": "09.webp",
+      "file": "10.webp",
       "caption": "On YOUR screen: Sam's comment lands in your sidebar, anchored to the line you wrote. Reply inline; the conversation lives with the doc.",
       "cursor": {
         "x": 1208,
         "y": 98
       },
-      "path": "/d/kuxmidGNW4",
+      "path": "/d/9phdaCjN_W",
       "highlights": [
         {
           "label": "Sam's comment",
