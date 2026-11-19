@@ -14,6 +14,7 @@ import { accountLanguageName } from '~/utils/platform/localeName'
 // so deep-linking without a session lands in the 401-toast surface.
 
 const router = useRouter()
+const marketingPath = useMarketingPath()
 const { t, locale, locales } = useI18n()
 // The spending section is a billing surface, hidden entirely when
 // billing is off (self-hosted / free-only SaaS).
@@ -427,7 +428,7 @@ const policies = computed(() => {
                 color="neutral"
                 variant="ghost"
                 icon="i-lucide-credit-card"
-                to="/pricing"
+                :to="marketingPath('/pricing')"
               >
                 {{ t('settings.profile.spending.viewPricing') }}
               </UButton>

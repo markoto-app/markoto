@@ -2595,6 +2595,12 @@
       },
       "caption": "markoto.app 的当前列表，读取自与法律页面相同的登记表。",
       "link": "次级处理者，附隐私政策和 DPA"
+    },
+    "language": {
+      "label": "语言",
+      "suggestion": "此页面也有中文版。",
+      "switch": "切换",
+      "dismiss": "关闭"
     }
   },
   "home": {

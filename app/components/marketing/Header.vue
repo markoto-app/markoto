@@ -33,10 +33,13 @@ const { t } = useI18n()
 const { loggedIn } = useUserSession()
 const { marketingSite } = useInstanceConfig()
 const { pricingVisible } = useBillingMode()
+// Links stay in the page's language (`/de/pricing` from `/de/...`).
+const marketingPath = useMarketingPath()
+const homePath = computed(() => (loggedIn.value ? '/' : marketingPath('/')))
 
 interface HeaderLink { label: string, to: string, testid: string, class?: string }
 const links = computed<HeaderLink[]>(() => [
-  ...(pricingVisible.value ? [{ label: t('marketing.nav.pricing'), to: '/pricing', testid: 'header-pricing-link' }] : []),
+  ...(pricingVisible.value ? [{ label: t('marketing.nav.pricing'), to: marketingPath('/pricing'), testid: 'header-pricing-link' }] : []),
   ...(marketingSite.value && !loggedIn.value
     ? [{ label: t('marketing.nav.selfHost'), to: selfHostPath(marketingSite.value), testid: 'header-self-host-link', class: 'hidden sm:inline-flex' }]
     : [])
@@ -47,7 +50,7 @@ const links = computed<HeaderLink[]>(() => [
   <header class="mk-site-header border-b border-default px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-2">
     <div class="flex items-center gap-2 sm:gap-4 min-w-0">
       <NuxtLink
-        to="/"
+        :to="homePath"
         class="flex items-center shrink-0"
         :aria-label="t('common.homeLinkLabel')"
       >

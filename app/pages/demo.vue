@@ -21,7 +21,11 @@ const videoUrl = computed(() => (siteUrl.value ? `${siteUrl.value}${DEMO_VIDEO.s
 const posterUrl = computed(() => (siteUrl.value ? `${siteUrl.value}${DEMO_VIDEO.poster}` : undefined))
 const minutes = Math.max(1, Math.round(DEMO_VIDEO.durationSeconds / 60))
 
-useMarketingSeo({ title, description: () => description.value })
+// Language versions (`/demo`, `/de/demo`, ...): hreflang, noindex while unreviewed.
+const { noindex } = useUiPageLanguages('/demo')
+const route = useRoute()
+const marketingPath = useMarketingPath()
+useMarketingSeo({ title, description: () => description.value, noindex: () => noindex.value })
 useSeoMeta({
   ogVideo: () => videoUrl.value,
   ogVideoSecureUrl: () => (videoUrl.value?.startsWith('https://') ? videoUrl.value : undefined),
@@ -35,15 +39,15 @@ function isoDuration(seconds: number): string {
   return `PT${Math.floor(seconds / 60)}M${seconds % 60}S`
 }
 
-usePageStructuredData(() => ({
+usePageStructuredData(() => (noindex.value ? null : {
   name: title.value,
   description: description.value,
-  breadcrumbs: pageBreadcrumbs('/demo', title.value),
+  breadcrumbs: pageBreadcrumbs(route.path, title.value),
   about: [{ self: true }],
   extraNodes: videoUrl.value && posterUrl.value
     ? [{
         '@type': 'VideoObject',
-        '@id': `${siteUrl.value}/demo#video`,
+        '@id': `${siteUrl.value}${route.path}#video`,
         'name': t('demo.heading'),
         'description': description.value,
         'thumbnailUrl': posterUrl.value,
@@ -96,7 +100,7 @@ usePageStructuredData(() => ({
     </div>
     <div class="mt-6 flex flex-wrap items-center gap-3">
       <UButton
-        to="/"
+        :to="marketingPath('/')"
         color="neutral"
         icon="i-lucide-arrow-left"
         data-testid="demo-home"

@@ -24,6 +24,7 @@ export function useAiBudgetNotices(ai: AiSessionErrors, workspaceId: () => strin
   const { t } = useI18n()
   const toast = useToast()
   const router = useRouter()
+  const marketingPath = useMarketingPath()
   const { refresh: refreshBilling } = useBilling()
   const { state: credits, isKnown: creditsKnown, isExhausted: pointsExhausted, isFreeAllowanceExhausted, isWorkspaceShared: creditsAreShared, isTeamBudgetExhausted, canManageWorkspaceBudget, refresh: refreshAiCredits } = useAiCredits(workspaceId)
   const { chatPlatformBilled } = useAiAvailability()
@@ -95,7 +96,7 @@ export function useAiBudgetNotices(ai: AiSessionErrors, workspaceId: () => strin
     let description = t('ai.budgetExhaustedDescription')
     let actions: Array<{ label: string, color: 'primary' | 'neutral', onClick: () => void }> | undefined
     const goToPricing = () => {
-      globalThis.location.href = '/pricing'
+      globalThis.location.href = marketingPath('/pricing')
     }
     if (canBuyPersonalPoints.value) {
       description = t('ai.budgetExhaustedProDescription')
@@ -138,7 +139,7 @@ export function useAiBudgetNotices(ai: AiSessionErrors, workspaceId: () => strin
       return
     }
     if (pricingVisible.value) {
-      void router.push('/pricing')
+      void router.push(marketingPath('/pricing'))
       return
     }
     // Self-hosted: nothing to buy, re-explain instead of a dead link.

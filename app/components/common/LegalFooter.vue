@@ -30,6 +30,10 @@ const { legalSurfaces, operatorName, marketingSite } = useInstanceConfig()
 const { supportHref } = useInstanceSupport()
 const { pricingVisible, billingEnabled } = useBillingMode()
 const nav = useMarketingNav()
+// Links stay in the page's language (`/de/pricing` from `/de/...`).
+const marketingPath = useMarketingPath()
+const { loggedIn } = useUserSession()
+const homePath = computed(() => (loggedIn.value ? '/' : marketingPath('/')))
 
 // Layout on top of Nuxt UI's footer: the same 72rem column as the
 // marketing pages, brand left of the link columns from `lg`, two link
@@ -67,7 +71,7 @@ interface FooterColumn {
 
 const columns = computed<FooterColumn[]>(() => {
   const product: FooterLink[] = [
-    ...(pricingVisible.value ? [{ to: '/pricing', label: t('marketing.nav.pricing'), testid: 'footer-pricing-link' }] : []),
+    ...(pricingVisible.value ? [{ to: marketingPath('/pricing'), label: t('marketing.nav.pricing'), testid: 'footer-pricing-link' }] : []),
     ...(marketingSite.value ? [{ to: selfHostPath(marketingSite.value), label: t('marketing.nav.selfHost'), testid: 'footer-self-host-link' }] : []),
     { to: '/docs', label: t('common.docs'), testid: 'footer-docs-link' },
     { to: SOURCE_REPO_URL, label: 'GitHub', testid: 'footer-github-link', external: true },
@@ -117,7 +121,7 @@ const columns = computed<FooterColumn[]>(() => {
         >
           <template #left>
             <NuxtLink
-              to="/"
+              :to="homePath"
               :aria-label="t('common.homeLinkLabel')"
               class="inline-flex w-fit items-center gap-2.5"
             >
@@ -162,9 +166,13 @@ const columns = computed<FooterColumn[]>(() => {
       </UContainer>
     </template>
     <template #left>
-      <p class="font-mono text-[11px] text-muted">
-        © {{ new Date().getFullYear() }} {{ operatorName || 'markoto' }}
-      </p>
+      <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
+        <p class="font-mono text-[11px] text-muted">
+          © {{ new Date().getFullYear() }} {{ operatorName || 'markoto' }}
+        </p>
+        <!-- Language versions of the current marketing page; nothing elsewhere. -->
+        <MarketingLanguageSwitcher />
+      </div>
     </template>
   </UFooter>
 </template>

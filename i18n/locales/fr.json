@@ -2595,6 +2595,12 @@
       },
       "caption": "La liste actuelle pour markoto.app, lue dans le même registre que la page juridique.",
       "link": "Sous-traitants, avec politiques de confidentialité et DPA"
+    },
+    "language": {
+      "label": "Langue",
+      "suggestion": "Cette page existe aussi en français.",
+      "switch": "Changer",
+      "dismiss": "Fermer"
     }
   },
   "home": {

@@ -11,6 +11,8 @@ const { status: accountStatus } = useAccountStatus()
 // NUXT_ADMIN_USER_EMAILS, exposed through /api/user/account-status).
 type MenuItem = { label: string, icon: string, to?: string, onSelect?: () => unknown }
 const { pricingVisible } = useBillingMode()
+// /pricing in the user's language (`/de/pricing`) on the marketing site.
+const marketingPath = useMarketingPath()
 const { customDomains } = useInstanceConfig()
 const { supportHref } = useInstanceSupport()
 const menuItems = computed<MenuItem[]>(() => {
@@ -21,7 +23,7 @@ const menuItems = computed<MenuItem[]>(() => {
     items.push({
       label: t('pricing.title'),
       icon: 'i-lucide-credit-card',
-      to: '/pricing'
+      to: marketingPath('/pricing')
     })
   }
   items.push({

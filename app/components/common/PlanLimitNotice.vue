@@ -22,6 +22,7 @@ const props = defineProps<{
 
 const { t } = useI18n()
 const { billingEnabled, plansComingSoon } = useBillingMode()
+const marketingPath = useMarketingPath()
 
 const linkLabel = computed(() => {
   if (billingEnabled.value) return t('ai.upgradeCta')
@@ -43,7 +44,7 @@ const linkLabel = computed(() => {
       #actions
     >
       <UButton
-        to="/pricing"
+        :to="marketingPath('/pricing')"
         size="xs"
         color="neutral"
         variant="outline"

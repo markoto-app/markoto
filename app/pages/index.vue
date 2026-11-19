@@ -26,10 +26,15 @@ useLeanResourceHints(() => showTour.value)
 
 // Home: the brand-led default title, untemplated. The hero sentence
 // (`landing.subtitle`, also the tour's hero copy) is the description.
+// Language versions (`/`, `/de`, ...; shared/seo/marketing.ts): hreflang,
+// and noindex while a language's texts are unreviewed. Not for the
+// dashboard, which is the app.
+const { noindex } = useUiPageLanguages('/', () => showTour.value)
 useMarketingSeo({
   title: DEFAULT_TITLE,
   description: () => t('landing.subtitle'),
-  bareTitle: true
+  bareTitle: true,
+  noindex: () => noindex.value
 })
 // JSON-LD (Organization + WebSite + SoftwareApplication), hosted only.
 useHomeStructuredData()
@@ -144,5 +149,9 @@ function createDocumentIn(folderId?: string | null) {
 
     <!-- Hydrates when scrolled to (server-rendered links until then). -->
     <LazyCommonLegalFooter hydrate-on-visible />
+    <!-- "Also in German" on the product tour: browser-only, after mount. -->
+    <ClientOnly v-if="showTour">
+      <LazyMarketingLanguageSuggestion />
+    </ClientOnly>
   </div>
 </template>

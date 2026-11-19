@@ -2,7 +2,7 @@
 import {
   COMPARE_HUB_CRUMB,
   COMPARE_HUB_SLUG,
-  hreflangLinks,
+  contentPageVariants,
   isIndexableVersion,
   marketingPageKind,
   marketingRoutePath
@@ -11,7 +11,7 @@ import { hubBreadcrumbs, pageBreadcrumbs } from '~~/shared/seo/breadcrumbs'
 import { fetchCompareData, fetchCompareHubItems, fetchMarketingPage } from '~/utils/marketing/marketingPage'
 
 // Marketing content pages of the hosted site (content/marketing/<locale>/<slug>.md):
-// `/<slug>` in English, `/de/<slug>`, `/fr/<slug>` for translations.
+// `/<slug>` in English, `/de/<slug>`, `/fr/<slug>`, ... for translations.
 // Route + language rules: shared/seo/marketing.ts. The UI language on
 // prefixed routes follows the URL (plugins/marketing-locale.ts).
 //
@@ -24,7 +24,6 @@ definePageMeta({ layout: 'marketing', middleware: 'marketing-pages' })
 
 const route = useRoute()
 const { t, locale } = useI18n()
-const { siteUrl } = useInstanceConfig()
 
 const { data } = await useAsyncData(`marketing:${route.path}`, () => fetchMarketingPage(route.path))
 if (!data.value) {
@@ -48,19 +47,10 @@ const { imageUrl } = useMarketingSeo({
   noindex: !indexable
 })
 
-// hreflang alternates for the reviewed language versions that exist;
-// an unreviewed translation is noindex and lists none.
-const alternates = indexable ? hreflangLinks(target.slug, versions) : []
-useHead({
-  link: siteUrl.value
-    ? alternates.map(a => ({
-        key: `hreflang-${a.hreflang}`,
-        rel: 'alternate',
-        hreflang: a.hreflang,
-        href: `${siteUrl.value}${a.path}`
-      }))
-    : []
-})
+// hreflang alternates for the reviewed language versions that exist (an
+// unreviewed translation is noindex and lists none), and the versions for
+// the language switcher.
+useMarketingLanguages(contentPageVariants(target.slug, versions))
 
 // JSON-LD (marketing site only): WebPage + BreadcrumbList, plus
 //  - hub: CollectionPage + ItemList of the comparisons;

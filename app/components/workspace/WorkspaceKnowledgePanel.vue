@@ -70,6 +70,7 @@ const canEdit = computed(() => props.myRole === 'admin' || props.myRole === 'edi
 // corner case: per-user caps require a dedicated endpoint to surface
 // cleanly, and this is the less common cap to hit.
 const router = useRouter()
+const marketingPath = useMarketingPath()
 const filesCapReached = computed(() => !!usage.value && usage.value.count >= usage.value.maxFiles)
 const bytesCapReached = computed(() => !!usage.value && usage.value.totalBytes >= usage.value.maxBytes)
 const uploadCapReached = computed(() => filesCapReached.value || bytesCapReached.value)
@@ -99,7 +100,7 @@ const uploadCapShortLabel = computed(() =>
 function onUploadClick() {
   if (uploadCapReached.value) {
     if (pricingVisible.value) {
-      void router.push('/pricing')
+      void router.push(marketingPath('/pricing'))
     } else {
       toast.add({ title: uploadCapShortLabel.value, description: uploadCapTooltip.value, icon: 'i-lucide-lock', color: 'neutral' })
     }

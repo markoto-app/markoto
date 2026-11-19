@@ -2595,6 +2595,12 @@
       },
       "caption": "La lista actual de markoto.app, leída del mismo registro que la página legal.",
       "link": "Subencargados, con políticas de privacidad y DPA"
+    },
+    "language": {
+      "label": "Idioma",
+      "suggestion": "Esta página también está disponible en español.",
+      "switch": "Cambiar",
+      "dismiss": "Cerrar"
     }
   },
   "home": {
