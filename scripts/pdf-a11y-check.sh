@@ -45,6 +45,7 @@ for pdf in "$WORK"/*.pdf; do
   "$ENGINE" run --rm -v "$WORK:/data:ro,z" "$VERAPDF_IMAGE" \
     --flavour ua1 --format json --maxfailuresdisplayed 1 "/data/$name" > "$WORK/$name.json" || true
   # One line per failed rule: clause-test, failed checks, description.
+  # shellcheck disable=SC2016 # JavaScript template literals, not shell expansions
   if ! bun -e '
     const report = JSON.parse(await Bun.file(process.argv[1]).text()).report
     const result = [report.jobs[0].validationResult].flat()[0]
