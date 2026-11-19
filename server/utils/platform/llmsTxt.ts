@@ -29,7 +29,7 @@ export interface Frontmatter {
 
 /** Frontmatter (YAML between `---` lines) and the body after it. */
 export function splitFrontmatter(raw: string): { data: Frontmatter, body: string } {
-  const text = raw.replace(/^﻿/, '').replaceAll('\r\n', '\n')
+  const text = (raw.startsWith('﻿') ? raw.slice(1) : raw).replaceAll('\r\n', '\n')
   const match = /^---\n([\s\S]*?)\n---\n?/.exec(text)
   if (!match) return { data: {}, body: text }
   const parsed: unknown = parseYaml(match[1] ?? '')
@@ -54,34 +54,44 @@ const FENCE_RE = /^ {0,3}(`{3,}|~{3,})/
  */
 export function cleanDocsMarkdown(body: string, base: string): string {
   const out: string[] = []
-  let fence: string | null = null
-  let blockDepth = 0
+  const state: CleanState = { fence: null, depth: 0 }
   for (const line of body.replaceAll('\r\n', '\n').split('\n')) {
-    const fenceMatch = FENCE_RE.exec(line)
-    if (fence) {
-      if (blockDepth === 0) out.push(line)
-      if (fenceMatch && line.trim().startsWith(fence)) fence = null
-      continue
-    }
-    if (fenceMatch && blockDepth === 0) {
-      fence = fenceMatch[1] ?? null
-      out.push(line)
-      continue
-    }
-    const trimmed = line.trim()
-    // Block component open (`::name{…}`, `:::name`) and close (`::`).
-    if (/^:{2,}[a-z][\w-]*/i.test(trimmed)) {
-      blockDepth++
-      continue
-    }
-    if (/^:{2,}$/.test(trimmed)) {
-      if (blockDepth > 0) blockDepth--
-      continue
-    }
-    if (blockDepth > 0) continue
-    out.push(absoluteLinks(withoutInlineComponents(line), base))
+    const kept = cleanLine(line, state)
+    if (kept === null) continue
+    out.push(kept.code ? kept.text : absoluteLinks(withoutInlineComponents(kept.text), base))
   }
   return out.join('\n').replace(/\n{3,}/g, '\n\n').trim()
+}
+
+interface CleanState {
+  /** Marker of the open fenced code block (``` or ~~~), or null. */
+  fence: string | null
+  /** Open MDC block components. */
+  depth: number
+}
+
+/** One line of `cleanDocsMarkdown`: kept (as code or as text) or dropped (null); updates the state. */
+function cleanLine(line: string, state: CleanState): { text: string, code: boolean } | null {
+  const fenceMatch = FENCE_RE.exec(line)
+  if (state.fence) {
+    if (fenceMatch && line.trim().startsWith(state.fence)) state.fence = null
+    return state.depth === 0 ? { text: line, code: true } : null
+  }
+  if (fenceMatch && state.depth === 0) {
+    state.fence = fenceMatch[1] ?? null
+    return { text: line, code: true }
+  }
+  const trimmed = line.trim()
+  // Block component open (`::name{…}`, `:::name`) and close (`::`).
+  if (/^:{2,}[a-z][\w-]*/i.test(trimmed)) {
+    state.depth++
+    return null
+  }
+  if (/^:{2,}$/.test(trimmed)) {
+    state.depth = Math.max(0, state.depth - 1)
+    return null
+  }
+  return state.depth > 0 ? null : { text: line, code: false }
 }
 
 /** Inline components (`:kbd{value="K"}`) become their `value`, or nothing. */

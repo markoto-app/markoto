@@ -39,26 +39,31 @@ function isoDuration(seconds: number): string {
   return `PT${Math.floor(seconds / 60)}M${seconds % 60}S`
 }
 
-usePageStructuredData(() => (noindex.value ? null : {
-  name: title.value,
-  description: description.value,
-  breadcrumbs: pageBreadcrumbs(route.path, title.value),
-  about: [{ self: true }],
-  extraNodes: videoUrl.value && posterUrl.value
-    ? [{
-        '@type': 'VideoObject',
-        '@id': `${siteUrl.value}${route.path}#video`,
-        'name': t('demo.heading'),
-        'description': description.value,
-        'thumbnailUrl': posterUrl.value,
-        'contentUrl': videoUrl.value,
-        'uploadDate': DEMO_VIDEO.published,
-        'duration': isoDuration(DEMO_VIDEO.durationSeconds),
-        'width': DEMO_VIDEO.width,
-        'height': DEMO_VIDEO.height
-      }]
-    : []
-}))
+// None on an unreviewed (noindex) language version.
+usePageStructuredData(() => (noindex.value ? null : demoStructuredData()))
+
+function demoStructuredData() {
+  return {
+    name: title.value,
+    description: description.value,
+    breadcrumbs: pageBreadcrumbs(route.path, title.value),
+    about: [{ self: true }],
+    extraNodes: videoUrl.value && posterUrl.value
+      ? [{
+          '@type': 'VideoObject',
+          '@id': `${siteUrl.value}${route.path}#video`,
+          'name': t('demo.heading'),
+          'description': description.value,
+          'thumbnailUrl': posterUrl.value,
+          'contentUrl': videoUrl.value,
+          'uploadDate': DEMO_VIDEO.published,
+          'duration': isoDuration(DEMO_VIDEO.durationSeconds),
+          'width': DEMO_VIDEO.width,
+          'height': DEMO_VIDEO.height
+        }]
+      : []
+  }
+}
 </script>
 
 <template>

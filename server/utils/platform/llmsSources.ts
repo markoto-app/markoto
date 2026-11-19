@@ -9,6 +9,7 @@ import { buildLlmsFullTxt, buildLlmsTxt, type SourceFile } from './llmsTxt'
 // the files change only with a new image.
 
 async function markdownFiles(dir: string): Promise<SourceFile[]> {
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- our own content folder (fixed names under process.cwd())
   const entries = await readdir(dir, { recursive: true, withFileTypes: true })
   const files = entries
     .filter(e => e.isFile() && e.name.endsWith('.md'))
