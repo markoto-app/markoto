@@ -52,8 +52,8 @@ A token acts as you, limited to its scopes. New tokens get all four:
 
 | Scope | Allows |
 |---|---|
-| `documents:read` | List your documents and folders, search across documents, read them (or one section at a time), their project context, comments, themes, activity, page images, export as markdown or PDF |
-| `documents:write` | Create, move and duplicate documents, create folders, edit documents (insert, replace, edit lines, replace all, move, swap, delete and renumber sections), set titles, change themes, save theme presets, add, reply to, resolve and delete comments, generate images into a document (image generation also needs an image provider under your [AI provider settings](/docs/ai/provider) or an instance default) |
+| `documents:read` | List your documents and folders, search across documents, read them (or one section at a time), their project context, comments, open suggestions, themes, activity, page images, export as markdown or PDF |
+| `documents:write` | Create, move and duplicate documents, create folders, edit documents (insert, replace, edit lines, replace all, move, swap, delete and renumber sections), set titles, change themes, save theme presets, add, reply to, resolve and delete comments, suggest edits and accept or reject suggestions, generate images into a document (image generation also needs an image provider under your [AI provider settings](/docs/ai/provider) or an instance default) |
 | `knowledge:read` | Search and read knowledge files in workspaces you belong to |
 | `web:fetch` | Web search and URL reading |
 

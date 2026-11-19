@@ -431,6 +431,15 @@
       "forbidden": "Du darfst hier keine Ordner ändern.",
       "delete-blocked": "{blocked} Dokumente in diesem Ordner kannst du nicht löschen, deshalb wurde nichts gelöscht."
     },
+    "suggestion": {
+      "invalid": "Dieser Vorschlag ist ungültig.",
+      "not-allowed": "Du darfst in diesem Dokument keine Vorschläge machen.",
+      "review-not-allowed": "Nur Personen, die dieses Dokument bearbeiten dürfen, können Vorschläge annehmen oder ablehnen.",
+      "not-found": "Diesen Vorschlag gibt es nicht mehr. Vielleicht hat ihn jemand anderes angenommen oder abgelehnt.",
+      "too-many": "Dieses Dokument hat zu viele offene Vorschläge ({max}). Nimm zuerst einige an oder lehne sie ab.",
+      "too-many-authors": "Nimm die Vorschläge von höchstens {max} Personen auf einmal an.",
+      "rate-limited": "Zu viele Anfragen. Bitte warte einen Moment und versuche es erneut."
+    },
     "context": {
       "not-found": "Dieses Dokument gibt es nicht, oder du kannst es nicht öffnen.",
       "self": "Ein Dokument kann nicht sein eigener Kontext sein.",

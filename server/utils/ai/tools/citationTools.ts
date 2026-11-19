@@ -80,6 +80,8 @@ export function titleMatch(expected: string, actual: string): number {
 
 const TITLE_MATCH_MIN = 0.6
 
+const BIBLIOGRAPHY_NOT_SUGGESTIBLE = 'Error: this document requires suggestions, and its bibliography can\'t be changed through a suggestion. Nothing was added. Tell the user which work (DOI and title) to add to the references, and cite only works already in the bibliography.'
+
 export const addReferenceByDoiTool = defineDocTool({
   name: 'add_reference_by_doi',
   description: 'Add a work to the document\'s bibliography by its DOI. The DOI is looked up at Crossref and the entry is added only when Crossref knows the DOI and its title matches expected_title; you get the new citation key back to cite as `[@key]`. This is the only way to add a reference: never write an entry or a key yourself. A work that is already in the bibliography returns its existing key.',
@@ -87,6 +89,11 @@ export const addReferenceByDoiTool = defineDocTool({
   sessionCallCap: 10,
   trustBoundary: 'confirm',
   handler: async (ctx, { doi, expected_title }): Promise<ToolResult> => {
+    // A document that requires suggestions of the user lets them change only
+    // suggestions and comments, not the bibliography (the sync server refuses
+    // it for their own editor too). A suggestion mode the user chose keeps
+    // adding entries: an entry nobody cites is not printed.
+    if (ctx.suggestSink?.forced) return toolError(BIBLIOGRAPHY_NOT_SUGGESTIBLE)
     ctx.updateStatus('tool', aiStatus('addReference', { doi: doi.slice(0, 60) }))
     const bib = ctx.ydoc.getMap<unknown>(BIBLIOGRAPHY_ROOT)
     let item: CslItem

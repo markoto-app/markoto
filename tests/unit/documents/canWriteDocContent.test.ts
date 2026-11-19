@@ -24,6 +24,7 @@ function row(overrides: Partial<DocAuthzRow>): DocAuthzRow {
     ownerAccessSuspended: false,
     shareExpiresAt: null,
     shareNoDownload: false,
+    suggestionPolicy: { required: false, exemptRoles: ['admin'], viewersMaySuggest: false },
     anonCreatorKeyHash: null,
     title: 'Doc',
     description: '',

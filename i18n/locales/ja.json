@@ -49,7 +49,8 @@
       "updateTooLarge": "この変更は一度に同期するには大きすぎます。再読み込みしてから、内容を小さく分けて追加してください。",
       "documentTooLarge": "このドキュメントは最大サイズに達しました。再読み込みしてから、内容を削除するか複数のドキュメントに分けてください。",
       "invalidMeta": "ドキュメントの設定（タイトル、テーマ、詳細）にサーバーが受け付けられない値が含まれていました。再読み込みして続けてください。",
-      "invalidUpdate": "このタブからの変更をサーバーが処理できませんでした。再読み込みして続けてください。"
+      "invalidUpdate": "このタブからの変更をサーバーが処理できませんでした。再読み込みして続けてください。",
+      "invalidSuggestion": "このタブは、提案しかできない内容を変更しようとしました(たとえば、オーナーが提案モードをオンにした後など)。再読み込みして提案モードで続けてください。"
     },
     "bold": "太字",
     "italic": "斜体",
@@ -203,6 +204,10 @@
         "search_knowledge": "ナレッジベースを検索しました",
         "get_knowledge_file": "ナレッジファイルを読み込みました",
         "replace_all": "文書全体のテキストを置換しました"
+      },
+      "suggestion": {
+        "accepted": "提案を承認しました | 提案を承認しました | {n} 件の提案を承認しました",
+        "rejected": "提案を却下しました | 提案を却下しました | {n} 件の提案を却下しました"
       }
     },
     "detail": {
@@ -210,7 +215,8 @@
       "replacedAll": "{count}× “{from}” → “{to}”",
       "restoredFrom": "{ago}の状態から",
       "jobProgress": "{total} 件中 {done} 件を変更",
-      "jobReverted": "{reverted} 件を復元、{skipped} 件は編集後のまま"
+      "jobReverted": "{reverted} 件を復元、{skipped} 件は編集後のまま",
+      "suggestions": "{preview}({authors}) | {preview}({authors}) | {authors} の {count} 件、例: {preview}"
     },
     "restore": {
       "button": {
@@ -930,7 +936,8 @@
     "commentsShort": "コメント",
     "activityShort": "アクティビティ",
     "themeShort": "テーマ",
-    "knowledgeShort": "ナレッジ"
+    "knowledgeShort": "ナレッジ",
+    "suggestionsShort": "提案"
   },
   "editorCommands": {
     "formatting": "書式設定",
@@ -3088,11 +3095,11 @@
     "loading": "読み込み中…",
     "updated": "数値は最大1分前のものです。日付はUTC基準です。",
     "range": {
-      "label": "期間",
       "7": "7日間",
       "30": "30日間",
       "90": "90日間",
       "365": "12か月",
+      "label": "期間",
       "all": "全期間"
     },
     "tabs": {
@@ -3616,6 +3623,64 @@
     "contextBadge": "AI コンテキスト",
     "contextBadgeAll": "AI はここにあるすべてのドキュメントでこのドキュメントを読みます。",
     "contextBadgeFolder": "AI は同じフォルダーのドキュメントでこのドキュメントを読みます。"
+  },
+  "suggestions": {
+    "title": "提案",
+    "aiAuthor": "markoto AI",
+    "kind": {
+      "insert": "追加",
+      "delete": "削除",
+      "replace": "置換",
+      "obsolete": "変更するものはありません"
+    },
+    "accept": "承認",
+    "reject": "却下",
+    "withdraw": "自分の提案を取り下げる",
+    "obsoleteHint": "その間に誰かがこのテキストを削除しました。提案を却下して消去してください。",
+    "changedHint": "この提案の後にテキストが変更されました。承認すると、現在のテキストに適用されます。",
+    "replyPlaceholder": "この提案に返信…",
+    "allAuthors": "全員",
+    "filterAuthor": "提案の投稿者で絞り込む",
+    "acceptAll": "すべて承認",
+    "rejectAll": "すべて却下",
+    "acceptShown": "これらを承認",
+    "rejectShown": "これらを却下",
+    "acceptedN": "承認した提案はありません | {n} 件の提案を承認しました | {n} 件の提案を承認しました",
+    "rejectedN": "却下した提案はありません | {n} 件の提案を却下しました | {n} 件の提案を却下しました",
+    "failed": "提案を更新できませんでした。もう一度お試しください。",
+    "empty": "提案はまだありません。「提案」に切り替えると、他の人が承認または却下できる変更を提案できます。",
+    "emptyReadOnly": "このドキュメントに提案はありません。",
+    "mode": {
+      "editing": "編集",
+      "suggesting": "提案",
+      "editingHint": "テキストを直接編集します。代わりに変更を提案するには「提案」に切り替えてください。",
+      "suggestingHint": "あなたの変更は、他の人が承認または却下できる提案になります。",
+      "requiredHint": "このドキュメントのオーナーは提案を求めています。あなたの変更は、他の人が承認または却下する提案になります。",
+      "viewerHint": "このドキュメントに変更を提案できます。編集者が承認または却下します。",
+      "suggestingFooter": "提案中"
+    },
+    "ai": {
+      "toggle": "AI が変更を提案",
+      "on": "AI は変更を、あなたが承認または却下する提案として出します。クリックすると直接編集に切り替わります。",
+      "off": "AI はテキストを直接編集します。クリックすると、代わりに提案を出すようになります。",
+      "forced": "このドキュメントは提案を求めているため、AI も変更を提案として出します。",
+      "settingTitle": "提案",
+      "settingLabel": "直接編集せず AI が提案する",
+      "settingDescription": "AI がドキュメントに加える変更は、バックグラウンドで実行される大きな編集も含めて、あなたやチームが承認または却下する提案として届きます。AI バーでプロンプトごとに切り替えることもできます。",
+      "saveFailed": "設定を保存できませんでした。もう一度お試しください。"
+    },
+    "settings": {
+      "title": "提案",
+      "required": "全員が変更を提案する",
+      "requiredHelp": "他の人の変更は、あなたが承認または却下する提案になります。上司が下書きを確認するのと同じ形です。あなた自身は常に直接編集できます。",
+      "exemptTitle": "次のワークスペースのロールは引き続き直接編集できます:",
+      "exemptAdmins": "ワークスペース管理者",
+      "exemptEditors": "ワークスペース編集者",
+      "viewers": "閲覧者も提案できる",
+      "viewersHelp": "このドキュメントを閲覧のみできるログイン済みのユーザーも、変更を提案したり提案に返信したりできます。",
+      "saveFailed": "提案の設定を保存できませんでした"
+    },
+    "exportCritic": "提案付きの Markdown をダウンロード(CriticMarkup)"
   },
   "a11yCheck": {
     "issues": "アクセシビリティの問題 {n} 件 | アクセシビリティの問題 {n} 件",

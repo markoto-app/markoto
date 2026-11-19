@@ -11,6 +11,7 @@ import { apiError } from '../../api/apiError'
 import { useLogger } from '../../platform/logger'
 import { documentContextBlockFor, openAiSession, resolveSessionWorkspace, type SessionWorkspace } from './sessionSetup'
 import { runAgentSession } from './runSession'
+import { withSuggestNote, type SessionSuggestMode } from './suggestMode'
 
 const log = useLogger('ai-trigger')
 
@@ -35,6 +36,8 @@ export interface CommentTriggerRequest {
   commentId: string
   replyId: string | null
   user: { id: number, name: string }
+  /** Suggestion mode of the session (null = edit directly). */
+  suggest: SessionSuggestMode | null
 }
 
 export async function startCommentTrigger(event: H3Event, request: CommentTriggerRequest): Promise<{ sessionId: string }> {
@@ -75,7 +78,8 @@ export async function startCommentTrigger(event: H3Event, request: CommentTrigge
     session,
     systemPrompt: COMMENT_TRIGGER_SYSTEM_PROMPT,
     promptContext,
-    initialPrompt: withKnowledgeNote(wrappedSeedPrompt, wsCtx.exposeKnowledgeTools),
+    initialPrompt: withSuggestNote(withKnowledgeNote(wrappedSeedPrompt, wsCtx.exposeKnowledgeTools), request.suggest),
+    suggest: request.suggest,
     // The triggering message is the caller's own (checked in
     // `peekTriggerThread`); the rest of the thread may not be.
     invokerText: triggerCtx.seedPrompt,

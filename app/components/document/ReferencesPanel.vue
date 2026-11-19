@@ -21,7 +21,10 @@ const props = defineProps<{
   styleId: CitationStyleId
   language: string
   problems: readonly ReferenceProblem[]
+  /** Change the bibliography (style, add, remove). */
   canEdit: boolean
+  /** Insert a citation into the text (a person who must suggest cites, as a suggestion, but can't change the bibliography). */
+  canCite: boolean
   /** Signed in: DOI lookup is available. */
   canLookup: boolean
   addItems: (items: readonly CslItem[]) => AddResult
@@ -330,7 +333,7 @@ const problemText = (p: ReferenceProblem) => t(`references.problem.${p.kind}`, {
                     size="xs"
                     variant="ghost"
                     color="neutral"
-                    :disabled="!canEdit"
+                    :disabled="!canCite"
                     :aria-label="t('references.cite')"
                     data-testid="references-cite"
                     @click="emit('insert', `[@${item.id}]`)"

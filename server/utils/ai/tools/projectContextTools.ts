@@ -9,6 +9,9 @@ import { findProjectContextDoc, resolveProjectContext } from '../../documents/pr
 import { proveDocNeed } from '../../access/docProof'
 import { openTrustedCommentClient } from '../../documents/commentsServerClient'
 import { withoutEmDashes } from '../dashFilter'
+import { mustSuggestOnDoc } from '../../suggestions/suggestionAccess'
+import { editText, SuggestionLimitError, suggestedNote, type SuggestSink } from './textWrite'
+import { aiClientUserId } from '~~/shared/contracts/jwt'
 
 // Project context ("bible") tools. The context documents that apply to the
 // session's document are already in the prompt (`agentic/projectContextPrompt.ts`);
@@ -24,7 +27,9 @@ import { withoutEmDashes } from '../dashFilter'
 //     cross-boundary tool: once the session read someone else's text the
 //     initiator must allow it, as for every other cross-document action.
 //     The edit is an AI edit of that document (`ai:assistant:<session>`),
-//     visible and undoable in its Activity Log.
+//     visible and undoable in its Activity Log. In suggestion mode (the
+//     session suggests, or the context document requires suggestions of
+//     the initiator) it is stored as suggestions in that document instead.
 
 const READ_CHAR_BUDGET = TOOL_RESULT_CHAR_CAP - 2_000
 const EDIT_MAX_CHARS = 20_000
@@ -95,24 +100,25 @@ function appendSeparator(current: string): string {
 }
 
 /**
- * Apply the edit to the context document's text in one transaction.
- * Returns an error message for the model, or null when applied.
+ * Apply the edit to the context document's text in one transaction, or
+ * store it as suggestions there when `sink` is set. Returns an error
+ * message for the model, or the number of suggestions written (null when
+ * the text was edited directly).
  */
-function applyContextEdit(ydoc: Y.Doc, oldStr: string | undefined, newText: string, origin: string): string | null {
+function applyContextEdit(ydoc: Y.Doc, oldStr: string | undefined, newText: string, origin: string, sink: SuggestSink | null): { error: string } | { suggested: number | null } {
   const ytext = ydoc.getText('content')
   const current = ytext.toJSON()
+  const target = { ydoc, ytext, suggestSink: sink }
   if (!oldStr) {
-    ydoc.transact(() => ytext.insert(current.length, appendSeparator(current) + newText), origin)
-    return null
+    return editText(target, origin, t => t.insert(current.length, appendSeparator(current) + newText))
   }
   const count = countOccurrences(current, oldStr)
-  if (count !== 1) return `old_str occurs ${count} times; it must occur exactly once. Read the document with read_project_context and copy a longer, unique passage.`
+  if (count !== 1) return { error: `old_str occurs ${count} times; it must occur exactly once. Read the document with read_project_context and copy a longer, unique passage.` }
   const at = current.indexOf(oldStr)
-  ydoc.transact(() => {
-    ytext.delete(at, oldStr.length)
-    ytext.insert(at, newText)
-  }, origin)
-  return null
+  return editText(target, origin, (t) => {
+    t.delete(at, oldStr.length)
+    t.insert(at, newText)
+  })
 }
 
 async function handleEditProjectContext(session: MetaToolContext, input: z.output<typeof EditProjectContextArgs>): Promise<ToolResult> {
@@ -134,12 +140,26 @@ async function handleEditProjectContext(session: MetaToolContext, input: z.outpu
     const msg = e instanceof Error ? e.message : 'unknown error'
     return toolError(`Error: could not open ${title} to edit it: ${msg}.`)
   }
+  // Suggestion mode carries over: the document may require suggestions of
+  // the initiator (the AI must not get around that), or the session suggests.
+  const forced = await mustSuggestOnDoc(write.docId, session.initiatorUserId)
+  const sink: SuggestSink | null = forced || session.suggestSink
+    ? { principal: aiClientUserId(session.sessionId), name: 'markoto', forced, jobId: null, written: 0 }
+    : null
+  let suggested: number | null
   try {
-    const problem = applyContextEdit(client.ydoc, input.old_str, withoutEmDashes(input.new_str), origin)
-    if (problem) return toolError(`Error in ${title}: ${problem}`)
+    const applied = applyContextEdit(client.ydoc, input.old_str, withoutEmDashes(input.new_str), origin, sink)
+    if ('error' in applied) return toolError(`Error in ${title}: ${applied.error}`)
+    suggested = applied.suggested
+    // Wait for the sync server to hold the change before the client goes away.
+    if (suggested !== 0) await client.acknowledged()
+  } catch (e) {
+    if (e instanceof SuggestionLimitError) return toolError(`Error in ${title}: ${e.message}`)
+    throw e
   } finally {
     await client.destroy().catch(() => {})
   }
+  if (suggested !== null) return toolOk(`${title}: ${suggestedNote(suggested)}`)
   return toolOk(`Updated the context document ${title}. Mention the change in one short sentence with message_to_user if the user did not ask for exactly this.`)
 }
 

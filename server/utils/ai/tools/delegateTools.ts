@@ -287,8 +287,10 @@ function isNewJobArgs(a: RewriteArgs): a is NewJobArgs {
   return a.targets !== undefined && a.mode !== undefined && a.instruction !== undefined
 }
 
-function jobParams(args: NewJobArgs, facts: { sourceLanguage: string | null, audience: string | null }): AiJobParams {
+function jobParams(args: NewJobArgs, facts: { sourceLanguage: string | null, audience: string | null }, suggest: boolean): AiJobParams {
   return {
+    // The session suggests: so does the job it starts.
+    ...(suggest ? { suggest: true } : {}),
     instruction: args.instruction,
     targetLanguage: args.target_language ?? null,
     sourceLanguage: facts.sourceLanguage,
@@ -328,7 +330,7 @@ async function createAndPreview(ctx: DocToolContext, args: NewJobArgs): Promise<
   if (!targets.ok) return toolError(targets.error)
   if (!ctx.aiProviders.worker) return toolError('Error: no AI model is set up for delegated work in this session.')
   ctx.updateStatus('tool', aiStatus('previewJob'))
-  const params = jobParams(args, await documentFacts(ctx))
+  const params = jobParams(args, await documentFacts(ctx), Boolean(ctx.suggestSink))
   const doc = writeAccessOf(ctx)
   let created
   try {

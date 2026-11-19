@@ -37,6 +37,7 @@ import { publishErrors } from './publish'
 import { publishedErrors } from './published'
 import { shareErrors } from './share'
 import { ssoErrors } from './sso'
+import { suggestionErrors } from './suggestion'
 import { templateErrors } from './template'
 import { themeErrors } from './theme'
 import { uploadErrors } from './upload'
@@ -79,6 +80,7 @@ export const API_ERRORS = {
   ...publishedErrors,
   ...shareErrors,
   ...ssoErrors,
+  ...suggestionErrors,
   ...templateErrors,
   ...themeErrors,
   ...uploadErrors,

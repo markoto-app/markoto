@@ -63,12 +63,10 @@ export function useEditorExports(opts: {
     }
   }
 
-  // The file carries theme + document properties as YAML frontmatter
-  // (shared/utils/markdown/markdownFrontmatter.ts) so importing restores them.
-  async function exportMarkdown() {
-    if (refuseDownload()) return
-    const { buildMarkdownExport } = await import('~~/shared/utils/markdown/markdownFrontmatter')
-    const content = buildMarkdownExport(opts.textContent.value, {
+  // The file carries theme, document properties and the bibliography as YAML
+  // frontmatter (shared/utils/markdown/markdownFrontmatter.ts) so importing restores them.
+  function exportProperties() {
+    return {
       title: opts.title.value,
       description: opts.description.value,
       audience: opts.audience.value,
@@ -78,8 +76,28 @@ export function useEditorExports(opts: {
       theme: structuredClone(toRaw(opts.theme.value)) as DocTheme,
       references: opts.citations.value.items,
       citationStyle: opts.citations.value.style
-    })
-    downloadMarkdown(content, opts.title.value)
+    }
+  }
+
+  async function exportMarkdown() {
+    if (refuseDownload()) return
+    const { buildMarkdownExport } = await import('~~/shared/utils/markdown/markdownFrontmatter')
+    downloadMarkdown(buildMarkdownExport(opts.textContent.value, exportProperties()), opts.title.value)
+  }
+
+  /**
+   * Markdown with the open suggestions in CriticMarkup ({++ ++}, {-- --},
+   * {~~ ~> ~~}). Same front matter as the plain export; the plain export,
+   * the preview, the PDF and published pages have the accepted text only.
+   */
+  async function exportMarkdownWithSuggestions(suggestions: ReadonlyArray<{ from: number, to: number, text: string }>) {
+    if (refuseDownload()) return
+    const [{ buildMarkdownExport }, { toCriticMarkup }] = await Promise.all([
+      import('~~/shared/utils/markdown/markdownFrontmatter'),
+      import('~~/shared/utils/suggestions/criticMarkup')
+    ])
+    const content = buildMarkdownExport(toCriticMarkup(opts.textContent.value, suggestions), exportProperties())
+    downloadMarkdown(content, `${opts.title.value} (suggestions)`)
   }
 
   // Server-rendered PDF from the Playwright renderer, served by /api/docs/:id/pdf
@@ -105,7 +123,7 @@ export function useEditorExports(opts: {
 
   usePrintShortcut(exportPdf)
 
-  return { exporting, exportPdf, exportMarkdown, openServerPdf }
+  return { exporting, exportPdf, exportMarkdown, exportMarkdownWithSuggestions, openServerPdf }
 }
 
 /**

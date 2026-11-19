@@ -15,6 +15,7 @@ import { applyTextEdits, headingLinkEdits, linkNote, withoutOverlaps, type LinkR
 import { planRenumber } from './sections/renumber'
 import { REPLACE_CONFIRMATION_FORMS_MAX, REPLACE_CONFIRMATION_MIN_CHANGES } from '~~/shared/ai/replaceConfirmation'
 import { applyEdits, SectionRef, type Args } from './sectionEditShared'
+import { suggestedNote } from './textWrite'
 
 // Document-wide pattern edits: replace_all (a word, phrase or regex
 // everywhere, previewed first, whole-word forms for compounds, a user
@@ -175,10 +176,11 @@ async function applyReplaceAll(c: ReplaceAllContext): Promise<ToolResult> {
     return toolError('Error: the document changed while the user was confirming; nothing was replaced. Preview again.')
   }
   ctx.updateStatus('editing', aiStatus('editDocument'))
-  applyEdits(ctx, [
+  const written = applyEdits(ctx, [
     ...changes.map(m => ({ start: m.start, end: m.end, text: m.after })),
     ...c.links.edits
   ])
+  if (written.suggested !== null) return toolOk(suggestedNote(written.suggested))
   const lines = [...new Set(changes.map(m => m.line))]
   const lineList = `${lines.slice(0, 20).join(', ')}${lines.length > 20 ? ', ...' : ''}`
   const shift = changes.reduce((n, m) => n + newlineCount(m.after) - newlineCount(m.before), 0)
@@ -285,7 +287,8 @@ function handleRenumberHeadings(ctx: DocToolContext, args: Args<typeof RenumberH
     return toolOk([`Preview, nothing changed yet: ${changes.length} of ${numbered} numbered headings would get a new number; levels and titles stay.${odd}${linkNote(links)}`, ...list, 'Apply: the same call with preview false.'].join('\n'))
   }
   ctx.updateStatus('editing', aiStatus('editDocument'))
-  applyEdits(ctx, [...numberEdits, ...withoutOverlaps(links.edits, numberEdits)])
+  const renumbered = applyEdits(ctx, [...numberEdits, ...withoutOverlaps(links.edits, numberEdits)])
+  if (renumbered.suggested !== null) return toolOk(suggestedNote(renumbered.suggested))
   return toolOk([
     `Renumbered ${changes.length} of ${numbered} numbered headings in one edit; levels and titles unchanged; doc rev now ${sectionView(ctx).structure.rev}.${odd}${linkNote(links)}`,
     ...list,

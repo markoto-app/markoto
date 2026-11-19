@@ -1,5 +1,6 @@
 import { aiPromptBody } from '~~/shared/api/ai'
 import { startEditorPrompt } from '../../utils/agentic/sessions/editorPrompt'
+import { sessionSuggestMode } from '../../utils/agentic/sessions/suggestMode'
 
 // POST /api/ai/prompt: start an AI session on a document from the prompt
 // bar (`utils/agentic/sessions/editorPrompt.ts`). The text loop always runs
@@ -10,11 +11,12 @@ import { startEditorPrompt } from '../../utils/agentic/sessions/editorPrompt'
 export default defineApiHandler({
   access: allow.doc('write-content', { docId: { from: 'body' } }),
   body: aiPromptBody,
-  handler: ({ event, user, docAccess, self, body }) => startEditorPrompt(event, {
+  handler: async ({ event, user, doc, docAccess, self, body }) => startEditorPrompt(event, {
     docAccess,
     self,
     user: { id: user.id, name: user.name },
     prompt: body.prompt,
-    editorSelection: body.editorSelection
+    editorSelection: body.editorSelection,
+    suggest: await sessionSuggestMode(doc, self, body.suggest)
   })
 })

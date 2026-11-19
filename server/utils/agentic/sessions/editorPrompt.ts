@@ -9,6 +9,7 @@ import { assemblePromptContext, PROMPT_SYSTEM_PROMPT } from '../promptAssembly'
 import { useLogger } from '../../platform/logger'
 import { documentContextBlockFor, openAiSession, resolveSessionWorkspace } from './sessionSetup'
 import { runAgentSession } from './runSession'
+import { withSuggestNote, type SessionSuggestMode } from './suggestMode'
 
 const log = useLogger('ai-prompt')
 
@@ -24,6 +25,8 @@ export interface EditorPromptRequest {
   user: { id: number, name: string }
   prompt: string
   editorSelection?: unknown
+  /** Suggestion mode of the session (null = edit directly). */
+  suggest: SessionSuggestMode | null
 }
 
 export async function startEditorPrompt(event: H3Event, request: EditorPromptRequest): Promise<{ sessionId: string }> {
@@ -73,7 +76,8 @@ export async function startEditorPrompt(event: H3Event, request: EditorPromptReq
     session,
     systemPrompt: PROMPT_SYSTEM_PROMPT,
     promptContext,
-    initialPrompt: withKnowledgeNote(wrappedPrompt, wsCtx.exposeKnowledgeTools),
+    initialPrompt: withSuggestNote(withKnowledgeNote(wrappedPrompt, wsCtx.exposeKnowledgeTools), request.suggest),
+    suggest: request.suggest,
     promptPreamble: conversationBlock,
     invokerText: prompt,
     // Skills matching the prompt (or a large document) open the first user

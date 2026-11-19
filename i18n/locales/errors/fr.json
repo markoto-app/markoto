@@ -431,6 +431,15 @@
       "forbidden": "Vous ne pouvez pas modifier les dossiers ici.",
       "delete-blocked": "{blocked} documents de ce dossier ne peuvent pas être supprimés par vous, donc rien n'a été supprimé."
     },
+    "suggestion": {
+      "invalid": "Cette suggestion n’est pas valide.",
+      "not-allowed": "Vous ne pouvez pas faire de suggestions dans ce document.",
+      "review-not-allowed": "Seules les personnes qui peuvent modifier ce document peuvent accepter ou rejeter des suggestions.",
+      "not-found": "Cette suggestion n’existe plus. Quelqu’un d’autre l’a peut-être acceptée ou rejetée.",
+      "too-many": "Ce document compte trop de suggestions ouvertes ({max}). Acceptez ou rejetez-en d’abord quelques-unes.",
+      "too-many-authors": "Acceptez les suggestions de {max} personnes au maximum à la fois.",
+      "rate-limited": "Trop de requêtes. Veuillez patienter un instant et réessayer."
+    },
     "context": {
       "not-found": "Ce document n'existe pas, ou vous ne pouvez pas l'ouvrir.",
       "self": "Un document ne peut pas être son propre contexte.",

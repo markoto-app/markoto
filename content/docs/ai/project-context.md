@@ -76,7 +76,10 @@ Ask the AI to change a context document, for example "add the new
 character Jonas to the bible". It edits that document like any other AI
 edit, visible and undoable in its Activity Log. When the AI has read
 text other people wrote in the current session, it asks you first, as it
-does before it reaches any of your other documents.
+does before it reaches any of your other documents. When the AI
+[suggests instead of editing](/docs/collaborate/suggestions#let-the-ai-suggest),
+or the context document requires suggestions of you, the change arrives
+there as suggestions to accept or reject.
 
 ## Who sees what
 

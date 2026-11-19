@@ -1,4 +1,5 @@
 import { aiStatus } from '~~/shared/ai/statusSteps'
+import { SETTINGS_NOT_SUGGESTIBLE } from './textWrite'
 import { z } from 'zod'
 import { nanoid } from 'nanoid'
 import * as Sentry from '@sentry/nuxt'
@@ -76,6 +77,8 @@ async function handleUpdateTheme(
   session: DocToolContext,
   input: UpdateThemeInput
 ): Promise<ToolResult> {
+  // Suggestion mode: a theme can't be suggested.
+  if (session.suggestSink) return toolError(SETTINGS_NOT_SUGGESTIBLE)
   const conflictErr = checkBaseSourceConflict(input)
   if (conflictErr) return conflictErr
 

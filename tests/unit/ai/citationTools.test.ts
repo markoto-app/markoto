@@ -81,6 +81,23 @@ describe('add_reference_by_doi', () => {
     expect((ctx as never as { ydoc: Y.Doc }).ydoc.getMap(BIBLIOGRAPHY_ROOT).has('smith2020study')).toBe(true)
   })
 
+  it('refuses without a lookup when the document requires suggestions, but adds in a suggestion mode the user chose', async () => {
+    const forced = makeCtx()
+    Object.assign(forced, { suggestSink: { principal: 'ai:assistant:s1', name: 'markoto', forced: true, written: 0 } })
+    const r = await addReferenceByDoiTool.run(forced, { doi: '10.1000/xyz123', expected_title: 'A Study of Things' })
+    expect(r.isError).toBe(true)
+    expect(r.content).toContain('requires suggestions')
+    expect(lookupMock).not.toHaveBeenCalled()
+    expect(forced.ydoc.getMap(BIBLIOGRAPHY_ROOT).size).toBe(0)
+
+    const chosen = makeCtx()
+    Object.assign(chosen, { suggestSink: { principal: 'ai:assistant:s1', name: 'markoto', forced: false, written: 0 } })
+    lookupMock.mockResolvedValue(smith)
+    const ok = await addReferenceByDoiTool.run(chosen, { doi: '10.1000/xyz123', expected_title: 'A Study of Things' })
+    expect(ok.isError).toBe(false)
+    expect(chosen.ydoc.getMap(BIBLIOGRAPHY_ROOT).has('smith2020study')).toBe(true)
+  })
+
   it('passes a key-taken probe that sees the bibliography', async () => {
     const ctx = makeCtx()
     seed(ctx, knuth)

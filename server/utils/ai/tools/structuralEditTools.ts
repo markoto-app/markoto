@@ -13,6 +13,7 @@ import { filterEmDashesAt, withoutEmDashes } from '../dashFilter'
 import { applyTextEdits, headingLinkEdits, linkNote, withoutOverlaps, type TextEdit } from './sections/anchorLinks'
 import { applyEdits, originOf, SECTION_REF_HELP, SectionRef, type Args } from './sectionEditShared'
 import { ungroundedCitationError } from '../citationGuard'
+import { editText, suggestedNote } from './textWrite'
 
 // Structural edits of the current document, addressed by section (ids from
 // outline, numbers, heading text) instead of by copied text: replace,
@@ -170,9 +171,8 @@ function handleReplaceSection(ctx: DocToolContext, args: Args<typeof ReplaceSect
     return toolError(`${NO_OP_EDIT_ERROR_PREFIX}: section ${id} already reads exactly like this. Do not repeat this call.`)
   }
   ctx.updateStatus('editing', aiStatus('editDocument'))
-  ctx.ydoc.transact(() => {
-    applyMinimalDiff(ctx.ytext, from, to, next)
-  }, originOf(ctx))
+  const written = editText(ctx, originOf(ctx), t => applyMinimalDiff(t, from, to, next))
+  if (written.suggested !== null) return toolOk(suggestedNote(written.suggested))
   const after = ctx.ytext.toJSON()
   const replacedHeading = !keepHeading && !startsWithHeading(body) ? ' The new text does not start with a heading, so it now belongs to the section above.' : ''
   return toolOk(`Replaced ${keepHeading ? 'the text under the heading of' : ''} section ${id}.${replacedHeading}${sectionAfter(ctx, id)} ${describeEditedRegion(after, from, next.length)}${shiftNote(structure.text, from, to, next)}`)
@@ -216,9 +216,8 @@ function handleInsertMarkdown(ctx: DocToolContext, args: Args<typeof InsertMarkd
   const ungrounded = ungroundedCitationError(text, '', ctx.ydoc)
   if (ungrounded) return toolError(ungrounded)
   ctx.updateStatus('editing', aiStatus('applyInsert'))
-  ctx.ydoc.transact(() => {
-    ctx.ytext.insert(at, text)
-  }, originOf(ctx))
+  const inserted = editText(ctx, originOf(ctx), t => t.insert(at, text))
+  if (inserted.suggested !== null) return toolOk(suggestedNote(inserted.suggested))
   const where = section ? `${args.position === 'start' || args.position === 'end' ? 'at the ' + args.position + ' of' : args.position} section ${id} "${sectionLabel(section)}"` : `at the ${args.position} of the document`
   return toolOk(`Inserted ${where}. ${describeEditedRegion(ctx.ytext.toJSON(), at, text.length)}${shiftNote(structure.text, at, at, text)}`)
 }
@@ -299,11 +298,13 @@ function handleMoveSection(ctx: DocToolContext, args: Args<typeof MoveSectionArg
   const lead = insertion.length - insertion.replace(/^\n+/, '').length
 
   ctx.updateStatus('editing', aiStatus('editDocument'))
-  ctx.ydoc.transact(() => {
-    ctx.ytext.delete(from, to - from)
-    ctx.ytext.insert(at, insertion)
-    reanchorComments(ctx.ytext, anchors, at + lead)
-  }, originOf(ctx))
+  const moved_ = editText(ctx, originOf(ctx), (t) => {
+    t.delete(from, to - from)
+    t.insert(at, insertion)
+    // Only on the live text: suggestions leave the text (and its comments) where they are.
+    if (t === ctx.ytext) reanchorComments(ctx.ytext, anchors, at + lead)
+  })
+  if (moved_.suggested !== null) return toolOk(suggestedNote(moved_.suggested))
   rebindSectionIds(ctx, ids.map(e => ({ id: e.id, offset: at + lead + e.rel })))
 
   const lines = newlineCount(moved)
@@ -349,15 +350,18 @@ function handleSwapSections(ctx: DocToolContext, args: Args<typeof SwapSectionsA
   const newAStart = A.endOffset - coreA.length + coreB.length + between.length
 
   ctx.updateStatus('editing', aiStatus('editDocument'))
-  ctx.ydoc.transact(() => {
+  const swapped = editText(ctx, originOf(ctx), (t) => {
     // The later slot first, so A's offsets stay valid.
-    ctx.ytext.delete(B.startOffset, coreB.length)
-    ctx.ytext.insert(B.startOffset, coreA)
-    ctx.ytext.delete(A.startOffset, coreA.length)
-    ctx.ytext.insert(A.startOffset, coreB)
-    reanchorComments(ctx.ytext, anchorsA, newAStart)
-    reanchorComments(ctx.ytext, anchorsB, newBStart)
-  }, originOf(ctx))
+    t.delete(B.startOffset, coreB.length)
+    t.insert(B.startOffset, coreA)
+    t.delete(A.startOffset, coreA.length)
+    t.insert(A.startOffset, coreB)
+    if (t === ctx.ytext) {
+      reanchorComments(ctx.ytext, anchorsA, newAStart)
+      reanchorComments(ctx.ytext, anchorsB, newBStart)
+    }
+  })
+  if (swapped.suggested !== null) return toolOk(suggestedNote(swapped.suggested))
   rebindSectionIds(ctx, [
     ...idsA.map(e => ({ id: e.id, offset: newAStart + e.rel })),
     ...idsB.map(e => ({ id: e.id, offset: newBStart + e.rel }))
@@ -386,9 +390,8 @@ function handleDeleteSection(ctx: DocToolContext, args: Args<typeof DeleteSectio
   }
   const subs = descendants(structure, section).length
   ctx.updateStatus('editing', aiStatus('editDocument'))
-  ctx.ydoc.transact(() => {
-    ctx.ytext.delete(from, to - from)
-  }, originOf(ctx))
+  const deleted = editText(ctx, originOf(ctx), t => t.delete(from, to - from))
+  if (deleted.suggested !== null) return toolOk(suggestedNote(deleted.suggested))
   return toolOk(`Deleted section ${id} "${sectionLabel(section)}" (lines ${section.startLine}-${section.endLine}${subs > 0 ? `, ${subs} subsections` : ''}). ${describeEditedRegion(ctx.ytext.toJSON(), from, 0)}${shiftNote(structure.text, from, to, '')}`)
 }
 
@@ -434,7 +437,8 @@ function handleSetHeading(ctx: DocToolContext, args: Args<typeof SetHeadingArgs>
   const headingEdit: TextEdit = { start: from, end: to, text: next }
   const links = headingLinkEdits(structure, applyTextEdits(structure.text, [headingEdit]))
   ctx.updateStatus('editing', aiStatus('editDocument'))
-  applyEdits(ctx, [headingEdit, ...withoutOverlaps(links.edits, [headingEdit])])
+  const heading = applyEdits(ctx, [headingEdit, ...withoutOverlaps(links.edits, [headingEdit])])
+  if (heading.suggested !== null) return toolOk(suggestedNote(heading.suggested))
   return toolOk(`Heading of section ${id} now reads: ${next.split('\n')[0]}.${linkNote(links)}${sectionAfter(ctx, id)}`)
 }
 
@@ -501,9 +505,10 @@ function handleEditLines(ctx: DocToolContext, args: Args<typeof EditLinesArgs>):
   const ungrounded = ungroundedCitationError(changed.map(e => e.text).join('\n'), changed.map(e => structure.text.slice(e.start, e.end)).join('\n'), ctx.ydoc)
   if (ungrounded) return toolError(ungrounded)
   ctx.updateStatus('editing', aiStatus('editDocument'))
-  ctx.ydoc.transact(() => {
-    for (const e of [...changed].reverse()) applyMinimalDiff(ctx.ytext, e.start, e.end, e.text)
-  }, originOf(ctx))
+  const lineEdits = editText(ctx, originOf(ctx), (t) => {
+    for (const e of [...changed].reverse()) applyMinimalDiff(t, e.start, e.end, e.text)
+  })
+  if (lineEdits.suggested !== null) return toolOk(suggestedNote(lineEdits.suggested))
   const { landed, shift } = landedRanges(plan)
   const after = sectionView(ctx).structure.rev
   const tail = shift !== 0 ? ` Lines after line ${plan.at(-1)?.endLine} shifted by ${shift > 0 ? '+' : ''}${shift}.` : ''

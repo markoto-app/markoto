@@ -11,6 +11,8 @@ const props = defineProps<{
   language: string
   problems: readonly ReferenceProblem[]
   readOnly: boolean
+  /** The person must suggest: citing still works (it becomes a suggestion), the bibliography itself stays as it is (the sync server refuses it). */
+  suggestOnly?: boolean
   view: EditorView | null
 }>()
 const emit = defineEmits<{ close: [] }>()
@@ -27,7 +29,8 @@ function insert(text: string) {
     :style-id="bibliography.style.value"
     :language="language"
     :problems="problems"
-    :can-edit="!readOnly"
+    :can-edit="!readOnly && !suggestOnly"
+    :can-cite="!readOnly"
     :can-lookup="loggedIn"
     :add-items="bibliography.addItems"
     :has-key="bibliography.hasKey"

@@ -69,9 +69,11 @@ props.awareness.on('change', refreshAiThreads)
 onUnmounted(() => props.awareness.off('change', refreshAiThreads))
 
 // Active = anchored and unresolved; orphaned = no anchor; resolved = explicitly resolved.
-const activeComments = computed(() => comments.value.filter(c => c.anchor !== null && !c.resolved))
-const orphanedComments = computed(() => comments.value.filter(c => c.anchor === null && !c.resolved))
-const resolvedComments = computed(() => comments.value.filter(c => c.resolved))
+// Reply threads of suggestions belong to the suggestion's card (SuggestionsPanel).
+const threads = computed(() => comments.value.filter(c => c.suggestionId === null))
+const activeComments = computed(() => threads.value.filter(c => c.anchor !== null && !c.resolved))
+const orphanedComments = computed(() => threads.value.filter(c => c.anchor === null && !c.resolved))
+const resolvedComments = computed(() => threads.value.filter(c => c.resolved))
 
 const showResolved = ref(false)
 
@@ -270,7 +272,7 @@ watch(comments, () => {
   })
 }, { flush: 'post' })
 
-const totalCount = computed(() => comments.value.length)
+const totalCount = computed(() => threads.value.length)
 const isEmpty = computed(() => totalCount.value === 0 && draftAnchor.value === null)
 </script>
 

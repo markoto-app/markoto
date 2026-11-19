@@ -1,4 +1,5 @@
 import { and, eq, inArray, isNull, lt, sql, type SQL } from 'drizzle-orm'
+import type { SuggestionPolicy } from '~~/shared/utils/suggestions/record'
 import type { DocTheme } from '~~/shared/types/theme'
 import type { AudienceKind } from '~~/shared/audiences'
 import type { DocListSort, SortDirection } from '~~/shared/api/explorer'
@@ -279,6 +280,14 @@ export async function setModerationRestriction(doc: DocAccess<'manage'>, restric
 /** Update the share-link controls. */
 export async function setShareSettings(doc: DocAccess<'manage'>, settings: { shareExpiresAt: Date | null, shareNoDownload: boolean }): Promise<void> {
   const result = await useDatabase().update(documents).set(settings)
+    .where(eq(documents.docId, doc.docId))
+    .returning({ docId: documents.docId })
+  if (result.length === 0) throw new NotFoundError('Document')
+}
+
+/** Store a document's suggestion mode settings. */
+export async function setSuggestionPolicy(doc: DocAccess<'manage'>, policy: SuggestionPolicy): Promise<void> {
+  const result = await useDatabase().update(documents).set({ suggestionPolicy: policy })
     .where(eq(documents.docId, doc.docId))
     .returning({ docId: documents.docId })
   if (result.length === 0) throw new NotFoundError('Document')

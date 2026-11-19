@@ -49,7 +49,8 @@
       "updateTooLarge": "Cette modification est trop volumineuse pour être synchronisée en une fois. Rechargez, puis ajoutez le contenu en plusieurs parties.",
       "documentTooLarge": "Ce document a atteint sa taille maximale. Rechargez, puis supprimez du contenu ou répartissez-le sur plusieurs documents.",
       "invalidMeta": "Un réglage du document (titre, thème ou détails) avait une valeur que le serveur ne peut pas accepter. Rechargez pour continuer.",
-      "invalidUpdate": "Le serveur n'a pas pu traiter une modification de cet onglet. Rechargez pour continuer."
+      "invalidUpdate": "Le serveur n'a pas pu traiter une modification de cet onglet. Rechargez pour continuer.",
+      "invalidSuggestion": "Cet onglet a essayé de modifier quelque chose pour lequel vous ne pouvez que suggérer des changements (par exemple après l’activation du mode suggestion par le propriétaire). Rechargez la page pour continuer en mode suggestion."
     },
     "bold": "Gras",
     "italic": "Italique",
@@ -203,6 +204,10 @@
         "search_knowledge": "a fait une recherche dans la base de connaissances",
         "get_knowledge_file": "a lu un fichier de connaissances",
         "replace_all": "a remplacé du texte dans tout le document"
+      },
+      "suggestion": {
+        "accepted": "a accepté une suggestion | a accepté une suggestion | a accepté {n} suggestions",
+        "rejected": "a rejeté une suggestion | a rejeté une suggestion | a rejeté {n} suggestions"
       }
     },
     "detail": {
@@ -210,7 +215,8 @@
       "replacedAll": "{count}× “{from}” → “{to}”",
       "restoredFrom": "Depuis {ago}",
       "jobProgress": "{done} parties sur {total} modifiées",
-      "jobReverted": "{reverted} parties restaurées, {skipped} laissées après modification"
+      "jobReverted": "{reverted} parties restaurées, {skipped} laissées après modification",
+      "suggestions": "{preview} ({authors}) | {preview} ({authors}) | {count} de {authors}, p. ex. {preview}"
     },
     "restore": {
       "button": {
@@ -930,7 +936,8 @@
     "commentsShort": "Commentaires",
     "activityShort": "Activité",
     "themeShort": "Thème",
-    "knowledgeShort": "Connaissances"
+    "knowledgeShort": "Connaissances",
+    "suggestionsShort": "Suggest."
   },
   "editorCommands": {
     "formatting": "Mise en forme",
@@ -3088,11 +3095,11 @@
     "loading": "Chargement…",
     "updated": "Les chiffres ont au plus une minute. Les jours sont en UTC.",
     "range": {
-      "label": "Période",
       "7": "7 jours",
       "30": "30 jours",
       "90": "90 jours",
       "365": "12 mois",
+      "label": "Période",
       "all": "Depuis le début"
     },
     "tabs": {
@@ -3616,6 +3623,64 @@
     "contextBadge": "Contexte IA",
     "contextBadgeAll": "L'IA lit ce document dans chaque document d'ici.",
     "contextBadgeFolder": "L'IA lit ce document dans les documents de son dossier."
+  },
+  "suggestions": {
+    "title": "Suggestions",
+    "aiAuthor": "IA markoto",
+    "kind": {
+      "insert": "Ajouter",
+      "delete": "Supprimer",
+      "replace": "Remplacer",
+      "obsolete": "Plus rien à modifier"
+    },
+    "accept": "Accepter",
+    "reject": "Rejeter",
+    "withdraw": "Retirer votre suggestion",
+    "obsoleteHint": "Quelqu’un a supprimé ce texte entre-temps. Rejetez la suggestion pour la retirer.",
+    "changedHint": "Le texte a changé depuis cette suggestion. En l’acceptant, vous l’appliquez au texte actuel.",
+    "replyPlaceholder": "Répondre à cette suggestion…",
+    "allAuthors": "Tout le monde",
+    "filterAuthor": "Afficher les suggestions de",
+    "acceptAll": "Tout accepter",
+    "rejectAll": "Tout rejeter",
+    "acceptShown": "Accepter celles-ci",
+    "rejectShown": "Rejeter celles-ci",
+    "acceptedN": "Aucune suggestion acceptée | {n} suggestion acceptée | {n} suggestions acceptées",
+    "rejectedN": "Aucune suggestion rejetée | {n} suggestion rejetée | {n} suggestions rejetées",
+    "failed": "Les suggestions n’ont pas pu être mises à jour. Veuillez réessayer.",
+    "empty": "Aucune suggestion pour l’instant. Passez en mode Suggestion pour proposer des modifications que d’autres pourront accepter ou rejeter.",
+    "emptyReadOnly": "Aucune suggestion dans ce document.",
+    "mode": {
+      "editing": "Modification",
+      "suggesting": "Suggestion",
+      "editingHint": "Vous modifiez le texte directement. Passez en mode Suggestion pour proposer des modifications à la place.",
+      "suggestingHint": "Vos modifications deviennent des suggestions que d’autres peuvent accepter ou rejeter.",
+      "requiredHint": "Le propriétaire de ce document demande des suggestions : vos modifications deviennent des suggestions que d’autres acceptent ou rejettent.",
+      "viewerHint": "Vous pouvez suggérer des modifications à ce document. Les personnes qui le modifient les acceptent ou les rejettent.",
+      "suggestingFooter": "suggestion"
+    },
+    "ai": {
+      "toggle": "L’IA suggère des modifications",
+      "on": "L’IA propose ses modifications sous forme de suggestions que vous acceptez ou rejetez. Cliquez pour qu’elle modifie directement.",
+      "off": "L’IA modifie le texte directement. Cliquez pour qu’elle propose des suggestions à la place.",
+      "forced": "Ce document demande des suggestions, l’IA propose donc aussi ses modifications sous forme de suggestions.",
+      "settingTitle": "Suggestions",
+      "settingLabel": "L’IA suggère au lieu de modifier",
+      "settingDescription": "Les modifications que l’IA apporte à un document, y compris les grandes modifications exécutées en arrière-plan, arrivent sous forme de suggestions que vous ou votre équipe acceptez ou rejetez. Vous pouvez la changer pour chaque requête dans la barre IA.",
+      "saveFailed": "Le paramètre n’a pas pu être enregistré. Veuillez réessayer."
+    },
+    "settings": {
+      "title": "Suggestions",
+      "required": "Tout le monde suggère des modifications",
+      "requiredHelp": "Les modifications des autres deviennent des suggestions que vous acceptez ou rejetez, comme une relecture d’un brouillon par un responsable. Vous modifiez toujours directement.",
+      "exemptTitle": "Ces rôles de l’espace de travail continuent de modifier directement :",
+      "exemptAdmins": "Administrateurs de l’espace de travail",
+      "exemptEditors": "Éditeurs de l’espace de travail",
+      "viewers": "Les lecteurs peuvent suggérer",
+      "viewersHelp": "Les personnes connectées qui peuvent seulement consulter ce document peuvent suggérer des modifications et répondre aux suggestions.",
+      "saveFailed": "Les paramètres de suggestion n’ont pas pu être enregistrés"
+    },
+    "exportCritic": "Télécharger le Markdown avec les suggestions (CriticMarkup)"
   },
   "a11yCheck": {
     "issues": "{n} problème d’accessibilité | {n} problèmes d’accessibilité",

@@ -34,7 +34,11 @@ export const activityLog = pgTable('activity_log', {
     'restore',
     // Delegated AI job started / finished, and undone.
     'ai.job',
-    'ai.job.reverted'
+    'ai.job.reverted',
+    // Someone accepted / rejected suggestions (the accepted text itself is an
+    // `edit` row of the suggester).
+    'suggestion.accepted',
+    'suggestion.rejected'
   ] }).notNull(),
   wordCount: integer('word_count'),
   linesAdded: integer('lines_added'),

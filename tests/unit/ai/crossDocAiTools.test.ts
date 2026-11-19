@@ -133,6 +133,7 @@ function makeTrustedClient(body: string) {
   return {
     ydoc,
     ycomments: ydoc.getArray<Y.Map<unknown>>('comments'),
+    acknowledged: () => Promise.resolve(),
     destroy
   }
 }

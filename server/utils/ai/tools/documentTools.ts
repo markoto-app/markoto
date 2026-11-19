@@ -11,6 +11,7 @@ import * as Sentry from '@sentry/nuxt'
 import { useLogger } from '../../platform/logger'
 import { filterEmDashesAt } from '../dashFilter'
 import { ungroundedCitationError } from '../citationGuard'
+import { editText, SETTINGS_NOT_SUGGESTIBLE, suggestedNote } from './textWrite'
 
 // Reading and editing the current document: view_document, replace_text,
 // insert_text, set_title. Edits are Y.js transactions tagged with the AI
@@ -136,10 +137,11 @@ function handleStrReplace(
   session.updateStatus('editing', aiStatus('applyEdit'))
 
   const origin = `ai:assistant:${session.sessionId}`
-  session.ydoc.transact(() => {
-    session.ytext.delete(match.start, matched.length)
-    session.ytext.insert(match.start, input.new_str)
-  }, origin)
+  const written = editText(session, origin, (t) => {
+    t.delete(match.start, matched.length)
+    t.insert(match.start, input.new_str)
+  })
+  if (written.suggested !== null) return toolOk(suggestedNote(written.suggested))
 
   // The last line the match touched (a match ending in a newline ends on the line before).
   const lastOldLine = lineOfOffset(full, match.start) + newlineCount(matched) - (matched.endsWith('\n') ? 1 : 0)
@@ -166,9 +168,8 @@ function handleInsert(
   const insertText = blockSpacedInsertText(full, idx, filterEmDashesAt(full, idx, input.insert_text))
   const ungrounded = ungroundedCitationError(insertText, '', session.ydoc)
   if (ungrounded) return toolError(ungrounded)
-  session.ydoc.transact(() => {
-    session.ytext.insert(idx, insertText)
-  }, origin)
+  const written = editText(session, origin, t => t.insert(idx, insertText))
+  if (written.suggested !== null) return toolOk(suggestedNote(written.suggested))
 
   // Lines after the insertion point move down; at the end there are none.
   const shift = idx < full.length ? lineShiftNote(input.insert_line, newlineCount(insertText)) : null
@@ -183,6 +184,7 @@ async function handleSetTitle(
   // trim result never reaches ymeta/DB (the meta.put endpoint also
   // validates server-side, but AI bypasses that route).
   const title = input.title.trim()
+  if (session.suggestSink) return toolError(SETTINGS_NOT_SUGGESTIBLE)
   if (title.length === 0) return toolError('Error: title cannot be empty')
   if (title.length > 255) return toolError('Error: title too long (max 255 chars)')
 

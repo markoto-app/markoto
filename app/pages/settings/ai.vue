@@ -8,7 +8,7 @@
 // previous route; auth-gated client-side, endpoints are session-only.
 
 import type { AiCapability, AiProviderConfigView } from '~~/shared/ai/providers'
-import { useAiProvidersQuery, useSetAiModelTier } from '~/queries/ai'
+import { useAiProvidersQuery, useAiSuggestQuery, useSetAiModelTier, useSetAiSuggest } from '~/queries/ai'
 
 const router = useRouter()
 const { t } = useI18n()
@@ -47,6 +47,18 @@ async function saveTier(tier: 'fast' | 'strong'): Promise<void> {
     await setModelTier.mutateAsync(tier)
   } catch {
     toast.add({ title: t('aiProvider.modelTier.saveFailed'), color: 'error', icon: 'i-lucide-alert-circle' })
+  }
+}
+
+// "AI suggests instead of editing": the default of the prompt bar's switch
+// and of delegated jobs.
+const aiSuggest = useAiSuggestQuery()
+const setAiSuggest = useSetAiSuggest()
+async function saveAiSuggest(on: boolean): Promise<void> {
+  try {
+    await setAiSuggest.mutateAsync(on)
+  } catch {
+    toast.add({ title: t('suggestions.ai.saveFailed'), color: 'error', icon: 'i-lucide-alert-circle' })
   }
 }
 
@@ -165,6 +177,24 @@ const allowlistText = computed(() => {
           >
             {{ t('aiProvider.modelTier.locked') }}
           </p>
+        </section>
+
+        <!-- The AI's edits as suggestions a person accepts (regulated work, reviews). -->
+        <section
+          class="border border-default rounded-lg px-4 py-4 space-y-3"
+          data-testid="ai-suggest-setting"
+        >
+          <h2 class="font-serif text-lg font-normal tracking-tight">
+            {{ t('suggestions.ai.settingTitle') }}
+          </h2>
+          <USwitch
+            :model-value="aiSuggest.data.value?.suggest ?? false"
+            :disabled="setAiSuggest.isLoading.value || aiSuggest.data.value === undefined"
+            :label="t('suggestions.ai.settingLabel')"
+            :description="t('suggestions.ai.settingDescription')"
+            data-testid="ai-suggest-switch"
+            @update:model-value="(v) => saveAiSuggest(v)"
+          />
         </section>
 
         <SettingsAiProviderCard

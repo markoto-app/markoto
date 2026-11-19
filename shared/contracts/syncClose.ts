@@ -20,7 +20,13 @@ export const SYNC_CLOSE_REASONS = {
   /** The update writes a document setting (title, theme, …) that fails validation. */
   invalidMeta: 'invalid-meta',
   /** The update can't be decoded or references state the server doesn't have. */
-  invalidUpdate: 'invalid-update'
+  invalidUpdate: 'invalid-update',
+  /**
+   * The update writes something the connection may not write: a
+   * suggest-only connection changing the text or someone else's
+   * suggestion, or a malformed suggestion record.
+   */
+  invalidSuggestion: 'invalid-suggestion'
 } as const
 
 export type SyncCloseReason = typeof SYNC_CLOSE_REASONS[keyof typeof SYNC_CLOSE_REASONS]

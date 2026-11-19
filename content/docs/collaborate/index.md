@@ -4,7 +4,7 @@ description: Write in the same document at the same time and discuss the text in
 category: collaborate
 order: 4
 icon: i-lucide-messages-square
-updated: '2026-11-14'
+updated: '2026-11-19'
 ---
 
 # Collaborate
@@ -14,6 +14,7 @@ time. Comments keep the discussion next to the text it is about.
 
 - [Two writers, one document](/docs/collaborate/live-collab): live co-editing with cursors and selections.
 - [Discuss in your document](/docs/collaborate/comments): comments, threading, resolve.
+- [Suggest and review changes](/docs/collaborate/suggestions): propose changes others accept or reject, or require suggestions.
 - [Replay a comment in its original context](/docs/collaborate/comment-replay): read the discussion next to the prose it was about.
 
 **Elsewhere**

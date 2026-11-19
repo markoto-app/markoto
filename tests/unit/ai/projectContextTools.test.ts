@@ -12,6 +12,8 @@ import { proveDocNeed } from '../../../server/utils/access/docProof'
 import { openTrustedCommentClient } from '../../../server/utils/documents/commentsServerClient'
 import { docAs } from '../../helpers/access'
 import type { MetaToolContext } from '../../../server/utils/agentic/toolContext'
+import { mustSuggestOnDoc } from '../../../server/utils/suggestions/suggestionAccess'
+import { readSuggestions } from '../../../shared/utils/suggestions/ySuggestions'
 
 vi.mock('../../../server/utils/documents/projectContext', () => ({
   resolveProjectContext: vi.fn(),
@@ -19,15 +21,18 @@ vi.mock('../../../server/utils/documents/projectContext', () => ({
 }))
 vi.mock('../../../server/utils/access/docProof', () => ({ proveDocNeed: vi.fn() }))
 vi.mock('../../../server/utils/documents/commentsServerClient', () => ({ openTrustedCommentClient: vi.fn() }))
+vi.mock('../../../server/utils/suggestions/suggestionAccess', () => ({ mustSuggestOnDoc: vi.fn() }))
 
 const mockedResolve = vi.mocked(resolveProjectContext)
 const mockedFind = vi.mocked(findProjectContextDoc)
 const mockedProve = vi.mocked(proveDocNeed)
 const mockedOpen = vi.mocked(openTrustedCommentClient)
+const mockedMustSuggest = vi.mocked(mustSuggestOnDoc)
 
-function session(withDoc = true) {
+function session(withDoc = true, suggest = false) {
   const updateStatus = vi.fn()
   const ctx = {
+    suggestSink: suggest ? { principal: 'ai:assistant:sess-9', name: 'markoto', forced: false, written: 0 } : null,
     docId: 'cur',
     initiatorUserId: 7,
     sessionId: 'sess-9',
@@ -45,8 +50,9 @@ function trustedClient(text: string) {
   const ydoc = new Y.Doc()
   ydoc.getText('content').insert(0, text)
   const destroy = vi.fn<() => Promise<void>>().mockResolvedValue(undefined)
-  mockedOpen.mockResolvedValue(deliberatelyInvalid({ ydoc, destroy }))
-  return { ydoc, destroy, text: () => ydoc.getText('content').toJSON() }
+  const acknowledged = vi.fn<() => Promise<void>>().mockResolvedValue(undefined)
+  mockedOpen.mockResolvedValue(deliberatelyInvalid({ ydoc, destroy, acknowledged }))
+  return { ydoc, destroy, acknowledged, text: () => ydoc.getText('content').toJSON() }
 }
 
 const read = (ctx: MetaToolContext, args: Record<string, unknown>) => readProjectContextTool.run(ctx as never, ReadProjectContextArgs.parse(args))
@@ -54,6 +60,7 @@ const edit = (ctx: MetaToolContext, args: Record<string, unknown>) => editProjec
 
 beforeEach(() => {
   vi.resetAllMocks()
+  mockedMustSuggest.mockResolvedValue(false)
 })
 
 describe('ReadProjectContextArgs', () => {
@@ -198,6 +205,7 @@ describe('edit_project_context', () => {
       expect(c.text()).toBe('# Cast\nMara\n\nJonas, the mechanic.')
       expect(mockedOpen).toHaveBeenCalledWith('bible', 'ai:assistant:sess-9', 'markoto')
       expect(updateStatus).toHaveBeenCalledWith('editing', expect.anything())
+      expect(c.acknowledged).toHaveBeenCalledTimes(1)
       expect(c.destroy).toHaveBeenCalledTimes(1)
     })
 
@@ -243,6 +251,37 @@ describe('edit_project_context', () => {
       c.destroy.mockRejectedValue(new Error('gone'))
       const r = await edit(session().ctx, { context_doc_id: 'bible', new_str: 'More' })
       expect(r.isError).toBe(false)
+    })
+  })
+
+  describe('in suggestion mode', () => {
+    beforeEach(() => {
+      mockedFind.mockResolvedValue(entry())
+      mockedProve.mockResolvedValue(docAs('bible', 7) as never)
+    })
+
+    it('stores the change as suggestions of the AI when the session suggests, and leaves the text', async () => {
+      const c = trustedClient('Mara is 34. Jonas is 40.')
+      const r = await edit(session(true, true).ctx, { context_doc_id: 'bible', old_str: 'Mara is 34.', new_str: 'Mara is 35.' })
+      expect(r.isError).toBe(false)
+      expect(r.content).toContain('Suggestion mode')
+      expect(c.text()).toBe('Mara is 34. Jonas is 40.')
+      const open = readSuggestions(c.ydoc)
+      expect(open).toHaveLength(1)
+      expect(open[0]!.record.deleted).toBe('34')
+      expect(open[0]!.record.text).toBe('35')
+      expect(open[0]!.record.authorPrincipal).toBe('ai:assistant:sess-9')
+      expect(c.acknowledged).toHaveBeenCalledTimes(1)
+    })
+
+    it('suggests when the context document requires suggestions of the initiator, even if the session edits directly', async () => {
+      mockedMustSuggest.mockResolvedValue(true)
+      const c = trustedClient('Cast')
+      const r = await edit(session().ctx, { context_doc_id: 'bible', new_str: 'Jonas' })
+      expect(r.isError).toBe(false)
+      expect(c.text()).toBe('Cast')
+      expect(readSuggestions(c.ydoc)).toHaveLength(1)
+      expect(mockedMustSuggest).toHaveBeenCalledWith('bible', 7)
     })
   })
 })

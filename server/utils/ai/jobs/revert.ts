@@ -1,4 +1,6 @@
 import { applyMinimalDiff } from '../tools/sections/ytextDiff'
+import { parseSuggestion } from '../../../../shared/utils/suggestions/record'
+import { suggestionsMap } from '../../../../shared/utils/suggestions/ySuggestions'
 import { unitRev } from './units'
 import { relativeRange, resolveUnitRange } from './runner'
 import type { AiJobStatus } from '../../../repos/aiJobs'
@@ -41,32 +43,43 @@ const REASONS: Record<RevertKeptKind, string> = { edited: REVERT_EDITED_SINCE, e
 
 const REVERTIBLE_FROM: readonly AiJobStatus[] = ['done', 'cancelled', 'failed', 'stopped_access', 'paused_budget', 'interrupted']
 
+type Unit = Awaited<ReturnType<JobStore['listUnits']>>[number]
+
+/** Whether a unit can be undone, and what with. */
+function revertCheck(doc: JobDocHandles, u: Unit): 'nothing' | { kept: RevertKeptKind } | { range: { start: number, end: number }, followUp: boolean, before: string } {
+  if (u.beforeText === null) return { kept: 'expired' }
+  const range = resolveUnitRange(doc, u.startRel, u.endRel)
+  if (!range) return { kept: 'deleted' }
+  const current = doc.ytext.toString().slice(range.start, range.end)
+  // Already reads as before the job (a suggestion nobody accepted, removed
+  // by `removeJobSuggestions`, or someone undid it by hand): nothing to do.
+  if (current === u.beforeText) return 'nothing'
+  const rev = unitRev(current)
+  const followUp = u.sessionAfterHash !== null && rev === u.sessionAfterHash && rev !== u.afterHash
+  if (rev !== u.afterHash && !followUp) return { kept: 'edited' }
+  return { range, followUp, before: u.beforeText }
+}
+
 export async function revertJobUnits(deps: { jobId: string, store: JobStore, doc: JobDocHandles }): Promise<RevertResult> {
   const { store, doc } = deps
   const units = await store.listUnits(['applied', 'flagged'])
   const skipped: RevertSkip[] = []
   let reverted = 0
   let followUps = 0
+  // A job in suggestion mode: its suggestions nobody decided yet go away
+  // (one transaction); units a person accepted are undone below like
+  // applied ones (their text is what the job wrote).
+  const pending = removeJobSuggestions(doc, deps.jobId)
+  if (pending.units > 0) reverted += pending.units
   for (const u of units) {
     if (u.afterHash === null) continue // comment / scan units changed no text
-    const skip = (kind: RevertKeptKind) => skipped.push({ ordinal: u.ordinal, headingPath: u.headingPath, kind, reason: REASONS[kind] })
-    if (u.beforeText === null) {
-      skip('expired')
+    const check = revertCheck(doc, u)
+    if (check === 'nothing') continue
+    if ('kept' in check) {
+      skipped.push({ ordinal: u.ordinal, headingPath: u.headingPath, kind: check.kept, reason: REASONS[check.kept] })
       continue
     }
-    const range = resolveUnitRange(doc, u.startRel, u.endRel)
-    if (!range) {
-      skip('deleted')
-      continue
-    }
-    const current = doc.ytext.toString().slice(range.start, range.end)
-    const rev = unitRev(current)
-    const followUp = u.sessionAfterHash !== null && rev === u.sessionAfterHash && rev !== u.afterHash
-    if (rev !== u.afterHash && !followUp) {
-      skip('edited')
-      continue
-    }
-    const before = u.beforeText
+    const { range, followUp, before } = check
     doc.ydoc.transact(() => {
       applyMinimalDiff(doc.ytext, range.start, range.end, before)
     }, revertOrigin(deps.jobId))
@@ -76,4 +89,27 @@ export async function revertJobUnits(deps: { jobId: string, store: JobStore, doc
   }
   if (reverted > 0) await store.transition(REVERTIBLE_FROM, 'reverted', { currentHeading: null })
   return { reverted, followUps, skipped }
+}
+
+/**
+ * Remove the job's open suggestions. `units` counts the units (suggestion
+ * groups) they belonged to, so "N parts restored" reads the same in both modes.
+ */
+function removeJobSuggestions(doc: JobDocHandles, jobId: string): { units: number, suggestions: number } {
+  const map = suggestionsMap(doc.ydoc)
+  const ids: string[] = []
+  const groups = new Set<string>()
+  for (const [key, value] of map.entries()) {
+    const r = parseSuggestion(value)
+    if (r?.jobId === jobId) {
+      ids.push(key)
+      groups.add(r.groupId ?? key)
+    }
+  }
+  if (ids.length > 0) {
+    doc.ydoc.transact(() => {
+      for (const id of ids) map.delete(id)
+    }, revertOrigin(jobId))
+  }
+  return { units: groups.size, suggestions: ids.length }
 }

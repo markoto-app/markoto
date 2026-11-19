@@ -59,9 +59,13 @@ function emitBudgetBreadcrumb(ctx: LoopContext, plan: string): void {
   // doesn't exist on this deployment.
   const msg = budgetExhaustedBreadcrumb(plan)
   try {
-    ctx.opts.aiSession.ydoc.transact(() => {
-      ctx.opts.aiSession.ytext.insert(ctx.opts.aiSession.ytext.length, msg)
-    }, `ai:assistant:${ctx.opts.sessionId}`)
+    // Suggesting mode: the note would itself become a suggestion; the
+    // status below tells the user instead.
+    if (!ctx.opts.aiSession.suggestSink) {
+      ctx.opts.aiSession.ydoc.transact(() => {
+        ctx.opts.aiSession.ytext.insert(ctx.opts.aiSession.ytext.length, msg)
+      }, `ai:assistant:${ctx.opts.sessionId}`)
+    }
   } catch (e) {
     ctx.log(`failed to write budget-exhausted breadcrumb: ${e instanceof Error ? e.message : e}`)
   }

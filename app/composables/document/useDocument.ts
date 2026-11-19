@@ -5,6 +5,8 @@ import { normalizeAwarenessStates, normalizeAwarenessUser } from '~~/shared/util
 import { useDocumentMeta } from './documentMeta'
 import { createHiddenTabPause } from '~/utils/collab/hiddenTabPause'
 import { TEMPLATE_SEED_ORIGIN } from '~/utils/editor/collabHistory'
+import { SUGGEST_ORIGIN } from '~/composables/suggestions/useSuggestions'
+import { suggestionsMap } from '~~/shared/utils/suggestions/ySuggestions'
 
 /**
  * The sync server URL as this browser reaches it. A configured
@@ -120,8 +122,9 @@ export function useDocument(docId: string) {
   exposeTestHandles(ydoc, ytext, awareness)
 
   // Tracks this tab's own edits only: synced and AI updates carry the
-  // provider as origin, the template seed its own origin.
-  const undoManager = new Y.UndoManager(ytext)
+  // provider as origin, the template seed its own origin. Suggestions made
+  // in suggesting mode are this tab's edits too: undo takes them back.
+  const undoManager = new Y.UndoManager([ytext, suggestionsMap(ydoc)], { trackedOrigins: new Set([null, SUGGEST_ORIGIN]) })
 
   const { loggedIn, user: sessionUser } = useUserSession()
 
@@ -189,7 +192,7 @@ export function useDocument(docId: string) {
     // Server pre-rendered with the doc's title/description, locale-matched
     // on doc.language; `blank` renders to null and the document stays empty.
     const seed = tokenState.initialBody.value
-    if (seed && ytext.length === 0 && !tokenState.isReadOnly.value) {
+    if (seed && ytext.length === 0 && !tokenState.isReadOnly.value && !tokenState.suggestOnly.value) {
       // Not undoable: undo must never take back the starting text.
       ydoc.transact(() => ytext.insert(0, seed), TEMPLATE_SEED_ORIGIN)
     }
@@ -253,6 +256,12 @@ export function useDocument(docId: string) {
     synced: readonly(sync.synced),
     userCount: readonly(sync.userCount),
     isReadOnly: readonly(tokenState.isReadOnly),
+    /** Edits can only be suggestions (the document requires it, or a viewer may suggest). */
+    suggestOnly: readonly(tokenState.suggestOnly),
+    /** The document requires suggestion mode of everyone not exempt. */
+    suggestionsRequired: readonly(tokenState.suggestionsRequired),
+    /** Holds the content-write right (an editor, also when made to suggest). */
+    contentWriter: readonly(tokenState.contentWriter),
     syncAuthFailed: readonly(tokenState.syncAuthFailed),
     syncRejection: readonly(sync.syncRejection),
     /** The sync server is at a capacity limit; the connection retries by itself. */

@@ -1,5 +1,6 @@
 import { commentParams, triggerCommentAiBody } from '~~/shared/api/ai'
 import { startCommentTrigger } from '../../../../../utils/agentic/sessions/commentTrigger'
+import { sessionSuggestMode } from '../../../../../utils/agentic/sessions/suggestMode'
 
 // POST /api/docs/:docId/comments/:commentId/trigger-ai
 //
@@ -21,14 +22,15 @@ export default defineApiHandler({
   access: allow.doc('write-content'),
   params: commentParams,
   body: triggerCommentAiBody,
-  handler: async ({ event, user, docAccess, self, params, body }) => {
+  handler: async ({ event, user, doc, docAccess, self, params, body }) => {
     const replyId = body?.replyId ?? null
     const { sessionId } = await startCommentTrigger(event, {
       docAccess,
       self,
       commentId: params.commentId,
       replyId,
-      user: { id: user.id, name: user.name }
+      user: { id: user.id, name: user.name },
+      suggest: await sessionSuggestMode(doc, self, undefined)
     })
     return { sessionId, commentId: params.commentId, replyId }
   }
