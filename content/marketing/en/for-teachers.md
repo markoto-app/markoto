@@ -27,7 +27,7 @@ Teaching material is rewritten every term: new numbers, a new class, another lan
 - **Code** with syntax highlighting, for programming and IT courses.
 - **Callout boxes** (tip, note, warning) for hints and common mistakes.
 - **Images**, with an account.
-- **Page breaks** where you want them, and a header and footer with your name, the class and page numbers.
+- **Page breaks** where you want them, and a header and footer with the title, the date and page numbers.
 
 The preview shows the printed pages as you type, so you see where the sheet ends before you print it. Details: [Markdown reference](/docs/writing/markdown-reference).
 
@@ -61,7 +61,12 @@ captions:
 
 Teaching a mixed class, or a course that runs in two languages? Ask the AI in the prompt bar to translate chapters or sections into another language. It tries a sample first, tells you how many sections it will change and how long it takes, and then works through them while you keep writing. Code, math and link addresses stay as they are, and you can undo the whole job in one step.
 
-::flow-strip{id="translate-many-sections-with-ai" frames="09,15" captions="Chapters translated, with the code and the introduction left alone.|Undo the whole job: the original text is back."}
+::flow-strip{id="translate-many-sections-with-ai" frames="09,15"}
+---
+captions:
+  - Chapters translated, with the code and the introduction left alone.
+  - Undo the whole job: the original text is back.
+---
 ::
 
 On markoto.app the free plan has a small monthly AI allowance and a few translation jobs a day, or you can connect your own AI provider. Check the result before it goes to students: the AI translates well, but a teacher reads the final text. The same prompt bar can also rewrite a selected paragraph for a younger or older audience.

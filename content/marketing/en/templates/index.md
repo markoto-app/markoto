@@ -1,6 +1,6 @@
 ---
-title: Markdown templates for reports, CVs and papers
-description: Free Markdown templates with a print layout - report, one-page resume, meeting notes, academic paper and business plan. Start in the browser, export as PDF.
+title: Markdown templates for documents with pages
+description: Free Markdown templates with a print layout: report, resume, thesis, essay, proposal, manuscript, newsletter, runbook and more. Start in the browser, export a PDF.
 keywords:
   - markdown templates
   - markdown document templates
@@ -8,7 +8,7 @@ keywords:
   - markdown resume template
   - markdown meeting notes template
   - academic paper markdown template
-updated: '2026-11-09'
+updated: '2026-11-19'
 navGroup: templates
 navLabel: All templates
 navOrder: 0

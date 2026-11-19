@@ -93,6 +93,8 @@ markoto has **no BibTeX, no citation manager and no automatic reference list**. 
 
 Students writing a term paper or a short thesis, researchers drafting a working paper or a report with co-authors, and anyone whose venue accepts a PDF without a prescribed template. Co-authors can edit the same document at the same time, leave comments, and restore earlier versions.
 
+For theses, essays and lecture notes, and everything else markoto offers researchers, see [academic writing in Markdown](/academic-writing).
+
 ## Questions
 
 ::faq{json-ld}
