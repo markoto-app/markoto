@@ -57,6 +57,8 @@ markoto offers 44 tools. Which ones a client sees depends on the token's scopes;
 
 Rendering is the part a plain Markdown file can't give an agent: `view_pages` returns pictures of the printed pages, so the agent can check where a table breaks or whether page 3 is too dense, and `export_document_as_pdf` returns the finished file.
 
+To use the server for a review loop, where an agent writes a plan and your team comments on it, see [reviewing AI agent plans](/review-ai-agent-plans).
+
 ## Edits you can see and undo
 
 Your agent joins the document as a separate collaborator. The edit appears live in every open editor. The [activity log](/docs/import-export) shows it as made by your MCP client ("Claude Desktop", "Cursor") on your behalf, with a diff, and **Restore** puts the document back to how it was before.

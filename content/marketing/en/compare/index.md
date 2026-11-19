@@ -1,6 +1,6 @@
 ---
 title: Compare markoto with other editors
-description: How markoto compares with HackMD, HedgeDoc, Overleaf, Google Docs, Obsidian, Typora and Typst - a verdict for each and a side-by-side feature table.
+description: How markoto compares with HackMD, HedgeDoc, Overleaf, Google Docs, Obsidian, Typora, Typst and Scrivener, with a verdict for each and a feature table.
 keywords:
   - markoto alternatives
   - markdown editor comparison
@@ -8,7 +8,7 @@ keywords:
   - overleaf alternative markdown
   - obsidian alternative
   - typora alternative
-updated: '2026-11-04'
+updated: '2026-11-19'
 navGroup: compare
 navLabel: All comparisons
 navOrder: 0
@@ -59,6 +59,12 @@ Typora is a polished desktop editor that formats as you type, for a one-time pri
 Typst is a typesetting language with far more layout control and real bibliographies; markoto asks you to learn nothing beyond Markdown and has comments and history on the free plan.
 
 [markoto vs Typst: the full comparison](/compare/typst)
+
+## Scrivener
+
+Scrivener is a desktop app for long projects, with a corkboard, research beside the draft, writing targets and a compile step to Word and ebooks; markoto runs in the browser, with live co-writing, comments from readers and a PDF that matches the preview.
+
+[markoto vs Scrivener: the full comparison](/compare/scrivener)
 
 ## What markoto doesn't do
 

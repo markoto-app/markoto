@@ -1,0 +1,108 @@
+# Claim data for /compare/scrivener (content/marketing/en/compare/scrivener.md).
+# Each value: what the table shows, where it comes from, when it was checked.
+# markoto's sources point at its docs (site paths) or the code (repo paths).
+# Re-check a competitor value at its source before changing `checked`.
+# Scrivener's own pages do not say whether collaboration is supported; the
+# only source for that row is a Literature & Latte forum thread in which
+# users and staff describe merging two copies of a project.
+name: Scrivener
+rows:
+  - feature: Where you write
+    markoto:
+      value: In the browser, on any device; no install
+      source: /docs/getting-started
+      checked: '2026-11-19'
+    competitor:
+      value: Apps for macOS, Windows and iOS; a licence covers one platform
+      source: https://www.literatureandlatte.com/scrivener/overview
+      checked: '2026-11-19'
+  - feature: Price
+    markoto:
+      value: Free on markoto.app; paid plans not launched yet
+      source: /docs/plans/limits
+      checked: '2026-11-19'
+    competitor:
+      value: Paid licence per platform, listed in its store; the iOS app is US$23.99
+      source: https://www.literatureandlatte.com/store/scrivener
+      checked: '2026-11-19'
+  - feature: Free trial
+    markoto:
+      value: The free plan has no time limit
+      source: /docs/plans/limits
+      checked: '2026-11-19'
+    competitor:
+      value: 30 days of use, with all features
+      source: https://www.literatureandlatte.com/scrivener/faqs
+      checked: '2026-11-19'
+  - feature: What you write
+    markoto:
+      value: Markdown; the layout comes from a theme
+      source: /docs/writing/markdown-reference
+      checked: '2026-11-19'
+    competitor:
+      value: Text in sections of any size, which you reorder freely
+      source: https://www.literatureandlatte.com/scrivener/overview
+      checked: '2026-11-19'
+  - feature: Planning
+    markoto:
+      value: Headings; no corkboard or index cards
+      source: /docs/writing
+      checked: '2026-11-19'
+    competitor:
+      value: Corkboard with index cards and an outliner
+      source: https://www.literatureandlatte.com/scrivener/overview
+      checked: '2026-11-19'
+  - feature: Research next to the draft
+    markoto:
+      value: Upload files to a workspace's Knowledge tab and ask the AI about them
+      source: /docs/ai/knowledge-rag
+      checked: '2026-11-19'
+    competitor:
+      value: Notes, PDFs, images and web pages beside the draft, up to four documents side by side
+      source: https://www.literatureandlatte.com/scrivener/overview
+      checked: '2026-11-19'
+  - feature: Earlier versions
+    markoto:
+      value: Every edit is recorded; restore any earlier state
+      source: /docs/import-export/restore
+      checked: '2026-11-19'
+    competitor:
+      value: Snapshots of a section, taken before a rewrite, with a compare view
+      source: https://www.literatureandlatte.com/scrivener/overview
+      checked: '2026-11-19'
+  - feature: Writing targets
+    markoto:
+      value: Word and page count in the status bar; no targets
+      source: app/components/editor/layout/StatusFooter.vue
+      checked: '2026-11-19'
+    competitor:
+      value: Word or character targets for the manuscript, a section or a session
+      source: https://www.literatureandlatte.com/scrivener/overview
+      checked: '2026-11-19'
+  - feature: Output
+    markoto:
+      value: PDF, Markdown file, published web page
+      source: /docs/import-export
+      checked: '2026-11-19'
+    competitor:
+      value: Compiles to Word, RTF, OpenOffice, PDF, Final Draft, ePub and Kindle, plain text
+      source: https://www.literatureandlatte.com/scrivener/overview
+      checked: '2026-11-19'
+  - feature: Several people on one draft
+    markoto:
+      value: Live co-editing with comments on single passages
+      source: /docs/collaborate/live-collab
+      checked: '2026-11-19'
+    competitor:
+      value: Not live; two authors merge copies of a project with Import and Merge
+      source: https://forum.literatureandlatte.com/t/how-do-i-use-scrivener-3-with-two-authors/39580
+      checked: '2026-11-19'
+  - feature: AI assistant
+    markoto:
+      value: Built in; rewrites a selection and answers in comments
+      source: /docs/ai/overview
+      checked: '2026-11-19'
+    competitor:
+      value: Not among the features on its overview page
+      source: https://www.literatureandlatte.com/scrivener/overview
+      checked: '2026-11-19'
