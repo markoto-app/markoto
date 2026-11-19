@@ -208,6 +208,15 @@ async function dispatchToolCallsForTurn(
     return { kind: 'done', outcome: 'success' }
   }
 
+  return continueWithSteering(ctx, functionCalls, turnCount, responseParts)
+}
+
+/**
+ * Hand the turn's results back to the model, with a steering note when the
+ * session keeps reading or is close to its turn limit; or close it when
+ * its delegated job is settled and it only reads on (`loop/turnSteering.ts`).
+ */
+function continueWithSteering(ctx: LoopContext, functionCalls: FunctionCall[], turnCount: number, responseParts: ResponseParts): TurnResult {
   const steer = ctx.steering.endTurn({
     calls: functionCalls.map(c => c.name ?? ''),
     turn: turnCount,
@@ -216,11 +225,9 @@ async function dispatchToolCallsForTurn(
     answerTool: isCommentTriggerSession(ctx) ? 'reply_to_comment' : 'message_to_user'
   })
   ctx.contents.push({ role: 'user', parts: steer.note ? [...responseParts, { text: steer.note }] : responseParts })
-  if (steer.closeForJob) {
-    ctx.log(`turn ${turnCount}: the session's job is settled and the model keeps reading, closing`)
-    return { kind: 'wrap-up', reason: 'job-settled' }
-  }
-  return { kind: 'continue' }
+  if (!steer.closeForJob) return { kind: 'continue' }
+  ctx.log(`turn ${turnCount}: the session's job is settled and the model keeps reading, closing`)
+  return { kind: 'wrap-up', reason: 'job-settled' }
 }
 
 export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
