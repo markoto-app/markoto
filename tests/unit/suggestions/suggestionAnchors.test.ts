@@ -182,3 +182,26 @@ describe('suggestion anchors', () => {
     expect(readSuggestions(d)).toEqual([])
   })
 })
+
+describe('record helpers', () => {
+  it('rejects a record whose id does not match its key and reads single ids back', async () => {
+    const { getSuggestion } = await import('../../../shared/utils/suggestions/ySuggestions')
+    const { isAiSuggestion } = await import('../../../shared/utils/suggestions/record')
+    const doc = peer('hello world')
+    const r = suggest(doc, 0, 5, 'HELLO')
+    expect(getSuggestion(doc, r.id)?.text).toBe('HELLO')
+    expect(getSuggestion(doc, 'missing-id-1')).toBeNull()
+    suggestionsMap(doc).set('other-key-1', r)
+    expect(getSuggestion(doc, 'other-key-1')).toBeNull()
+    expect(readSuggestions(doc).map(s => s.record.id)).toEqual([r.id])
+    expect(isAiSuggestion({ authorPrincipal: 'ai:x' })).toBe(true)
+    expect(isAiSuggestion({ authorPrincipal: null })).toBe(false)
+  })
+
+  it('skips records with undecodable anchors', () => {
+    const doc = peer('hello world')
+    const r = suggest(doc, 0, 5, 'HELLO')
+    suggestionsMap(doc).set(r.id, { ...r, start: '!!!notbase64', end: '!!!notbase64' })
+    expect(readSuggestions(doc)).toEqual([])
+  })
+})

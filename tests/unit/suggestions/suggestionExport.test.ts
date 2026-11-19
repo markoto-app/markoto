@@ -85,3 +85,10 @@ describe('AI edits in suggestion mode (editText)', () => {
     expect(changedRuns('same', 'same')).toEqual([])
   })
 })
+
+describe('CriticMarkup of empty suggestions', () => {
+  it('writes no mark for a suggestion that strikes nothing and inserts nothing', async () => {
+    const { toCriticMarkup } = await import('../../../shared/utils/suggestions/criticMarkup')
+    expect(toCriticMarkup('abc', [{ from: 1, to: 1, text: '' }])).toBe('abc')
+  })
+})
