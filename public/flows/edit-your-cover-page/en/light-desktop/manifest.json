@@ -22,7 +22,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/Wl0LXEpqWr"
+      "path": "/d/HaJqxEB8KP"
     },
     {
       "kind": "approach",
@@ -32,7 +32,7 @@
         "x": 1260,
         "y": 98
       },
-      "path": "/d/Wl0LXEpqWr",
+      "path": "/d/HaJqxEB8KP",
       "annotations": [
         {
           "label": "theme tab",
@@ -52,7 +52,7 @@
         "x": 1260,
         "y": 98
       },
-      "path": "/d/Wl0LXEpqWr"
+      "path": "/d/HaJqxEB8KP"
     },
     {
       "kind": "approach",
@@ -62,7 +62,7 @@
         "x": 1120,
         "y": 438
       },
-      "path": "/d/Wl0LXEpqWr",
+      "path": "/d/HaJqxEB8KP",
       "annotations": [
         {
           "label": "Cover page accordion",
@@ -82,7 +82,7 @@
         "x": 1120,
         "y": 438
       },
-      "path": "/d/Wl0LXEpqWr"
+      "path": "/d/HaJqxEB8KP"
     },
     {
       "kind": "chapter",
@@ -97,7 +97,7 @@
         "x": 1120,
         "y": 438
       },
-      "path": "/d/Wl0LXEpqWr"
+      "path": "/d/HaJqxEB8KP"
     },
     {
       "kind": "approach",
@@ -107,7 +107,7 @@
         "x": 1120,
         "y": 618
       },
-      "path": "/d/Wl0LXEpqWr"
+      "path": "/d/HaJqxEB8KP"
     },
     {
       "kind": "outcome",
@@ -117,7 +117,7 @@
         "x": 1120,
         "y": 618
       },
-      "path": "/d/Wl0LXEpqWr"
+      "path": "/d/HaJqxEB8KP"
     },
     {
       "kind": "approach",
@@ -127,7 +127,7 @@
         "x": 1120,
         "y": 511
       },
-      "path": "/d/Wl0LXEpqWr"
+      "path": "/d/HaJqxEB8KP"
     },
     {
       "kind": "outcome",
@@ -137,7 +137,7 @@
         "x": 1120,
         "y": 511
       },
-      "path": "/d/Wl0LXEpqWr"
+      "path": "/d/HaJqxEB8KP"
     },
     {
       "kind": "chapter",
@@ -147,52 +147,52 @@
     {
       "kind": "narration",
       "text": "A short line under the title, such as a version, a team or \"Internal draft\". The subtitle is off by default: switch it on, then type.",
-      "file": "11.webp",
+      "file": "10.webp",
       "cursor": {
         "x": 1120,
         "y": 511
       },
-      "path": "/d/Wl0LXEpqWr"
+      "path": "/d/HaJqxEB8KP"
     },
     {
       "kind": "approach",
-      "file": "12.webp",
+      "file": "11.webp",
       "caption": "Flip the \"Show subtitle\" toggle on",
       "cursor": {
         "x": 991,
         "y": 438
       },
-      "path": "/d/Wl0LXEpqWr"
+      "path": "/d/HaJqxEB8KP"
     },
     {
       "kind": "outcome",
-      "file": "13.webp",
+      "file": "12.webp",
       "caption": "The subtitle field appears underneath, ready for input.",
       "cursor": {
         "x": 991,
         "y": 438
       },
-      "path": "/d/Wl0LXEpqWr"
+      "path": "/d/HaJqxEB8KP"
     },
     {
       "kind": "approach",
-      "file": "14.webp",
+      "file": "13.webp",
       "caption": "Type a subtitle line",
       "cursor": {
         "x": 987,
         "y": 581
       },
-      "path": "/d/Wl0LXEpqWr"
+      "path": "/d/HaJqxEB8KP"
     },
     {
       "kind": "outcome",
-      "file": "15.webp",
+      "file": "14.webp",
       "caption": "The subtitle appears on the cover. The PDF will open on this page.",
       "cursor": {
         "x": 987,
         "y": 581
       },
-      "path": "/d/Wl0LXEpqWr",
+      "path": "/d/HaJqxEB8KP",
       "highlights": [
         {
           "label": "Your cover page",

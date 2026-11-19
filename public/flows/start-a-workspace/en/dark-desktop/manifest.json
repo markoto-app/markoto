@@ -71,7 +71,7 @@
     {
       "kind": "narration",
       "text": "The name shows in the topbar of every doc in the workspace + in the dashboard list. The description is optional but shows up in the workspace card, useful when you have several workspaces with similar names.",
-      "file": "05.webp",
+      "file": "04.webp",
       "cursor": {
         "x": 1150,
         "y": 270
@@ -80,7 +80,7 @@
     },
     {
       "kind": "approach",
-      "file": "05.webp",
+      "file": "04.webp",
       "caption": "Type a name",
       "cursor": {
         "x": 422,
@@ -90,7 +90,7 @@
     },
     {
       "kind": "outcome",
-      "file": "06.webp",
+      "file": "05.webp",
       "caption": "The name lands. Submit is now enabled.",
       "cursor": {
         "x": 422,
@@ -100,7 +100,7 @@
     },
     {
       "kind": "approach",
-      "file": "07.webp",
+      "file": "06.webp",
       "caption": "Add a one-line description",
       "cursor": {
         "x": 422,
@@ -110,7 +110,7 @@
     },
     {
       "kind": "outcome",
-      "file": "08.webp",
+      "file": "07.webp",
       "caption": "The description is captured.",
       "cursor": {
         "x": 422,
@@ -126,7 +126,7 @@
     {
       "kind": "narration",
       "text": "Submit creates the workspace, makes you the admin, and routes you to its home page. Sharing its address doesn't let anyone in: people join only when an admin invites them.",
-      "file": "08.webp",
+      "file": "07.webp",
       "cursor": {
         "x": 640,
         "y": 470
@@ -135,7 +135,7 @@
     },
     {
       "kind": "approach",
-      "file": "09.webp",
+      "file": "08.webp",
       "caption": "Click \"Create\"",
       "cursor": {
         "x": 790,
@@ -145,13 +145,13 @@
     },
     {
       "kind": "outcome",
-      "file": "10.webp",
+      "file": "09.webp",
       "caption": "You land on the workspace home page, empty Documents + Knowledge tabs, ready for content. The topbar carries the workspace name; you're the admin (visible in the members list once we add some).",
       "cursor": {
         "x": 790,
         "y": 563
       },
-      "path": "/w/QGL7XQFey-",
+      "path": "/w/qoVDZEbiXx",
       "highlights": [
         {
           "label": "Workspace tabs",

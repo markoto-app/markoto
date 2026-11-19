@@ -134,17 +134,17 @@
       "highlights": [
         {
           "label": "deleted with you",
-          "x": 328.55682373046875,
-          "y": 285.20526123046875,
-          "w": 618.8934936523438,
-          "h": 105.810791015625
+          "x": 328.2393798828125,
+          "y": 285.0882263183594,
+          "w": 619.5242919921875,
+          "h": 105.91867065429688
         },
         {
           "label": "gets a new admin",
-          "x": 328.23907470703125,
+          "x": 328.2393798828125,
           "y": 402.9976806640625,
-          "w": 619.5249633789062,
-          "h": 105.91879272460938
+          "w": 619.5242919921875,
+          "h": 105.918701171875
         }
       ]
     },
@@ -261,7 +261,7 @@
     {
       "kind": "narration",
       "text": "During the grace window you can cancel from any page, click \"Cancel deletion\" in the banner and the deletion request is cleared on the spot. No data lost, no collaborators surprised. Your account is back to the state it was in before the click.",
-      "file": "12.webp",
+      "file": "13.webp",
       "cursor": {
         "x": 1238,
         "y": 42
@@ -270,7 +270,7 @@
     },
     {
       "kind": "approach",
-      "file": "13.webp",
+      "file": "14.webp",
       "caption": "Click \"Cancel deletion\" in the banner",
       "cursor": {
         "x": 847,
@@ -280,7 +280,7 @@
     },
     {
       "kind": "outcome",
-      "file": "14.webp",
+      "file": "15.webp",
       "caption": "The banner disappears and your account is back to normal, nothing was deleted.",
       "cursor": {
         "x": 847,

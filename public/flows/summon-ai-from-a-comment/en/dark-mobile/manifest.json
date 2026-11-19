@@ -19,7 +19,7 @@
       "text": "Comments in markoto are threaded, leave one on a specific passage and your collaborators see it the moment you post. markoto is just another collaborator: type @markoto inside any comment and it joins the thread, reads the anchored text, and replies.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/aiEOEDya1Y"
+      "path": "/d/BYDEtz-kgv"
     },
     {
       "kind": "outcome",
@@ -29,7 +29,7 @@
         "x": 14,
         "y": 307
       },
-      "path": "/d/aiEOEDya1Y"
+      "path": "/d/BYDEtz-kgv"
     },
     {
       "kind": "approach",
@@ -39,7 +39,7 @@
         "x": 322,
         "y": 232
       },
-      "path": "/d/aiEOEDya1Y"
+      "path": "/d/BYDEtz-kgv"
     },
     {
       "kind": "outcome",
@@ -49,7 +49,7 @@
         "x": 322,
         "y": 232
       },
-      "path": "/d/aiEOEDya1Y"
+      "path": "/d/BYDEtz-kgv"
     },
     {
       "kind": "chapter",
@@ -64,7 +64,7 @@
         "x": 322,
         "y": 232
       },
-      "path": "/d/aiEOEDya1Y"
+      "path": "/d/BYDEtz-kgv"
     },
     {
       "kind": "outcome",
@@ -74,7 +74,7 @@
         "x": 35,
         "y": 438
       },
-      "path": "/d/aiEOEDya1Y",
+      "path": "/d/BYDEtz-kgv",
       "highlights": [
         {
           "label": "markoto: synthetic entry, always available",
@@ -90,7 +90,7 @@
       "file": "05.webp",
       "caption": "Click the markoto entry",
       "cursor": null,
-      "path": "/d/aiEOEDya1Y",
+      "path": "/d/BYDEtz-kgv",
       "annotations": [
         {
           "label": "markoto entry",
@@ -107,21 +107,21 @@
       "file": "06.webp",
       "caption": "The composer now reads \"@markoto \", finish your question.",
       "cursor": null,
-      "path": "/d/aiEOEDya1Y"
+      "path": "/d/BYDEtz-kgv"
     },
     {
       "kind": "approach",
       "file": "06.webp",
       "caption": "Finish your question",
       "cursor": null,
-      "path": "/d/aiEOEDya1Y"
+      "path": "/d/BYDEtz-kgv"
     },
     {
       "kind": "outcome",
       "file": "07.webp",
       "caption": "Your question is ready, submit to summon markoto.",
       "cursor": null,
-      "path": "/d/aiEOEDya1Y"
+      "path": "/d/BYDEtz-kgv"
     },
     {
       "kind": "chapter",
@@ -136,21 +136,21 @@
         "x": 322,
         "y": 232
       },
-      "path": "/d/aiEOEDya1Y"
+      "path": "/d/BYDEtz-kgv"
     },
     {
       "kind": "approach",
       "file": "07.webp",
       "caption": "Click Submit to post and trigger markoto",
       "cursor": null,
-      "path": "/d/aiEOEDya1Y"
+      "path": "/d/BYDEtz-kgv"
     },
     {
       "kind": "outcome",
       "file": "08.webp",
       "caption": "Your comment lands, the thread glows while markoto works.",
       "cursor": null,
-      "path": "/d/aiEOEDya1Y",
+      "path": "/d/BYDEtz-kgv",
       "highlights": [
         {
           "label": "markoto is responding",
@@ -174,7 +174,7 @@
         "x": 322,
         "y": 232
       },
-      "path": "/d/aiEOEDya1Y"
+      "path": "/d/BYDEtz-kgv"
     },
     {
       "kind": "outcome",
@@ -184,14 +184,14 @@
         "x": 322,
         "y": 232
       },
-      "path": "/d/aiEOEDya1Y",
+      "path": "/d/BYDEtz-kgv",
       "highlights": [
         {
           "label": "markoto's reply",
           "x": 8,
-          "y": 234,
+          "y": 223,
           "w": 374,
-          "h": 477.75
+          "h": 517.75
         }
       ],
       "hero": true

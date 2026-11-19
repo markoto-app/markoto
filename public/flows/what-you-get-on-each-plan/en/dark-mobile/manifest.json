@@ -23,7 +23,7 @@
     },
     {
       "kind": "outcome",
-      "file": "01.webp",
+      "file": "02.webp",
       "caption": "You are on the free plan. Pro and Teams are marked \"coming soon\": planned prices, no checkout.",
       "cursor": null,
       "path": "/pricing",
@@ -49,7 +49,7 @@
     },
     {
       "kind": "approach",
-      "file": "02.webp",
+      "file": "03.webp",
       "caption": "Switch the Teams card to \"Business\"",
       "cursor": {
         "x": 316,
@@ -59,7 +59,7 @@
     },
     {
       "kind": "outcome",
-      "file": "03.webp",
+      "file": "04.webp",
       "caption": "Business shows its planned price per seat and what it adds, such as single sign-on.",
       "cursor": {
         "x": 316,
@@ -69,7 +69,7 @@
     },
     {
       "kind": "approach",
-      "file": "04.webp",
+      "file": "05.webp",
       "caption": "Click \"Compare all details\"",
       "cursor": {
         "x": 194,
@@ -79,7 +79,7 @@
     },
     {
       "kind": "outcome",
-      "file": "05.webp",
+      "file": "06.webp",
       "caption": "A table compares every limit and feature of the four plans.",
       "cursor": {
         "x": 194,
@@ -89,7 +89,7 @@
     },
     {
       "kind": "outcome",
-      "file": "05.webp",
+      "file": "06.webp",
       "caption": "The table lists every limit side by side.",
       "cursor": {
         "x": 194,
@@ -113,7 +113,7 @@
     },
     {
       "kind": "approach",
-      "file": "06.webp",
+      "file": "07.webp",
       "caption": "Click \"Join the waitlist\" on the Pro card",
       "cursor": {
         "x": 195,
@@ -123,7 +123,7 @@
     },
     {
       "kind": "outcome",
-      "file": "07.webp",
+      "file": "08.webp",
       "caption": "The page scrolls to the waitlist bar above the cards, ready for your email address.",
       "cursor": {
         "x": 195,
@@ -134,7 +134,7 @@
     {
       "kind": "narration",
       "text": "Want to know when Pro, Team and Business launch? Leave your email on the waitlist. markoto sends one email when they do, and every email has an unsubscribe link.",
-      "file": "08.webp",
+      "file": "09.webp",
       "cursor": {
         "x": 195,
         "y": 360
@@ -143,7 +143,7 @@
     },
     {
       "kind": "approach",
-      "file": "09.webp",
+      "file": "10.webp",
       "caption": "Type your email address",
       "cursor": {
         "x": 47,
@@ -153,7 +153,7 @@
     },
     {
       "kind": "outcome",
-      "file": "10.webp",
+      "file": "11.webp",
       "caption": "Your address is filled in.",
       "cursor": {
         "x": 47,
@@ -163,7 +163,7 @@
     },
     {
       "kind": "approach",
-      "file": "10.webp",
+      "file": "11.webp",
       "caption": "Tick the consent box",
       "cursor": {
         "x": 41,
@@ -173,7 +173,7 @@
     },
     {
       "kind": "outcome",
-      "file": "11.webp",
+      "file": "12.webp",
       "caption": "With consent given, the button becomes active.",
       "cursor": {
         "x": 41,
@@ -183,7 +183,7 @@
     },
     {
       "kind": "approach",
-      "file": "11.webp",
+      "file": "13.webp",
       "caption": "Click \"Join the waitlist\"",
       "cursor": {
         "x": 195,
@@ -193,7 +193,7 @@
     },
     {
       "kind": "outcome",
-      "file": "12.webp",
+      "file": "14.webp",
       "caption": "Check your inbox: the sign-up only counts once you click the confirmation link in the email.",
       "cursor": {
         "x": 195,
