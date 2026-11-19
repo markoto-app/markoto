@@ -21,7 +21,7 @@ const submitted = ref(false)
 const errorMessage = ref<string | null>(null)
 
 const analytics = useAnalytics()
-// The ad click id travels only with the sign-up itself (docs/operations-analytics.md).
+// The ad click id travels only with the sign-up itself (docs/SELF-HOSTING.md#analytics-optional).
 function clickIdField() {
   const clickId = analytics.clickId()
   return clickId ? { attribution: clickId } : {}

@@ -51,7 +51,7 @@ Both turn plain text into well-set PDF pages, and both have a web app where seve
 
 ## Prices
 
-On markoto.app everything is free today; paid plans are planned but not launched ([pricing](/pricing)). Typst's web app is free with limits; Pro costs $7.99 a month, less with annual billing. See [Typst's pricing page](https://typst.app/pricing/) for the current annual price.
+On markoto.app the free plan has no price but has limits (for example 30 days of history and 3 members per workspace); paid plans are planned but not launched ([pricing](/pricing)). Self-hosted instances have no plan limits. Typst's web app is free with limits; Pro costs $7.99 a month, less with annual billing. See [Typst's pricing page](https://typst.app/pricing/) for the current annual price.
 
 ## Who should pick which
 

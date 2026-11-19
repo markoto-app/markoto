@@ -5,30 +5,14 @@ All notable changes to markoto will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-The canonical release log lives in [GitHub Releases](https://github.com/markoto-app/markoto/releases):
-every merge to `main` produces one release, named and described from the merged
-PR's title + body, with the version derived from the git tag history. See
-[CONTRIBUTING.md](./CONTRIBUTING.md#pull-requests) for the release labels.
+The canonical release log lives in [GitHub Releases](https://github.com/markoto-app/markoto/releases).
+Releases are opt-in: a merged pull request labelled `release:patch`, `release:minor` or
+`release:major` produces one release, named and described from that PR's title and body,
+with the version bumped from the latest tag. Unlabelled merges accumulate until the next
+labelled one. See [CONTRIBUTING.md](./CONTRIBUTING.md#pull-requests) for the release labels.
 
-## [Unreleased]
-
-(Populated on next release. Each entry is sourced verbatim from the merged PR's title + description.)
-
-## [0.2.2]: 2026-10-29
-
-The AI finishes its work instead of editing until the turn limit; the /docs
-site works in production containers; refreshed docs and screenshots.
-Full notes: the GitHub Release for v0.2.2.
-
-## [0.2.1]: 2026-10-29
-
-Republish of 0.2.0 with signed images (the 0.2.0 image build ran out of
-runner disk before signing). Full notes: the GitHub Release for v0.2.1.
-
-## [0.2.0]: 2026-10-29
-
-Security hardening release plus custom CSS, invite acceptance and AI confirmations.
-Full notes: the GitHub Release for v0.2.0.
+This file no longer lists individual releases. Read the release notes on GitHub; the entry
+below records the first public release.
 
 ## [0.1.0]: 2026-08-18
 

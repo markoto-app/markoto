@@ -1,7 +1,7 @@
 import { useUmamiPool } from '../db/umami'
 import type { SystemActor } from './proofs'
 
-// Retention of Umami's visitor data (docs/operations-analytics.md): Umami
+// Retention of Umami's visitor data (docs/SELF-HOSTING.md#analytics-optional): Umami
 // keeps every event forever, the privacy policy promises 13 months. Rows
 // are deleted children first; a table an older or newer Umami doesn't have
 // is skipped. Table names are this fixed list, never input.

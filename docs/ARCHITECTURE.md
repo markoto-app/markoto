@@ -32,7 +32,7 @@ flowchart LR
   S3[("S3 storage<br/>images, exports,<br/>backups")]
   Backup["backup<br/>pg_dump to S3"]
   Providers["AI providers<br/>(user keys or instance defaults)"]
-  Web["Web search<br/>Jina Reader"]
+  Web["web_search (Staan)<br/>fetch_url (Jina Reader)"]
 
   Browser -- "HTTPS" --> Traefik
   Browser -- "WSS" --> Traefik
@@ -128,7 +128,7 @@ Container hardening, CSP details and the renderer sandbox are in [SECURITY-HARDE
 | Per-document sync state, rate limits, locks | Valkey (sync state has a 24 h TTL) |
 | Images, brand assets, rendered PDFs, data exports | S3 |
 | Knowledge originals | S3, deleted after processing |
-| Database backups | S3, separate bucket and credentials |
+| Database backups | S3: the app's bucket by default, a separate bucket and credentials optionally |
 | Sessions | Sealed cookies (`nuxt-auth-utils`) |
 
 ## Deployment shapes
@@ -156,7 +156,7 @@ Development uses `deploy/compose/compose.dev.yml` (infrastructure only, app on t
 | `drizzle/` | Generated migrations and snapshots |
 | `content/` | User documentation (`/docs`), legal texts, marketing pages |
 | `i18n/locales/` | UI translations |
-| `infra/` | Ansible, LiteLLM config, env rendering for the hosted deployment |
+| `infra/` | Ansible, env rendering for the hosted deployment (the LiteLLM config is in `deploy/config/litellm/`) |
 | `tests/` | `unit/<domain>/`, `dom/`, `nuxt/`, `repos/`, `integration/`, `e2e/` (Playwright flows that double as documentation) |
 | `docs/` | This file, self-hosting, AI models, security hardening, `contributing/`, `reference/` |
 

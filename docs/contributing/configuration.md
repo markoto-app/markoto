@@ -13,7 +13,7 @@ Every environment variable markoto reads or passes is declared once, in the regi
 |---|---|
 | `shared/env/coerce.ts` | The parsers: `bool` (one dialect: `1/true/yes/on`, `0/false/no/off`, any case), `int`, `positiveInt`, `nonNegativeInt`, `port`, `number`, `positiveNumber`, `bytes`, `durationMs`, `url(schemes)`, `hostname`, `email`, `pattern`, `csv(item)`, `oneOf`, `secret(minLength)`, `limitOrUnlimited`. No imports: the generator copies it into the renderer. |
 | `shared/env/define.ts` | `v()` (one variable), `defineNamespace()`, the `Service` / `Scope` / `Rule` types. |
-| `shared/env/vars/*.ts` | The variables, grouped into namespaces (`core`, `auth`, `database`, `storage`, `litellm`, `billing`, `tiers`, `publish`, …). |
+| `shared/env/vars/*.ts` | The variables, one file per area (`ai`, `analytics`, `auth`, `billing`, `core`, `data`, `legal`, `publish`, `sync`); the namespaces they are grouped into (`database`, `storage`, `litellm`, `tiers`, …) are listed in `shared/env/namespaces.ts`. |
 | `shared/env/rules/*.ts` | Cross-field rules (OAuth pairs, OIDC trio, billing → Stripe keys, hosted shape → legal identity, BYOK allowlist, pages host, ALTCHA key). |
 | `shared/env/namespaces.ts`, `registry.ts` | The namespace list and the typed env (`AppEnv`, `SyncEnv`); the rules. |
 | `shared/env/load.ts` | `loadEnv(service)` (boot) and the runtime accessors `useEnv()` / `runtimeEnv(service)`. |

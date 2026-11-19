@@ -85,7 +85,7 @@ First-time only for the local stack: `make mkcert-install` then `make certs` (wi
 | Tail production logs | `make prod-logs` |
 | Verify backups are restorable | `cd infra && make backup-test` |
 
-These targets drive the hosted deployment; its walkthroughs are part of the operator runbook, kept outside this repository. Self-hosting: `docs/SELF-HOSTING.md`.
+The `infra/` targets (`provision`, `deploy`, `rollback`, `ssh`, `prod-status`, `prod-logs`) need `ENV=<staging|prod>` and an inventory under `infra/inventories/<env>/`; without it they exit with a usage message. They drive the hosted deployment; its walkthroughs are part of the operator runbook, kept outside this repository. Self-hosting: `docs/SELF-HOSTING.md`.
 
 ## I want to investigate a problem
 
@@ -119,7 +119,7 @@ The queries below are a quick reference; the symptom-driven playbook for the hos
 
 | Goal | Command |
 |---|---|
-| Edit the Ansible vault (created from `infra/group_vars/all.vault.example.yml`) | `cd infra && ansible-vault edit group_vars/all.vault.yml` |
+| Edit the Ansible vault (created from `infra/group_vars/all.vault.example.yml`) | `cd infra && ansible-vault edit inventories/<env>/vault.yml --vault-password-file=inventories/<env>/.vault-password` |
 | Generate a strong hex secret (JWT-style) | `openssl rand -hex 64` |
 | Generate a strong base64 secret (session/passphrase-style) | `openssl rand -base64 48` |
 | Scan full git history for leaked secrets (gitleaks) | `make secrets-scan` |

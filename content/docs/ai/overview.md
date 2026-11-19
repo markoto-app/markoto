@@ -50,7 +50,7 @@ On a self-hosted instance the AI may already work, or you connect your own.
 ## The free AI allowance on markoto.app
 
 Signed in on markoto.app, the writing assistant works without a key of your
-own: every account gets a monthly free allowance (500 AI Points, about 60
+own: every account gets a monthly free allowance (500 AI Points, about 80 to 100
 typical requests) on a model hosted by Mistral AI in the EU. It covers the
 prompt bar, selection rewrite, `@markoto` in comments and the summaries of web
 search and fetched pages.
@@ -64,7 +64,7 @@ search and fetched pages.
 A few things are not tied to your own key:
 
 - **Knowledge-base embeddings**, so uploaded files can be searched.
-- **Web search and page fetching.** The instance pays for the search or page extraction, so each user gets an allowance (by default 30 calls an hour and 100 a day, shared by the editor AI and connected apps). Summarising the results runs on your writing assistant provider. If your instance has no search or fetch key, the AI doesn't offer those tools.
+- **Web search and page fetching.** The instance pays for the search or page extraction, so each user gets an allowance (by default 30 calls an hour and 100 a day, or 20 a day on markoto.app's free plan, shared by the editor AI and connected apps). Summarising the results runs on your writing assistant provider. If your instance has no search or fetch key, the AI doesn't offer those tools.
 
 ## What leaves your document
 

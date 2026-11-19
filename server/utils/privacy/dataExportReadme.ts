@@ -47,7 +47,6 @@ Contents:
                          instruction and settings, counts, cost. The
                          undo copies of the earlier text are not
                          included (the documents themselves are).
-  ai/usage.ndjson        per-billing-period AI interaction counters.
   ai/providers.json      your own AI provider settings (provider URL,
                          model, last verification). API keys are never
                          exported.

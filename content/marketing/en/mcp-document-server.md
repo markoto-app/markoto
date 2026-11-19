@@ -46,12 +46,12 @@ Where the configuration goes differs between clients and versions, so check your
 
 ## What your agent can do
 
-markoto offers 28 tools. Which ones a client sees depends on the token's scopes; a new token gets all four.
+markoto offers 44 tools. Which ones a client sees depends on the token's scopes; a new token gets all four.
 
 | Scope | Tools |
 |---|---|
-| `documents:read` | List your documents and those of a workspace; read a document with line numbers; read comments, the theme and the activity log; count pages; look at rendered pages and images; export as Markdown or PDF |
-| `documents:write` | Create, duplicate and edit documents (insert text, replace text), set the title, change the theme, save a theme preset; add, reply to, resolve and delete comments; generate an image into a document |
+| `documents:read` | List your documents, folders and those of a workspace; search across documents; read a document, an outline or one section, with line numbers; read comments, the theme and the activity log; count pages; look at rendered pages and images; export as Markdown or PDF |
+| `documents:write` | Create, duplicate and move documents and create folders; edit documents (insert, replace and edit lines, replace all, and move, swap, delete or renumber sections), set the title, change the theme, save a theme preset; add, reply to, resolve and delete comments; generate an image into a document |
 | `knowledge:read` | Search and read the knowledge files of workspaces you belong to |
 | `web:fetch` | Search the web and read a web page |
 
@@ -69,6 +69,7 @@ Your agent joins the document as a separate collaborator. The edit appears live 
 - **A token acts as you, never more.** It can't open a document you can't open or edit one you can only read. Tools outside the token's scopes are not even listed, and every call is checked again.
 - **Tokens are stored as a hash.** Revoke one on the Integrations page and it stops working at once. You can have up to 20.
 - **Rate limits.** 120 tool calls a minute per account, 300 requests a minute per network address and 240 per token. Rendering pages or PDFs shares the editor's PDF allowance (10 a minute); image generation is limited to 20 an hour. Up to 20 open connections per account; opening one more closes the one used least recently, and the client reconnects.
+- **Free plan on markoto.app.** MCP is read-only there: the agent can list, search and read your documents but not change them, and the free plan allows 100 tool calls a day. Write access and the tools that cost us money per call (web search, page reading, rendering, image generation) need a paid plan once plans launch. A self-hosted instance has no such limits unless its operator sets them.
 - **Web search and page reading** share the in-app assistant's allowance (30 an hour and 100 a day by default). Their results are summarised on markoto's side by your chat provider (your own, or the free monthly allowance). Image generation needs an image provider in your [AI provider settings](/docs/ai/provider).
 - **Your agent's own model.** The thinking happens in your MCP client, with its own model and its own confirmation settings. markoto doesn't ask you to confirm the client's tool calls; your client does that.
 
@@ -89,7 +90,7 @@ items:
   - q: Which MCP clients work?
     a: Any client that can connect to a remote MCP server over HTTP and send an Authorization header, for example Claude Desktop, Claude Code and Cursor, or your own scripts with an MCP SDK.
   - q: Is the MCP server free?
-    a: Yes. It is included with a free account on markoto.app and in every self-hosted instance. The agent's reasoning runs on your own client's model. Only web search and page reading are summarised on markoto's side (by your own chat provider or the free monthly allowance), and image generation uses the image provider in your settings.
+    a: Yes. It is included with a free account on markoto.app (read-only, up to 100 tool calls a day; write access is a paid-plan feature once plans launch) and, without those limits, in every self-hosted instance. The agent's reasoning runs on your own client's model. Only web search and page reading are summarised on markoto's side (by your own chat provider or the free monthly allowance), and image generation uses the image provider in your settings.
   - q: Can other people see what my agent does?
     a: Yes. Anyone with the document open sees the agent's edits arrive live, and the activity log marks them as made by your MCP client on your behalf.
   - q: Can the agent read documents I don't have access to?

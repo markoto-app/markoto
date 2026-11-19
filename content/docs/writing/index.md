@@ -21,7 +21,7 @@ without losing their visual structure.
 
 **Doc lifecycle**
 - [Duplicate a document](/docs/writing/duplicate): clone everything into a new URL.
-- [Delete a document](/docs/writing/delete-document): owner-only, immediate, irreversible.
+- [Delete a document](/docs/writing/delete-document): by the owner or a workspace admin, immediate, irreversible.
 
 **Elsewhere**
 - Writing with the AI has its own section: [AI assistant](/docs/ai).

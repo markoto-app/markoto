@@ -42,13 +42,13 @@ Many people use both: Obsidian for their own notes, markoto when a note becomes 
 - **Live co-editing.** Several people type in the same document at once and see each other's cursors. Obsidian's shared vaults sync files between up to 20 people and merge changes; Obsidian says live editing of the same file is not supported yet.
 - **Nothing to install, no account needed to join.** A markoto document opens in any browser. Anyone with the link can edit it, without signing up, if the owner allows it.
 - **Pages and PDF.** markoto shows A4 or Letter pages as you type, with print themes, cover page, headers, footers, page numbers and a table of contents with page numbers. Obsidian's built-in PDF export sets page size and margins; headers, footers and page numbers need plugins, and it doesn't export on mobile.
-- **Comments and history for everyone in the document.** Threads anchored to the text, and every edit with a diff and restore, on the free plan. Obsidian keeps file versions with Sync (1 or 12 months).
+- **Comments and history for everyone in the document.** Threads anchored to the text, and every edit with a diff and restore (30 days back on the free plan on markoto.app, unlimited when you self-host). Obsidian keeps file versions with Sync (1 or 12 months).
 - **AI assistant.** markoto's assistant edits the document, answers in comments and can use files uploaded to a workspace. It runs on your own AI provider, or on a small monthly allowance on markoto.app.
 - **Self-hosting.** markoto is source-available and installs on your own server with Docker Compose. Obsidian Sync and Publish are services hosted by Obsidian.
 
 ## Prices
 
-On markoto.app everything is free today; paid plans are planned but not launched ([pricing](/pricing)). Obsidian's app is free; Sync costs $4 per user a month billed annually ($5 monthly), Sync Plus $8 ($10 monthly), and Publish $8 per site a month billed annually ($10 monthly). Prices checked on the date below.
+On markoto.app the free plan has no price but has limits (for example 30 days of history and 3 members per workspace); paid plans are planned but not launched ([pricing](/pricing)). Self-hosted instances have no plan limits. Obsidian's app is free; Sync costs $4 per user a month billed annually ($5 monthly), Sync Plus $8 ($10 monthly), and Publish $8 per site a month billed annually ($10 monthly). Prices checked on the date below.
 
 ## Who should pick which
 

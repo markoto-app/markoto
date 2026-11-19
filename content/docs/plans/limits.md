@@ -1,6 +1,6 @@
 ---
 title: Plans and limits
-description: What you get today - a free tier with every writing feature - and what paid plans will add. Self-hosted instances have only the limits their operator sets.
+description: What the free tier includes on markoto.app and when self-hosted, and what paid plans will add. Self-hosted limits are set by the operator.
 category: plans
 order: 1
 featured: true
@@ -11,10 +11,22 @@ updated: '2026-11-17'
 
 The free tier includes anonymous and signed-in documents, every
 theme, every markdown extension, collaboration, comments, history and
-restore, PDF export, workspaces, import, the MCP server, and all the AI
-features (with your own AI provider). On self-hosted instances and on
-markoto.app today every feature is on; once paid plans are live, plans set
-limits and a few features (listed below).
+restore, PDF export, workspaces, import and the MCP server. AI works with
+your own AI provider, and on markoto.app with a small monthly allowance.
+
+The limits differ by where markoto runs. **On a self-hosted instance** every
+feature is on and the operator sets any limits. **On markoto.app** the free
+plan is narrower:
+
+- up to 3 members per workspace
+- 30 days of history and restore
+- 3 saved themes
+- imports up to 10 MB per file
+- 20 web searches and page reads a day, and 100 MCP tool calls a day (read-only: no write access over MCP)
+- 3 AI jobs a day, each up to 200 AI Points
+- no custom CSS, AI image generation, voice input, stronger AI model, single sign-on, workspace audit log, guests, brand kit, share controls or custom domains
+
+Pro and Teams are coming soon and will lift these limits and turn those features on.
 
 What you see depends on where markoto runs:
 
@@ -30,6 +42,7 @@ What you see depends on where markoto runs:
 ## What limits a plan sets
 
 - **Workspaces you can own.** Workspaces you are invited to never count.
+- **Members per workspace**, **how far back history and restore reach**, **saved themes**, **import size** and the daily caps on web tools, MCP tool calls and AI jobs (on markoto.app: the numbers above; unlimited on a self-hosted instance unless the operator sets them).
 - **Knowledge storage**: files and bytes per workspace and per person ([knowledge](/docs/ai/knowledge-rag)).
 - **Image storage**: the total size of the images you upload or the AI generates for you, across all your documents (100 MB on the free plan).
 - **AI Points**, the monthly allowance for AI that the operator pays for. Calls on your own AI provider are not limited by it ([AI Points](/docs/plans/ai-budget)).
@@ -37,7 +50,7 @@ What you see depends on where markoto runs:
 
 ## What features a plan includes
 
-On markoto.app some features depend on the plan once paid plans are live:
+On markoto.app some features depend on the plan (the free plan has none of them):
 custom CSS in themes, how far back history and restore reach, MCP write
 access, and the AI image generation, voice input and the stronger AI model
 that markoto pays for. Features a plan doesn't include show as locked

@@ -38,7 +38,7 @@ HackMD and markoto are both collaborative Markdown editors in the browser: sever
 
 - **Paged preview and PDF on every plan.** markoto shows A4 or Letter pages as you type, with print themes, a cover page, headers, footers and page numbers. The PDF is rendered on the server from the same layout. HackMD lists PDF export on its Prime plan.
 - **No collaborator cap on the free plan.** Anyone with the link can join a markoto document, without an account. HackMD's free plan allows up to 3 teammates and 3 invitees.
-- **Full history on the free plan.** markoto records every edit, shows what changed and restores any earlier state. HackMD's free plan keeps the last 10 versions.
+- **Edit-level history.** markoto records every edit, shows what changed and restores any earlier state: 30 days back on the free plan on markoto.app, unlimited when you self-host. HackMD's free plan keeps the last 10 versions.
 - **AI writing assistant.** markoto's assistant edits the document directly, answers in comments, and can use files you upload to a workspace. It runs on your own AI provider, or on a small monthly free allowance on markoto.app.
 - **Self-hosting for everyone.** markoto is source-available and installs with one script and Docker Compose. HackMD offers on-premises deployment on its Enterprise plan.
 - **EU data location.** markoto.app stores documents with OVHcloud in France and uses EU-based AI providers.

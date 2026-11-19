@@ -47,10 +47,18 @@ The built-in presets cover most use cases:
   two columns of Times 10 pt, centred small-caps sections with Roman
   numerals, a 24 pt title over side-by-side author blocks and the
   run-in abstract in the first column.
+- **Lecture notes**: course handouts in the LaTeX tradition: Latin
+  Modern text that matches the math, a wide margin for annotations,
+  numbered sections, theorems and remarks as framed environments and
+  a compact title block with course, lecturer and date.
 - **Thesis**: long-form academic writing in the LaTeX report
   tradition: A4, Latin Modern 11 pt with paragraph indents, every
   chapter on a new page under a large number, sections numbered
   1.1 / 1.1.1 and a classic title page.
+- **API reference**: a printed reference for an HTTP API: sans text
+  with mono identifiers, each endpoint's method and path on an accent
+  band (write it as an `http` code fence), dense parameter tables and
+  status codes marked by class.
 - **Technical documentation**: Source Serif reading text with Source
   Sans headings, section numbers hanging in the margin, light framed
   code blocks with file titles, the current chapter in the running
@@ -88,10 +96,12 @@ The built-in presets cover most use cases:
 - **Newsletter**: a newsletter to print or send as a PDF: a bold
   masthead with the issue line, headlines and captioned photos across
   the page over two columns of text, pull quotes, a terracotta accent.
-- **Newsletter**: two-column Karla over PT Serif, green accent,
-  weekly-digest density.
 - **Resume**: one dense page: Inter at 10 pt, small headings with
   a rule, no running header, page number or cover.
+- **On-call runbook**: for the engineer on call, on screen or printed:
+  robust sans and mono, numbered procedure steps, framed and copyable
+  commands, checklists with real boxes and alerts that stay visible in
+  greyscale.
 
 ## Tweaking a preset
 

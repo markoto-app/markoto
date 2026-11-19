@@ -1,4 +1,4 @@
-// Google Ads click-id conversions (docs/operations-analytics.md).
+// Google Ads click-id conversions (docs/SELF-HOSTING.md#analytics-optional).
 
 import { pgTable, serial, integer, text, timestamp, index, uniqueIndex } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'

@@ -4,7 +4,7 @@
 // to the server only together with a request that is itself a conversion
 // (sign-up, waitlist sign-up, document creation). The server keeps it for
 // the Google Ads offline conversion upload and deletes it after 90 days.
-// docs/operations-analytics.md explains the design and its legal basis.
+// docs/SELF-HOSTING.md#analytics-optional explains the design and its legal basis.
 
 import { z } from 'zod'
 

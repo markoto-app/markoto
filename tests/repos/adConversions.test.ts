@@ -16,7 +16,7 @@ import { runAdConversionSweep } from '../../server/utils/analytics/adConversionS
 import { asUser, sys } from '../helpers/access'
 import { stubEnv } from '../helpers/env'
 
-// Google Ads click-id conversions (docs/operations-analytics.md).
+// Google Ads click-id conversions (docs/SELF-HOSTING.md#analytics-optional).
 
 const CLICK = { type: 'gclid' as const, value: 'Cj0KCQiA-test-click-1' }
 const DAY = 24 * 60 * 60 * 1000

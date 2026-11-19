@@ -14,7 +14,7 @@ const log = useLogger('ad-conversion-sweep')
 // Hourly: deletes click-id conversions past their retention, adds the
 // `waitlist_confirmed` conversions of confirmed waitlist sign-ups, and
 // prepares the Google Ads upload. The upload itself is a dry run until
-// Google Ads API credentials are wired (docs/operations-analytics.md):
+// Google Ads API credentials are wired (docs/SELF-HOSTING.md#analytics-optional):
 // it counts what it would send and leaves the rows pending.
 // Runs even with conversions switched off, so turning the flag off never
 // leaves rows behind past their retention.

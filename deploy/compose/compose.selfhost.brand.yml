@@ -1,5 +1,5 @@
 # Self-host overlay: co-branding for a managed private instance.
-# The customer's logo is read from ./branding (next to this file) and
+# The customer's logo is read from ./branding (at the top of the checkout, `../../branding` from this file) and
 # shown beside the markoto wordmark; the name and support contact come
 # from .env (NUXT_INSTANCE_BRAND_NAME, NUXT_INSTANCE_SUPPORT_URL,
 # NUXT_INSTANCE_SUPPORT_EMAIL: see the operator runbook, kept outside this repository).

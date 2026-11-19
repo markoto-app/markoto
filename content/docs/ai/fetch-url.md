@@ -25,10 +25,10 @@ by the server, so the site never sees your own address.
 ## Good to know
 
 - **Public pages only.** Addresses on private networks, local addresses and non-web schemes (`file:`, `ftp:`) are refused. A page behind a login can't be read; paste the text into your document instead.
-- **It needs to be set up.** Page reading only appears when the instance has a Jina key (`JINA_AI_API_KEY` on a self-hosted instance). Without one the AI doesn't offer it.
+- **It needs to be set up.** Page reading only appears when the instance has a Jina key (the operator adds it on a self-hosted instance, see the [self-hosting guide](https://github.com/markoto-app/markoto/blob/main/docs/SELF-HOSTING.md#ai)). Without one the AI doesn't offer it.
 - **Each page uses 1 AI Point.** Reading the page is paid for by the instance, so it counts against your monthly [AI Points](/docs/plans/ai-budget), also when you use your own provider. When your points are used up, the AI tells you and reads no more pages until they refill.
 - **You still need a writing assistant provider** to summarise the page ([what the AI needs](/docs/ai/overview)). Without one, the raw page text comes back.
-- **Shared allowance.** Page reading and web search share a per-person limit, by default 30 calls an hour and 100 a day. At most 10 pages per AI session.
+- **Shared allowance.** Page reading and web search share a per-person limit, by default 30 calls an hour and 100 a day (on markoto.app's free plan 30 an hour and 20 a day). At most 10 pages per AI session.
 - Scheme-less addresses such as `example.org/page` work; `https://` is assumed.
 - **It may ask first.** If the AI has already read text other people wrote in this session, a **markoto asks first** card appears above the prompt bar with **Allow** and **Deny**. [Why it asks](/docs/ai/prompt-bar#when-the-ai-asks-first).
 

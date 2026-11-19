@@ -32,6 +32,8 @@ or remove the last one, so nobody can lock the team out by accident.
 | Invite/remove members | - | - | ✓ |
 | Rename/delete workspace | - | - | ✓ |
 
+On markoto.app's free plan a workspace can have up to 3 members; self-hosted instances have no such limit unless the operator sets one.
+
 ## What's next
 
 - [Invite a teammate](/docs/workspaces/invite): invite by email; they join once they accept.

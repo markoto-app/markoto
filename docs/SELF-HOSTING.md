@@ -33,7 +33,7 @@ everything that differs is configuration.
 ```sh
 git clone https://github.com/markoto-app/markoto.git markoto
 cd markoto
-git checkout v0.0.9        # optional: pin a release; the installer then uses the matching images
+git checkout vX.Y.Z        # optional (a release tag from GitHub Releases): pin a release; the installer then uses the matching images
 ./install.sh
 ```
 
@@ -55,6 +55,8 @@ Non-interactive (every question has a flag; `./install.sh help` lists them):
 # Plain HTTP on port 8080
 ./install.sh -y --http-port 8080 --admin-email you@example.org
 ```
+
+Other useful flags: `--no-backup` (skip the encrypted backup sidecar), `--instance NAME` (compose project name, so several instances can share a host), `--env-file PATH` (where the configuration is kept) and `--no-start` (write `.env` only). `MARKOTO_HEALTH_TIMEOUT` (seconds, default 900) sets how long the installer waits for the app to become healthy.
 
 Re-running `./install.sh` is safe: existing secrets are kept, current values are offered as defaults. After the first install, the normal Compose commands work from the repository directory, because `.env` selects the compose files (`COMPOSE_FILE`) and the project name:
 
@@ -272,7 +274,7 @@ To show a logo, create a `branding/` directory at the top of the checkout, next 
 
 ### Secrets (generated)
 
-`POSTGRES_PASSWORD`, `VALKEY_PASSWORD`, `NUXT_SESSION_PASSWORD`, `NUXT_JWT_SECRET`, `NUXT_INTERNAL_API_SECRET`, `NUXT_AI_DICTATE_JWT_SECRET`, `NUXT_MARKITDOWN_API_SECRET` (app ↔ document converter), `NUXT_ENCRYPTION_KEY` (encrypts the AI provider keys, LiteLLM keys and SSO client secrets the app stores: losing it makes them unreadable), `LITELLM_MASTER_KEY`, `LITELLM_SALT_KEY` (encrypts LiteLLM's own stored keys: never change it on a running instance), `NUXT_S3_ACCESS_KEY` / `NUXT_S3_SECRET_KEY`, `BACKUP_GPG_PASSPHRASE` (needed to restore backups: store a copy outside this machine), `POSTGRES_APP_PASSWORD` / `POSTGRES_LITELLM_PASSWORD`. `POSTGRES_PASSWORD` is set when the database volume is first created; changing it later needs an `ALTER USER` inside Postgres too.
+`POSTGRES_PASSWORD`, `VALKEY_PASSWORD`, `NUXT_SESSION_PASSWORD`, `NUXT_JWT_SECRET`, `NUXT_INTERNAL_API_SECRET`, `NUXT_AI_DICTATE_JWT_SECRET`, `NUXT_MARKITDOWN_API_SECRET` (app ↔ document converter), `NUXT_ENCRYPTION_KEY` (encrypts the AI provider keys, LiteLLM keys and SSO client secrets the app stores: losing it makes them unreadable), `LITELLM_MASTER_KEY`, `LITELLM_SALT_KEY` (encrypts LiteLLM's own stored keys: never change it on a running instance), `NUXT_S3_ACCESS_KEY` / `NUXT_S3_SECRET_KEY`, `BACKUP_GPG_PASSPHRASE` (needed to restore backups: store a copy outside this machine), `POSTGRES_APP_PASSWORD` / `POSTGRES_LITELLM_PASSWORD`, `NUXT_ALTCHA_HMAC_KEY` (the anonymous bot check). `POSTGRES_PASSWORD` is set when the database volume is first created; changing it later needs an `ALTER USER` inside Postgres too.
 
 Rotating secrets:
 
@@ -316,6 +318,8 @@ Billing is off on a self-hosted instance (`NUXT_BILLING_ENABLED=false`), so ever
 | `TIER_FREE_IMPORT_FILES_PER_JOB` | `5000` | Files one bulk import (files, folders, zip archives, a GitHub repository) may bring in. markoto.app's free plan: `200`. |
 | `TIER_FREE_IMPORT_BYTES_PER_JOB` | `5368709120` (5 GiB) | Bytes one bulk import may bring in (uploaded, or what an archive expands to). A zip archive or repository download itself is at most 100 MiB. markoto.app's free plan: 200 MiB. |
 | `TIER_FREE_IMPORT_JOBS_PER_DAY` | `500` | Bulk imports a user may start per day; one runs at a time. |
+| `TIER_FREE_AI_JOB_UNITS_PER_JOB` | empty (no limit) | Largest background AI edit (job) a user may start, in AI units. markoto.app's free plan: `200`. |
+| `TIER_FREE_AI_JOBS_PER_DAY` | empty (no limit) | Background AI jobs a user may start per day. markoto.app's free plan: `3`. |
 | `TIER_FREE_WEB_TOOLS_PER_DAY` | empty (no limit) | Extra per-user daily web-tool limit on top of `NUXT_WEB_TOOLS_DAILY_LIMIT`; the stricter one applies. |
 | `TIER_FREE_MCP_TOOL_CALLS_PER_DAY` | empty (no limit) | MCP tool calls per user per day. |
 | `TIER_FREE_FEATURE_CUSTOM_CSS` | `true` | Documents may use custom CSS. `false` keeps stored CSS but doesn't apply it. |
@@ -365,7 +369,7 @@ Without email configuration, transactional emails (account-deletion confirmation
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `NUXT_PUBLIC_SENTRY_DSN` / `SENTRY_DSN` | empty | Error reporting to your Sentry project. Empty = nothing is sent anywhere. markoto has no analytics. |
+| `NUXT_PUBLIC_SENTRY_DSN` / `SENTRY_DSN` | empty | Error reporting to your Sentry project. Empty = nothing is sent anywhere. A self-hosted instance sends no analytics request unless you configure [Analytics](#analytics-optional). |
 | `NUXT_LEGAL_SURFACES_ENABLED` | `false` | See [Legal pages](#legal-pages). |
 | `NUXT_ANON_GATE_ENABLED` | follows `NUXT_LEGAL_SURFACES_ENABLED` | `true`: before an anonymous visitor's first document they tick "I accept the Terms … and I'm at least 16" (links to `/legal/terms`, so only useful with your own legal pages) and pass an invisible proof-of-work bot check (ALTCHA, computed and verified by the app itself: no third-party service, no extra container, no cookie); anonymous visitors can then also use the report form. Needs `NUXT_ALTCHA_HMAC_KEY`. |
 | `NUXT_ALTCHA_HMAC_KEY` | generated by `install.sh` | Key of that bot check (≥ 32 characters). Required only while the gate is on. |
@@ -375,6 +379,20 @@ Without email configuration, transactional emails (account-deletion confirmation
 | `NUXT_LEGAL_CONTROLLER_NAME` | | Shown in the footer ("© 2026 …"). |
 | `NUXT_LEGAL_CONTROLLER_ADDRESS` / `NUXT_LEGAL_REPRESENTED_BY` | | Postal address and authorised representative on the legal pages. Required (the app refuses to start without them) once `NUXT_LEGAL_SURFACES_ENABLED=true`. |
 | `NUXT_LEGAL_ABUSE_CONTACT_EMAIL` | | Receives a notification for each in-app abuse report (needs email delivery). Reports are always listed under `/admin/abuse-reports`. |
+
+### Analytics (optional)
+
+markoto can count visits to its public pages (home page, pricing, documentation) with [Umami](https://umami.is), an open-source, cookieless statistics tool. It is off by default: an instance sends no analytics request until you set a website id. Nothing is stored on the visitor's device, documents and published pages are never counted, and browsers that send Global Privacy Control or Do Not Track are skipped.
+
+The self-host stack does not bundle Umami and its compose file does not pass these variables on. To use it, run your own Umami instance, route a same-origin path of your proxy to its `/api/send`, and add the variables to the `app` service's environment:
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `NUXT_PUBLIC_ANALYTICS_WEBSITE_ID` | empty | The website id from Umami. Set = public pages send cookieless page views and a few events to the endpoint below; empty = no analytics request at all. |
+| `NUXT_PUBLIC_ANALYTICS_ENDPOINT` | `/a/api/send` | Same-origin path the browser posts to. |
+| `NUXT_ANALYTICS_RETENTION_DAYS` | `395` | The app deletes Umami events older than this (needs `NUXT_ANALYTICS_DB_*` for the Umami database). |
+
+The full list, including the optional ad click-ID conversion record, is in the [configuration reference](reference/configuration.md#analytics-and-ad-conversions). If you turn analytics on, name it in your own privacy policy.
 
 ## Ports and networking
 

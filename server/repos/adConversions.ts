@@ -5,7 +5,7 @@ import type { SystemActor, UserScope } from './proofs'
 import type { ClickId } from '~~/shared/analytics/attribution'
 
 // `ad_click_conversions`: Google Ads click ids of visits that converted
-// (docs/operations-analytics.md). Every write is idempotent per
+// (docs/SELF-HOSTING.md#analytics-optional). Every write is idempotent per
 // (click id, conversion): a click counts once per kind.
 
 export type AdConversionKind = typeof adClickConversions.$inferSelect['conversion']

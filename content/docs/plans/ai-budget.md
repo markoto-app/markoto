@@ -34,7 +34,7 @@ would have answered. What you can do:
 - **Wait** until the next period starts and the allowance refills.
 - On markoto.app the free allowance can also end for everyone at once when the shared monthly pool is used up; the AI bar then says *"This month's free AI allowance is used up"*. It comes back with the monthly refill, and your own provider keeps working in the meantime.
 - **Connect your own provider** for the writing assistant; it is unaffected by the cap.
-- **Ask the instance operator** to raise the allowance (the `TIER_FREE_LITELLM_BUDGET_USD` setting on a self-hosted instance).
+- **Ask the instance operator** to raise the allowance (the free AI budget in the [self-hosting guide](https://github.com/markoto-app/markoto/blob/main/docs/SELF-HOSTING.md#limits) on a self-hosted instance).
 - On markoto.app, paid plans with larger allowances are **coming soon** ([plans](/docs/plans/limits)). Where paid plans are live, the AI bar shows an Upgrade button.
 
 ## Not the same as the safety limits

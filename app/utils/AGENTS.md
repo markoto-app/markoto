@@ -1,6 +1,6 @@
 # app/utils
 
-Client utilities, grouped by domain (`markdown/`, `preview/`, `editor/`, `collab/`, `comments/`, `marketing/`, `platform/`, `billing/`, `workspace/`). How the preview, print and server PDF pipeline works: [`docs/contributing/preview-pipeline.md`](../../docs/contributing/preview-pipeline.md).
+Client utilities, grouped by domain (`admin/`, `ai/`, `analytics/`, `api/`, `billing/`, `collab/`, `comments/`, `editor/`, `explorer/`, `markdown/`, `marketing/`, `platform/`, `preview/`, `workspace/`). How the preview, print and server PDF pipeline works: [`docs/contributing/preview-pipeline.md`](../../docs/contributing/preview-pipeline.md).
 
 ## Preview isolation (security)
 

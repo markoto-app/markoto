@@ -29,7 +29,7 @@ at least one seat for everyone already in the workspace, including people
 you have invited who haven't accepted yet. Tick the box that accepts the
 [Paid Plans Terms](/legal/paid-terms); **Continue to payment** then opens
 Stripe Checkout; the invoice names the workspace, and you become its
-billing admin.
+billing admin. Where Stripe Managed Payments is switched on (as planned for markoto.app), Stripe is the seller of record and issues the invoices, charges the VAT and handles refunds.
 
 ## Seats
 

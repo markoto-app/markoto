@@ -8,7 +8,7 @@ markoto keeps its privacy disclosures in TypeScript registries. The legal pages 
 |---|---|---|
 | `server/legal/lawfulBasis.ts` | `PROCESSING_PURPOSES`: every processing purpose with `id`, `label`, GDPR Art. 6 `basis`, `dataCategories`, `retention` (days, or `until_deletion` / `legal_minimum` / `until_withdrawn`) and the `subProcessors` that touch it | the purposes table in the privacy policy (`{{processingPurposesTable}}` in `content/legal/privacy/en.md`) |
 | `server/legal/subProcessors.ts` | `SUB_PROCESSORS`: `id`, `name`, `purpose`, `location`, `transferMechanism`, `dpfCertified`, `privacyPolicyUrl`, `dpaUrl` | `/legal/sub-processors` (`app/pages/legal/sub-processors.vue` via `GET /api/_internal/sub-processors`) |
-| `server/legal/registryView.ts` | Deployment-aware views: with billing off, Stripe and the `billing` purpose are hidden | used by both of the above |
+| `server/legal/registryView.ts` | Deployment-aware views: with billing off, Stripe and the `billing` purpose are hidden; `google_ads`, `web_analytics` and `ad_conversion_measurement` show only where the analytics and ad-conversion features are on | used by both of the above |
 | `server/legal/auditActions.ts` | `AUDIT_*` constants: the vocabulary of `audit_log.action` | not rendered |
 | `shared/legal/versions.ts` | Version and effective date of each legal document, `CONSENT_VERSION`, the waitlist consent version, `LEGAL_DOCUMENT_LOCALES` | the legal pages and the onboarding gate |
 | `shared/legal/entity.ts` | `resolveLegalEntity()`: the operating entity, overridable with `NUXT_LEGAL_*` env vars | `{{controllerName}}`, `{{privacyContactEmail}}` and the other placeholders in `content/legal/*/*.md` |

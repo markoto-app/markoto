@@ -21,8 +21,9 @@ The AI looked up the document you mentioned and read its markdown. It follows
 the same rules you do: if you couldn't open that document yourself (it is
 private, password-protected or in a workspace you aren't in), neither can the
 AI. A link or document id works for any document you can open. To find a
-document by title or topic, the AI browses the other documents in the
-workspace the current document belongs to, so that part needs a workspace.
+document by title or topic, the AI can list and search your own documents
+and those shared with you, and the documents of the workspace the current
+document belongs to.
 
 If the AI has already read text other people wrote in this session, it
 asks first: a **markoto asks first** card appears above the prompt bar with

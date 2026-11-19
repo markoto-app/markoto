@@ -28,6 +28,8 @@ wrong, the document stays as it was and you see an error.
 You need edit access to restore; viewers can browse the history but not
 roll it back.
 
+On markoto.app's free plan history reaches back 30 days; older states can't be restored. A self-hosted instance keeps history without that limit unless its operator sets one. See [Plans and limits](/docs/plans/limits).
+
 ## What's next
 
 - [See the diff before you restore](/docs/import-export/see-changes): preview what restore would change.

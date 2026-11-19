@@ -10,7 +10,7 @@ updated: '2026-11-09'
 
 > **Availability.** On markoto.app single sign-on is part of the **Business**
 > plan (coming soon). On a self-hosted instance every workspace can use it;
-> the operator only needs `NUXT_SITE_URL` set.
+> the operator only needs to set the instance's public address (see the [self-hosting guide](https://github.com/markoto-app/markoto/blob/main/docs/SELF-HOSTING.md)).
 
 With single sign-on, the members of a workspace sign in through your
 organisation's identity provider, such as Microsoft Entra ID, Okta, Google

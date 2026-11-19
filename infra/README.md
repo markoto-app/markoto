@@ -1,5 +1,7 @@
 # markoto: Ansible deploy
 
+_Operator docs for the hosted markoto.app deployment. The values and host details below describe that setup; adapt them to your own environment._
+
 Agentless, GPL-3.0, OVH-targeted automation. From "fresh Debian 13 VPS +
 clicked managed Postgres + clicked S3 bucket" to a running stack in ~25
 minutes. The hosted stack (staging and prod) runs on **rootless Podman** as
@@ -177,7 +179,7 @@ cp group_vars/all.vault.example.yml inventories/prod/vault.yml
 # every REPLACE_ME only if you deploy with `make deploy` instead of the workflow
 (umask 077; openssl rand -base64 32 | tr -d '\n' > inventories/prod/.vault-password)
 ansible-vault encrypt inventories/prod/vault.yml --vault-password-file=inventories/prod/.vault-password
-# keep the password in the password manager too (Proton Pass: <env>/ANSIBLE_VAULT_PASSWORD)
+# keep the password in a password manager too (for example as <env>/ANSIBLE_VAULT_PASSWORD)
 # Optional: drop the OVH managed-PG CA at files/ovh-pg-ca.pem
 
 make provision ENV=prod                      # ~5–10 min
@@ -268,16 +270,19 @@ The wrapper is intentionally tiny: it sources `/etc/markoto/apprise.env` and run
 
 Editing a vault: `ansible-vault edit inventories/<env>/vault.yml --vault-password-file=inventories/<env>/.vault-password` opens `$EDITOR` against the decrypted contents and re-encrypts on save.
 
-## Private images (GHCR)
+## Images from GHCR
 
-While `ghcr.io/markoto-app/*` is private, the host pulls with a read-only
-token (`read:packages` only). It is stored for `markoto` in
-`~/.docker/config.json` (0600): Docker Compose sends it with each pull, and
-Podman reads the same file as a fallback. Both deploy paths write it when a
-token is configured and leave the host alone when not: the GitHub workflow
-from `GHCR_PULL_USER` (variable) + `GHCR_PULL_TOKEN` (secret) on every
-deploy, the `markoto` role from `ghcr_pull_user` / `ghcr_pull_token`. Once
-the images are public, delete the secret and the file.
+`ghcr.io/markoto-app/*` is public and pulled anonymously (see
+[docs/SELF-HOSTING.md](../docs/SELF-HOSTING.md#images), which also covers
+verifying the signatures), so a host needs no registry login. A read-only
+token (`read:packages` only) is optional, for example to avoid anonymous pull
+rate limits or if you mirror the images into a private registry. When one is
+configured it is stored for `markoto` in `~/.docker/config.json` (0600):
+Docker Compose sends it with each pull, and Podman reads the same file as a
+fallback. Both deploy paths write it when a token is configured and leave the
+host alone when not: the GitHub workflow from `GHCR_PULL_USER` (variable) +
+`GHCR_PULL_TOKEN` (secret) on every deploy, the `markoto` role from
+`ghcr_pull_user` / `ghcr_pull_token`.
 
 ## Lint workflow
 
@@ -381,7 +386,7 @@ new VPS picks up the existing dataset on first boot.
 | Certificate warnings for longer than a minute after the ECDSA switch | Let's Encrypt refused or rate-limited the new orders | `markoto-compose logs traefik \| grep -i acme`; to go back, stop Traefik, move `traefik/acme.json.rsa-<time>` back to `traefik/acme.json`, start it (and deploy a compose without `acme.keytype` meanwhile, or the next deploy sets it aside again) |
 | Clients time out connecting while the host is calm | the edge is at `maxconn` (8000 open connections) | `ss -Htn state established '( sport = :443 )' \| wc -l`; raise `maxconn` with both memory limits (see "Edge and client addresses") |
 | `IMAGE_TAG required` | image_tag missing from `group_vars/all.yml` | re-edit, re-deploy |
-| Pull fails with `403 Forbidden` / `denied` from ghcr.io | the images are private and the host has no (valid) token | set `GHCR_PULL_USER` / `GHCR_PULL_TOKEN` (or the vault values) and deploy again |
+| Pull fails with `403 Forbidden` / `denied` from ghcr.io | a stale or invalid registry login in `~/.docker/config.json`, or you pull from a private mirror | delete the stale login or set `GHCR_PULL_USER` / `GHCR_PULL_TOKEN` (or the vault values) and deploy again |
 | Backup timer failures | in-stack `backup` container down | `markoto-compose ps backup`, `markoto-compose logs backup`, `journalctl --user -u markoto-backup` |
 | `the role 'devsec.hardening.os_hardening' was not found` | `make requirements` not run yet | `make requirements` |
 | `potentially insufficient UIDs or GIDs available in user namespace` | the subordinate range of `markoto` is too small (needs 65536) | `grep markoto /etc/subuid /etc/subgid`; fix the range, then `podman system migrate` as `markoto` |

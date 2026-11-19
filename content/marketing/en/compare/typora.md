@@ -32,7 +32,7 @@ If you write alone, on your own computer, Typora is hard to beat. If others need
 - **A desktop app with local files.** Your documents are files on your disk: they work without a connection, sit in whatever folder or sync service you like, and open in any other editor. markoto stores documents on a server and needs a connection.
 - **A one-time purchase.** $14.99 for up to three devices, no subscription.
 - **More export formats.** HTML and images built in; Word, OpenOffice, LaTeX, ePub and more through Pandoc. markoto exports PDF and Markdown only.
-- **Free page sizes.** Typora's PDF export takes a custom paper size. markoto offers A4, Letter and Legal.
+- **Free page sizes.** Typora's PDF export takes a custom paper size. markoto offers A4, A5, Letter and Legal.
 - **More diagram syntaxes.** flowchart.js and js-sequence besides Mermaid. markoto renders Mermaid only.
 - **A large theme gallery.** Many community CSS themes to choose from.
 

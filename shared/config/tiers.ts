@@ -36,8 +36,8 @@ export interface TierCaps {
   /**
    * Monthly LiteLLM budget in USD. Mapped 1:1 onto the user's virtual
    * key's `max_budget`. Stripe-webhook-driven reset on `invoice.paid`.
-   * UI multiplies × 1000 to display "AI Points" (Free=500, Pro=5000,
-   * Max=15000, Ultra=35000).
+   * UI multiplies × 1000 to display "AI Points" (the per-plan values are
+   * in the tier table below).
    */
   litellmBudgetUsd: number
   /** Workspaces this user can OWN. Doesn't limit ones they're invited to. */

@@ -5,7 +5,7 @@ import { analyticsEnabled, runUmamiRetentionSweep } from '../../server/utils/ana
 import { closeUmamiPool } from '../../server/db/umami'
 import { stubEnv } from '../helpers/env'
 
-// Retention of Umami's visitor data (docs/operations-analytics.md), against
+// Retention of Umami's visitor data (docs/SELF-HOSTING.md#analytics-optional), against
 // the `umami_test` database the test stack's db-init creates for its own
 // role. Umami itself never runs in the test stack, so the test creates the
 // two tables it checks with Umami's column names.

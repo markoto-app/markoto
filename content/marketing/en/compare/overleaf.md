@@ -38,7 +38,7 @@ Overleaf and markoto both let several people write one document in the browser a
 
 - **No LaTeX to learn.** Headings, lists, tables, footnotes, math in LaTeX syntax (rendered with KaTeX) and Mermaid diagrams, all in Markdown.
 - **Collaborators on the free plan.** A markoto document has no collaborator limit, and people can join with the link without an account. Overleaf's free plan allows 1 collaborator per project.
-- **Full history on the free plan.** markoto records every edit and restores any earlier state. Overleaf's free plan shows the last 24 hours.
+- **Edit-level history.** markoto records every edit and restores any earlier state: 30 days back on the free plan on markoto.app, unlimited when you self-host. Overleaf's free plan shows the last 24 hours.
 - **Live paged preview.** The pages update as you type; there is no compile step.
 - **EU hosting.** markoto.app stores documents with OVHcloud in France. Overleaf lists its hosting providers (AWS, Google Cloud, Heroku, MongoDB Atlas) as US-located.
 - **AI writing assistant.** Built in, on your own AI provider or a small monthly free allowance on markoto.app.

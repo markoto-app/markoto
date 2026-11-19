@@ -32,7 +32,8 @@ writing. Or [host it yourself](#self-hosting) with one script.
 - **Workspaces and a knowledge base**: roles and email invitations; uploaded files are converted to Markdown, embedded and searched (vector plus full-text) so the AI can cite them.
 - **An AI that edits with you**: the assistant joins the document as a collaborator and edits it through tools. Bring your own OpenAI-compatible key, or use the defaults the instance operator configures. Models and providers: [docs/AI-MODELS.md](./docs/AI-MODELS.md).
 - **MCP server**: connect Claude Code, Cursor or your own script with a personal access token; see [Connect an AI agent](./content/docs/ai/mcp.md).
-- **Import and export**: import DOCX, PDF, PPTX, XLSX, HTML and EPUB; export PDF or plain `.md`.
+- **Import and export**: import DOCX, PDF, PPTX, XLSX, HTML and EPUB, or bring many files at once (files, folders, zip archives, GitHub repositories); export PDF or plain `.md`.
+- **Explorer, publishing and SSO**: folders, search and bulk actions for workspaces; publish a document as a static web page (optionally on your own domain); single sign-on and SCIM per workspace.
 
 ## Self-hosting
 

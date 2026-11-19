@@ -22,6 +22,8 @@ Plans are `free` and `pro` (personal, `users.plan`) and `team` and `business` (p
 - `resolveWorkspacePlan`: the better of the workspace subscription (with billing on) and the workspace creator's personal plan.
 - `resolveUserPlan`: personal limits.
 
+Besides storage and member caps, the tiers carry the import caps (`importMaxBytes` per converted file, `importFilesPerJob`, `importBytesPerJob`, `importJobsPerDay` for bulk imports) and the delegated-AI-job caps (`aiJobUnitsPerJob`, `aiJobsPerDay`); `null` means unlimited. The public pricing page shows three cards (Free, Pro, Teams with a Team / Business switch), described in [marketing-site.md](marketing-site.md).
+
 Refusals use `assertPlanFeature`, `assertPlanLimit`, `planLimitError` and `assertWithinHistory`: 409 `plan/feature-unavailable` or `plan/limit-reached` with `messageKey` and `limitRecovery()`. Features that can also be written through Y.js (custom CSS, the brand lock) are enforced again at render time, because Y.js writes bypass the API.
 
 ## AI budgets

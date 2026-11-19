@@ -22,7 +22,7 @@ import { documents } from './documents'
 // `activity_log.yjs_doc_id_*` and the snapshot invariant rely on.
 //
 // Readers and writers: `sync-server/src/yjs-store.ts` (load, store, snapshot,
-// prune) and `server/utils/documents/yjsLog.ts` (everything the app does).
+// prune) and `server/repos/yjsLog.ts` (everything the app does).
 // `ON DELETE CASCADE`: deleting a document deletes its Y.js state with it.
 export const yjsUpdates = pgTable('yjs_updates', {
   id: bigint('id', { mode: 'number' }).primaryKey().generatedAlwaysAsIdentity(),

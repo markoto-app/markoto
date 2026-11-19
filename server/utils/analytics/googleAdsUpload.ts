@@ -5,7 +5,7 @@ import type { PendingAdConversion } from '../../repos/adConversions'
 // builds the request rows; the sweep (`adConversionSweep.ts`) runs it as a
 // dry run until the upload is wired to Google Ads API credentials (a
 // developer token, an OAuth client and the customer id): the open item in
-// docs/operations-analytics.md. Only the click id, the conversion action
+// docs/SELF-HOSTING.md#analytics-optional. Only the click id, the conversion action
 // and the conversion time leave markoto: no email, no IP, no user agent.
 
 /** Conversion action per kind: `customers/<customer id>/conversionActions/<id>`, created as type UPLOAD_CLICKS. */
@@ -18,7 +18,7 @@ export interface ClickConversionRow {
   conversionAction: string
   conversionDateTime: string
   // markoto asks no visitor for consent to ad-data sharing, so it states
-  // that (docs/operations-analytics.md, open decision on consent).
+  // that (docs/SELF-HOSTING.md#analytics-optional, open decision on consent).
   consent: { adUserData: 'GRANTED' | 'DENIED' }
 }
 

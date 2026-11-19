@@ -17,7 +17,7 @@ Where plans are live, open the [pricing page](/pricing) (the **Upgrade**
 buttons in the AI bar and the usage chip lead there). Tick the box that
 accepts the [Paid Plans Terms](/legal/paid-terms) and asks for the plan to
 start right away, then press **Upgrade** on Pro and you land in Stripe
-Checkout. Pay, and the new plan is active in your account as soon as
+Checkout. Where Stripe Managed Payments is switched on (as planned for markoto.app), Stripe is the seller of record: it charges the VAT, issues the invoices and receipts and handles refunds. Pay, and the new plan is active in your account as soon as
 Stripe confirms the payment, usually before you are back on the markoto tab.
 Managing or cancelling a subscription opens Stripe's billing portal. Changes
 take effect as Stripe reports them; if a subscription lapses, you fall back
