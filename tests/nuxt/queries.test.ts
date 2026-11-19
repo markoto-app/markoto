@@ -83,7 +83,7 @@ let contextCalls: Array<{ method: string, url: string, body?: unknown }> = []
 let contextState = { scope: null as string | null }
 registerEndpoint('/api/docs/d1/context', () => {
   count('context:d1')
-  return { scope: contextState.scope, effective: [], links: [], hiddenLinks: 0 }
+  return { contextScope: contextState.scope, inWorkspace: true, canEdit: true, applied: [], omitted: 0, attached: [], hiddenAttached: 0, maxAttached: 10 }
 })
 registerEndpoint('/api/docs/d1/context/scope', {
   method: 'PUT',
@@ -91,7 +91,7 @@ registerEndpoint('/api/docs/d1/context/scope', {
     const body = await readBody(event)
     contextCalls.push({ method: 'PUT', url: 'scope', body })
     contextState = { scope: body.scope }
-    return { scope: body.scope }
+    return { contextScope: body.scope }
   }
 })
 registerEndpoint('/api/docs/d1/context/links', {
@@ -298,18 +298,18 @@ describe('project context', () => {
     const q = await use(() => useProjectContext('d1', open))
     expect(hits('context:d1')).toBe(0)
     open.value = true
-    await vi.waitFor(() => expect(q.data.value).toMatchObject({ scope: null, links: [] }))
+    await vi.waitFor(() => expect(q.data.value).toMatchObject({ contextScope: null, attached: [] }))
     expect(hits('context:d1')).toBe(1)
   })
 
   it('marking a document sends the scope and refreshes the open panel', async () => {
     const q = await use(() => useProjectContext('d1'))
-    await vi.waitFor(() => expect(q.data.value?.scope).toBeNull())
+    await vi.waitFor(() => expect(q.data.value?.contextScope).toBeNull())
     const set = await use(() => useSetContextScope())
 
     await set.mutateAsync({ docId: 'd1', scope: 'folder' })
     expect(contextCalls).toEqual([{ method: 'PUT', url: 'scope', body: { scope: 'folder' } }])
-    expect(q.data.value?.scope).toBe('folder')
+    expect(q.data.value?.contextScope).toBe('folder')
   })
 
   it('attaching and detaching a document call their endpoints and refresh the panel', async () => {
