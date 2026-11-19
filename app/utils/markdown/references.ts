@@ -30,7 +30,7 @@ const REFERENCE_HEADINGS: ReadonlySet<string> = new Set([
 ])
 
 const REFERENCES_CLASS = 'markoto-references'
-export const REFERENCES_HEADING_CLASS = 'markoto-references-heading'
+const REFERENCES_HEADING_CLASS = 'markoto-references-heading'
 
 const HEADING = /^H([1-6])$/
 const ENTRY_TAGS = new Set(['OL', 'UL', 'P'])

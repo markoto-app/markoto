@@ -45,7 +45,7 @@ export interface CitationInputs {
   style: CitationStyleId
 }
 
-export const BROKEN_REF_CLASS = 'markoto-broken-ref'
+const BROKEN_REF_CLASS = 'markoto-broken-ref'
 const BIBLIOGRAPHY_CLASS = 'markoto-bibliography'
 const CAPTION_LABEL_CLASS = 'markoto-caption-label'
 const XREF_CLASS = 'markoto-xref'

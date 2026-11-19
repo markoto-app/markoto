@@ -23,7 +23,7 @@ export interface CitationAssistSource {
 }
 
 /** Labels defined in the source: `{#fig:x}`, `{#tbl:x}`, `{#eq:x}`, `{#sec:x}`. */
-export function labelsIn(text: string): string[] {
+function labelsIn(text: string): string[] {
   const out = new Set<string>()
   for (const m of text.matchAll(/\{#((?:fig|tbl|eq|sec):[\p{L}\p{N}_:.-]{1,100})\}/gu)) {
     if (m[1]) out.add(m[1])
