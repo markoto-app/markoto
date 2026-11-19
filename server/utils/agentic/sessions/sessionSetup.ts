@@ -11,8 +11,11 @@ import { resolveBillingContext, type BillingContext } from '../../billing/billin
 import { requireAiProviders } from '../../aiProviders/guard'
 import { assertFreeAllowanceAvailable } from '../../billing/freeAllowance'
 import type { ResolvedAiProviders } from '../../aiProviders/resolve'
-import { ALL_TOOL_DECLARATIONS, KNOWLEDGE_TOOL_DECLARATIONS } from '../../ai/tools/registry'
+import { ALL_TOOL_DECLARATIONS, CONTEXT_TOOL_DECLARATIONS, KNOWLEDGE_TOOL_DECLARATIONS } from '../../ai/tools/registry'
 import { buildDocumentContext } from '../documentContextPrompt'
+import { buildProjectContextBlock } from '../projectContextPrompt'
+import { resolveProjectContext } from '../../documents/projectContext'
+import { useLogger } from '../../platform/logger'
 import { AiSessionChannel } from '../sessionChannel'
 import { AI_SESSION_HARD_DEADLINE_MS } from '../limits'
 import { recordSessionProvenance } from '../sessionProvenance'
@@ -32,6 +35,30 @@ export interface SessionWorkspace {
   toolDeclarations: typeof ALL_TOOL_DECLARATIONS
   /** The workspace has ready knowledge files → the knowledge tools are offered. */
   exposeKnowledgeTools: boolean
+  /** `<project_context>` for the first user message ('' when none applies). */
+  projectContextBlock: string
+  /** Context documents in that block (the taint gate checks who wrote them). */
+  contextDocIds: string[]
+}
+
+const log = useLogger('ai-session-setup')
+
+/**
+ * The project context of the session's document as the initiator may read
+ * it (`documents/projectContext.ts`), and the context tools when there is
+ * any. A failure leaves the session without context instead of failing it.
+ */
+async function resolveSessionProjectContext(docAccess: DocAccess<'view'>, userId: number): Promise<{ block: string, contextDocIds: string[] }> {
+  try {
+    const { entries, omitted } = await resolveProjectContext(docAccess, userId)
+    return {
+      block: buildProjectContextBlock(entries, omitted),
+      contextDocIds: entries.map(e => e.docId)
+    }
+  } catch (e) {
+    log.warn('project context unavailable', { err: e })
+    return { block: '', contextDocIds: [] }
+  }
 }
 
 /**
@@ -39,8 +66,19 @@ export interface SessionWorkspace {
  * ready knowledge file. The member-role check also guards against a
  * caller demoted out of the workspace.
  */
-export async function resolveSessionWorkspace(rawWorkspaceId: string | null, userId: number): Promise<SessionWorkspace> {
-  const none: SessionWorkspace = { workspaceId: null, workspaceAccess: null, knowledgeFiles: [], members: [], toolDeclarations: ALL_TOOL_DECLARATIONS, exposeKnowledgeTools: false }
+export async function resolveSessionWorkspace(rawWorkspaceId: string | null, userId: number, docAccess: DocAccess<'view'>): Promise<SessionWorkspace> {
+  const context = await resolveSessionProjectContext(docAccess, userId)
+  const contextTools = context.contextDocIds.length > 0 ? CONTEXT_TOOL_DECLARATIONS : []
+  const none: SessionWorkspace = {
+    workspaceId: null,
+    workspaceAccess: null,
+    knowledgeFiles: [],
+    members: [],
+    toolDeclarations: [...ALL_TOOL_DECLARATIONS, ...contextTools],
+    exposeKnowledgeTools: false,
+    projectContextBlock: context.block,
+    contextDocIds: context.contextDocIds
+  }
   if (!rawWorkspaceId) return none
   const workspaceAccess = await proveWorkspaceAccess(userId, rawWorkspaceId, 'member')
   if (workspaceAccess === null) return none
@@ -50,13 +88,12 @@ export async function resolveSessionWorkspace(rawWorkspaceId: string | null, use
   ])
   const exposeKnowledgeTools = knowledgeFiles.length > 0
   return {
+    ...none,
     workspaceId: rawWorkspaceId,
     workspaceAccess,
     knowledgeFiles,
     members: members.filter(m => m.role !== 'guest').map(m => ({ userId: m.userId, name: m.name })),
-    toolDeclarations: exposeKnowledgeTools
-      ? [...ALL_TOOL_DECLARATIONS, ...KNOWLEDGE_TOOL_DECLARATIONS]
-      : ALL_TOOL_DECLARATIONS,
+    toolDeclarations: [...ALL_TOOL_DECLARATIONS, ...(exposeKnowledgeTools ? KNOWLEDGE_TOOL_DECLARATIONS : []), ...contextTools],
     exposeKnowledgeTools
   }
 }

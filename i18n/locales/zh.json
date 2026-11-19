@@ -478,6 +478,33 @@
     "audience": {
       "label": "受众",
       "help": "告诉 markoto 本文档是写给谁看的。会影响语气、结构和用词。"
+    },
+    "context": {
+      "label": "AI 上下文",
+      "help": "AI 在此处每次请求时都会读取的文档，例如人物、术语表、风格指南或产品资料。",
+      "scope": {
+        "label": "将此文档用作上下文",
+        "help": "AI 在处理其他文档时也会读取此文档。",
+        "off": "不用作上下文",
+        "folder": "用于其所在文件夹及子文件夹",
+        "workspace": "用于整个工作区",
+        "personal": "用于我的所有文档"
+      },
+      "appliedLabel": "AI 在此处读取的上下文",
+      "sourceWorkspace": "整个工作区",
+      "sourcePersonal": "你的所有文档",
+      "sourceFolder": "来自文件夹",
+      "sourceAttached": "已附加到此文档",
+      "notIncluded": "已附加，未包含（已达上限）",
+      "none": "此处尚无适用的上下文文档。",
+      "omitted": "还有 {n} 个上下文文档未包含。 | 还有 {n} 个上下文文档未包含。",
+      "detach": "从此文档中移除",
+      "attachLabel": "附加文档",
+      "attachHelp": "搜索一个文档，作为此文档的额外上下文。",
+      "attachLimit": "最多可附加 {max} 个文档。",
+      "attachPlaceholder": "搜索文档…",
+      "saveFailed": "无法更改 AI 上下文",
+      "untitled": "无标题"
     }
   },
   "audiences": {
@@ -625,7 +652,8 @@
         "web_search": "markoto 想要在网上搜索“{target}”。",
         "fetch_url": "markoto 想要打开 {target}",
         "view_image": "markoto 想要加载图片 {target}",
-        "generic": "markoto 想要使用 {tool}。"
+        "generic": "markoto 想要使用 {tool}。",
+        "edit_project_context": "markoto 想要更新上下文文档“{target}”。"
       },
       "job": {
         "question": "{what}，{minutes}。",
@@ -814,7 +842,9 @@
       "previewJob": "正在示例章节上试用此更改…",
       "startJob": "正在启动后台编辑…",
       "jobWaiting": "后台编辑进行中；进度显示在上方。",
-      "jobStatus": "正在检查后台编辑…"
+      "jobStatus": "正在检查后台编辑…",
+      "readProjectContext": "正在读取项目上下文…",
+      "editProjectContext": "正在更新项目上下文…"
     },
     "job": {
       "label": "后台编辑",
@@ -3391,14 +3421,17 @@
       "movedWorkspace": "已将 {n} 个文档移动到其他工作区 | 已将 {n} 个文档移动到其他工作区",
       "deleted": "已删除 {n} 个项目 | 已删除 {n} 个项目",
       "undone": "移动已撤销",
-      "cut": "已剪切 {n} 个项目。按 Ctrl+V 将其粘贴到文件夹中。 | 已剪切 {n} 个项目。按 Ctrl+V 将它们粘贴到文件夹中。"
+      "cut": "已剪切 {n} 个项目。按 Ctrl+V 将其粘贴到文件夹中。 | 已剪切 {n} 个项目。按 Ctrl+V 将它们粘贴到文件夹中。",
+      "contextOn": "{name} 现已用作 AI 上下文",
+      "contextOff": "{name} 不再用作 AI 上下文"
     },
     "error": {
       "createFolder": "无法新建文件夹",
       "rename": "无法重命名",
       "move": "无法移动",
       "delete": "无法删除",
-      "deleteBlocked": "文件夹未被删除"
+      "deleteBlocked": "文件夹未被删除",
+      "context": "无法更改 AI 上下文"
     },
     "action": {
       "open": "打开",
@@ -3415,7 +3448,8 @@
       "newDocument": "新建文档",
       "newFolder": "新建文件夹",
       "import": "导入文件…",
-      "paste": "粘贴"
+      "paste": "粘贴",
+      "aiContext": "用作 AI 上下文"
     },
     "sortBy": "排序方式",
     "sort": {
@@ -3529,6 +3563,16 @@
       "personal": "我的文档",
       "hint": "搜索你的文档、你的工作区以及与你共享的文档的标题和正文。"
     },
-    "subfolders": "{n} 个文件夹 | {n} 个文件夹"
+    "subfolders": "{n} 个文件夹 | {n} 个文件夹",
+    "context": {
+      "off": "不用作上下文",
+      "folder": "用于此文件夹",
+      "all": "用于整个工作区",
+      "allPersonal": "用于我的所有文档",
+      "stop": "停止用作 AI 上下文"
+    },
+    "contextBadge": "AI 上下文",
+    "contextBadgeAll": "AI 会在此处的每个文档中读取此文档。",
+    "contextBadgeFolder": "AI 会在其所在文件夹的文档中读取此文档。"
   }
 }

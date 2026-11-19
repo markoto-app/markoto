@@ -36,7 +36,7 @@ export async function startEditorPrompt(event: H3Event, request: EditorPromptReq
   const wrappedPrompt = wrapPromptWithEditorState(prompt, validateEditorSelection(request.editorSelection))
 
   const doc = await getDoc(docAccess)
-  const wsCtx = await resolveSessionWorkspace(doc?.workspaceId ?? null, userId)
+  const wsCtx = await resolveSessionWorkspace(doc?.workspaceId ?? null, userId, docAccess)
   const documentContextBlock = documentContextBlockFor(doc)
   const conversationBlock = await loadConversationBlock(docAccess)
   // Ordered for prompt caching (`agentic/promptAssembly.ts`): the system
@@ -47,6 +47,7 @@ export async function startEditorPrompt(event: H3Event, request: EditorPromptReq
   // on Mistral Small.
   const promptContext = assemblePromptContext({
     documentContextBlock,
+    projectContextBlock: wsCtx.projectContextBlock,
     knowledgeBlock: buildKnowledgeBlock(wsCtx.knowledgeFiles),
     membersBlock: buildWorkspaceMembersBlock(wsCtx.members)
   })

@@ -493,6 +493,7 @@ useHead({
         >
           <DocumentEditorPanel
             v-if="rightSidebar === 'document'"
+            :doc-id="docId"
             :description="description"
             :audience="audience"
             :language="language"

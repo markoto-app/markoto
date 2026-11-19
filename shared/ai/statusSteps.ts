@@ -56,6 +56,8 @@ export const AI_STATUS_STEPS = {
   readOtherDocument: 'Reading document {id}',
   readNamedDocument: 'Reading {title}…',
   readOtherDocumentAny: 'Reading another document…',
+  readProjectContext: 'Reading the project context…',
+  editProjectContext: 'Updating the project context…',
   searchKnowledge: 'Searching workspace knowledge for "{query}"',
   searchKnowledgeAny: 'Searching workspace knowledge…',
   openKnowledgeFile: 'Opening workspace knowledge file {id}',

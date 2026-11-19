@@ -424,6 +424,12 @@
       "cycle": "Un dossier ne peut pas être déplacé dans lui-même ni dans l'un de ses sous-dossiers.",
       "forbidden": "Vous ne pouvez pas modifier les dossiers ici.",
       "delete-blocked": "{blocked} documents de ce dossier ne peuvent pas être supprimés par vous, donc rien n'a été supprimé."
+    },
+    "context": {
+      "not-found": "Ce document n'existe pas, ou vous ne pouvez pas l'ouvrir.",
+      "self": "Un document ne peut pas être son propre contexte.",
+      "too-many": "Un document peut avoir au plus {max} documents de contexte supplémentaires.",
+      "not-attached": "Ce document n'est pas joint comme contexte."
     }
   }
 }

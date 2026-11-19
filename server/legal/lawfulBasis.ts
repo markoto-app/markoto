@@ -187,6 +187,23 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     subProcessors: ['jina_ai', 'ovh_postgres', 'ovh_object_storage']
   },
   {
+    // Project context ("bible"): a document a member marked as standing AI
+    // context for its folder or workspace (or attached to one document) is
+    // sent, as it stands, with every AI request another member makes in the
+    // documents it applies to, without that member opening it. Only members
+    // who may open the context document themselves get it. We store the mark
+    // (`documents.context_scope`) and the attachments (which document, who
+    // attached it, `document_context_links`), deleted with either document;
+    // the attacher is cleared when their account is deleted. The AI calls
+    // themselves are `ai_assistance` (or `user_directed_ai_provider`).
+    id: 'ai_project_context',
+    label: 'Project context for the AI writing assistant',
+    basis: 'contract',
+    dataCategories: ['document_content', 'project_context_settings'],
+    retention: 'until_deletion',
+    subProcessors: ['ovh_postgres', 'mistral_ai']
+  },
+  {
     // `subscription_history`: when a paid plan started, changed, was set to
     // end or ended (plan, period, currency, seats), for the revenue and churn
     // figures. On account deletion the rows lose the account and the Stripe

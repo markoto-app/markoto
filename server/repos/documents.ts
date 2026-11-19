@@ -470,6 +470,8 @@ export interface DocListRow {
   ownerId: number | null
   ownerName: string | null
   isOwner: boolean
+  /** Marked as project context (null = an ordinary document). */
+  contextScope: 'folder' | 'all' | null
   createdAt: Date
   updatedAt: Date
   lastActive: Date
@@ -537,6 +539,7 @@ export async function listScopeDocs(scope: FolderScope, q: DocListQuery): Promis
       ownerId: documents.ownerId,
       ownerName: users.name,
       isOwner: sql<boolean>`coalesce(${documents.ownerId} = ${actorId}, false)`,
+      contextScope: documents.contextScope,
       createdAt: documents.createdAt,
       updatedAt: documents.updatedAt,
       lastActive: documents.lastActive,

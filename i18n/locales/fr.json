@@ -478,6 +478,33 @@
     "audience": {
       "label": "Public",
       "help": "Indique à markoto à qui ce document s'adresse. Influence le ton, la structure et le choix des mots."
+    },
+    "context": {
+      "label": "Contexte IA",
+      "help": "Les documents que l'IA lit à chaque demande ici, par exemple des personnages, un glossaire, un guide de style ou des informations produit.",
+      "scope": {
+        "label": "Ce document comme contexte",
+        "help": "L'IA lit alors aussi ce document lorsqu'elle travaille dans d'autres documents.",
+        "off": "Pas utilisé comme contexte",
+        "folder": "Pour son dossier et ses sous-dossiers",
+        "workspace": "Pour tout l'espace de travail",
+        "personal": "Pour tous mes documents"
+      },
+      "appliedLabel": "Contexte que l'IA lit ici",
+      "sourceWorkspace": "Tout l'espace de travail",
+      "sourcePersonal": "Tous vos documents",
+      "sourceFolder": "Depuis le dossier",
+      "sourceAttached": "Joint à ce document",
+      "notIncluded": "Joint, non inclus (limite atteinte)",
+      "none": "Aucun document de contexte ne s'applique encore ici.",
+      "omitted": "{n} autre document de contexte n'est pas inclus. | {n} autres documents de contexte ne sont pas inclus.",
+      "detach": "Retirer de ce document",
+      "attachLabel": "Joindre un document",
+      "attachHelp": "Recherchez un document à utiliser comme contexte supplémentaire ici.",
+      "attachLimit": "Au plus {max} documents peuvent être joints.",
+      "attachPlaceholder": "Rechercher des documents…",
+      "saveFailed": "Impossible de modifier le contexte IA",
+      "untitled": "Sans titre"
     }
   },
   "audiences": {
@@ -625,7 +652,8 @@
         "web_search": "markoto veut chercher « {target} » sur le web.",
         "fetch_url": "markoto veut ouvrir {target}",
         "view_image": "markoto veut charger l’image {target}",
-        "generic": "markoto veut utiliser {tool}."
+        "generic": "markoto veut utiliser {tool}.",
+        "edit_project_context": "markoto souhaite modifier le document de contexte « {target} »."
       },
       "job": {
         "question": "{what}, {minutes}.",
@@ -814,7 +842,9 @@
       "previewJob": "Essai de la modification sur des sections d’exemple…",
       "startJob": "Lancement de la modification en arrière-plan…",
       "jobWaiting": "Modification en arrière-plan en cours ; la progression s’affiche au-dessus.",
-      "jobStatus": "Vérification de la modification en arrière-plan…"
+      "jobStatus": "Vérification de la modification en arrière-plan…",
+      "readProjectContext": "Lecture du contexte du projet…",
+      "editProjectContext": "Mise à jour du contexte du projet…"
     },
     "job": {
       "label": "Modification en arrière-plan",
@@ -3391,14 +3421,17 @@
       "movedWorkspace": "{n} document déplacé vers un autre espace de travail | {n} documents déplacés vers un autre espace de travail",
       "deleted": "{n} élément supprimé | {n} éléments supprimés",
       "undone": "Déplacement annulé",
-      "cut": "{n} élément coupé. Collez-le dans un dossier avec Ctrl+V. | {n} éléments coupés. Collez-les dans un dossier avec Ctrl+V."
+      "cut": "{n} élément coupé. Collez-le dans un dossier avec Ctrl+V. | {n} éléments coupés. Collez-les dans un dossier avec Ctrl+V.",
+      "contextOn": "{name} est maintenant un contexte IA",
+      "contextOff": "{name} n'est plus un contexte IA"
     },
     "error": {
       "createFolder": "Impossible de créer le dossier",
       "rename": "Impossible de renommer",
       "move": "Impossible de déplacer",
       "delete": "Impossible de supprimer",
-      "deleteBlocked": "Dossier non supprimé"
+      "deleteBlocked": "Dossier non supprimé",
+      "context": "Impossible de modifier le contexte IA"
     },
     "action": {
       "open": "Ouvrir",
@@ -3415,7 +3448,8 @@
       "newDocument": "Nouveau document",
       "newFolder": "Nouveau dossier",
       "import": "Importer des fichiers…",
-      "paste": "Coller"
+      "paste": "Coller",
+      "aiContext": "Utiliser comme contexte IA"
     },
     "sortBy": "Trier par",
     "sort": {
@@ -3529,6 +3563,16 @@
       "personal": "Mes documents",
       "hint": "Recherche dans les titres et les textes de vos documents, de vos espaces de travail et des documents partagés avec vous."
     },
-    "subfolders": "{n} dossier | {n} dossiers"
+    "subfolders": "{n} dossier | {n} dossiers",
+    "context": {
+      "off": "Pas utilisé comme contexte",
+      "folder": "Pour ce dossier",
+      "all": "Pour tout l'espace de travail",
+      "allPersonal": "Pour tous mes documents",
+      "stop": "Ne plus utiliser comme contexte IA"
+    },
+    "contextBadge": "Contexte IA",
+    "contextBadgeAll": "L'IA lit ce document dans chaque document d'ici.",
+    "contextBadgeFolder": "L'IA lit ce document dans les documents de son dossier."
   }
 }

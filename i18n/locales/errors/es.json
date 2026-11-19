@@ -424,6 +424,12 @@
       "cycle": "Una carpeta no se puede mover dentro de sí misma ni de una de sus subcarpetas.",
       "forbidden": "No puedes modificar carpetas aquí.",
       "delete-blocked": "No puedes eliminar {blocked} documentos de esta carpeta, así que no se eliminó nada."
+    },
+    "context": {
+      "not-found": "Ese documento no existe o no puedes abrirlo.",
+      "self": "Un documento no puede ser su propio contexto.",
+      "too-many": "Un documento puede tener como máximo {max} documentos de contexto adicionales.",
+      "not-attached": "Este documento no está adjunto como contexto."
     }
   }
 }
