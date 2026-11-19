@@ -19,5 +19,9 @@ useLeanResourceHints()
     <!-- Hydrates when scrolled to: plain links until then (the server
          render is complete), so it adds nothing to the first load. -->
     <LazyCommonLegalFooter hydrate-on-visible />
+    <!-- "Also in German": browser-only, after mount. -->
+    <ClientOnly>
+      <LazyMarketingLanguageSuggestion />
+    </ClientOnly>
   </div>
 </template>

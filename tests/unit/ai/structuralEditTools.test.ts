@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import * as Y from 'yjs'
 import { executeFunctionByName, toolSchema } from '../../../server/utils/ai/tools/registry'
 import type { AiSession } from '../../../server/utils/ai/aiClient'
-import { parseSections } from '../../../server/utils/ai/tools/sections/parse'
+import { parseSections, titleKeepingNumber } from '../../../server/utils/ai/tools/sections/parse'
 import { generateLargeDocument } from '../../fixtures/largeDocument/generate'
 
 // The structural edit tools through the registry, as the loop and MCP call
@@ -296,6 +296,31 @@ describe('set_heading', () => {
     expect(ytext.toString()).toContain('## Still kept {#kept}')
     expect(ytext.toString()).toContain('[kept](#kept)')
     expect(ytext.toString()).not.toContain('{#old-name')
+  })
+
+  it('keeps a numbered heading\'s number when the new title comes without one', async () => {
+    const { session, ytext } = makeSession('# Title\n\n## 1 Intro\n\nx\n\n## 2 Methods\n\ny\n\n## 3. Results\n\nz\n')
+    await run(session, 'set_heading', { section: '2 Methods', title: 'Approach' })
+    expect(ytext.toString()).toContain('\n## 2 Approach\n')
+    await run(session, 'set_heading', { section: '3. Results', title: 'Findings' })
+    expect(ytext.toString()).toContain('\n## 3. Findings\n')
+    // A number the model gives wins (renumbering on purpose).
+    await run(session, 'set_heading', { section: '1 Intro', title: '1.5 Opening' })
+    expect(ytext.toString()).toContain('\n## 1.5 Opening\n')
+    // Dropped only when asked for.
+    await run(session, 'set_heading', { section: '2 Approach', title: 'Approach', remove_number: true })
+    expect(ytext.toString()).toContain('\n## Approach\n')
+  })
+})
+
+describe('titleKeepingNumber', () => {
+  it('keeps, replaces or drops the written number', () => {
+    expect(titleKeepingNumber('2 Old', 'New')).toBe('2 New')
+    expect(titleKeepingNumber('2.1. Old', 'New')).toBe('2.1. New')
+    expect(titleKeepingNumber('2 Old', '4 New')).toBe('4 New')
+    expect(titleKeepingNumber('Old', 'New')).toBe('New')
+    expect(titleKeepingNumber('2 Old', '2 New', true)).toBe('New')
+    expect(titleKeepingNumber('2 Old', 'New', true)).toBe('New')
   })
 })
 

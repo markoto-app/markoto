@@ -28,6 +28,7 @@ import { useAiCredits } from '~/composables/ai/useAiCredits'
 
 const { t, locale } = useAreaI18n()
 const router = useRouter()
+const marketingPath = useMarketingPath()
 const { billing, refresh: refreshBilling } = useBilling()
 // The budget that pays where the user is: on the page or in a document of
 // a Team / Business workspace that is the workspace's pooled budget (the
@@ -106,12 +107,12 @@ watch(open, (isOpen) => {
 // Terms box there.
 function onUpgrade(): void {
   open.value = false
-  void router.push('/pricing')
+  void router.push(marketingPath('/pricing'))
 }
 
 function onManage(): void {
   open.value = false
-  void router.push('/pricing')
+  void router.push(marketingPath('/pricing'))
 }
 </script>
 

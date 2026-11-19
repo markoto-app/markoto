@@ -13,6 +13,8 @@ import {
   DEFAULT_MARKETING_LOCALE,
   indexableMarketingPages,
   MARKETING_LOCALES,
+  MARKETING_UI_PAGES,
+  uiPageVariants,
   type MarketingVersion
 } from '../../../shared/seo/marketing'
 import { isoDate } from '../../../shared/seo/structuredData'
@@ -69,8 +71,8 @@ export const LEGAL_LASTMOD: Readonly<Record<string, string>> = Object.freeze({
   '/legal/sub-processors': PRIVACY_EFFECTIVE_DATE
 })
 
-/** Fixed top-level pages of the marketing site. */
-const STATIC_SITEMAP_PATHS = ['/', '/pricing', '/demo', '/docs'] as const
+/** Fixed top-level pages of the marketing site without language versions (the docs are English only). */
+const STATIC_SITEMAP_PATHS = ['/docs'] as const
 
 /**
  * A marketing page with language versions (the `marketing` content
@@ -111,6 +113,19 @@ export function marketingSitemapPages(versions: MarketingVersion[]): LocalisedPa
     })
 }
 
+/**
+ * Sitemap pages of the UI pages (`/`, `/pricing`, `/demo`): one per page
+ * with its reviewed language versions (REVIEWED_UI_LOCALES); the others
+ * are `noindex` and stay out, as alternates too.
+ */
+export function uiSitemapPages(): LocalisedPage[] {
+  return MARKETING_UI_PAGES.map((page) => {
+    const paths: Record<string, string> = {}
+    for (const variant of uiPageVariants(page)) if (variant.indexable) paths[variant.locale] = variant.path
+    return { paths, defaultLanguage: DEFAULT_MARKETING_LOCALE }
+  })
+}
+
 function updatedOf(versions: MarketingVersion[], locale: string, slug: string): string | undefined {
   const path = `/marketing/${locale}/${slug}`
   return versions.find(v => v.path === path)?.updated ?? undefined
@@ -136,13 +151,15 @@ export function docsRoutePath(contentPath: string): string {
 
 /** Entries for one localised page: one per language, each with every alternate. */
 export function localisedEntries(base: string, page: LocalisedPage): SitemapEntry[] {
+  // The home page's URL is `${base}/` (as before), its versions `${base}/de`.
+  const href = (path: string): string => (path === '/' ? `${base}/` : `${base}${path}`)
   const alternates: SitemapAlternate[] = Object.entries(page.paths)
-    .map(([hreflang, path]) => ({ hreflang, href: `${base}${path}` }))
+    .map(([hreflang, path]) => ({ hreflang, href: href(path) }))
   const defaultPath = page.paths[page.defaultLanguage]
-  if (defaultPath) alternates.push({ hreflang: 'x-default', href: `${base}${defaultPath}` })
+  if (defaultPath) alternates.push({ hreflang: 'x-default', href: href(defaultPath) })
   return Object.entries(page.paths).map(([lang, path]) => {
     const lastmod = page.lastmod?.[lang]
-    return lastmod ? { loc: `${base}${path}`, alternates, lastmod } : { loc: `${base}${path}`, alternates }
+    return lastmod ? { loc: href(path), alternates, lastmod } : { loc: href(path), alternates }
   })
 }
 
@@ -155,6 +172,8 @@ export interface SitemapSources {
   legalSurfaces: boolean
   /** Localised marketing pages (`marketingSitemapPages`). */
   marketingPages?: LocalisedPage[]
+  /** The UI pages (`uiSitemapPages`); default: `uiSitemapPages()`. */
+  uiPages?: LocalisedPage[]
 }
 
 function withLastmod(loc: string, lastmod: string | undefined): SitemapEntry {
@@ -171,7 +190,8 @@ export function sitemapEntries(base: string, sources: SitemapSources): SitemapEn
     seen.add(entry.loc)
     out.push(entry)
   }
-  for (const path of STATIC_SITEMAP_PATHS) add({ loc: path === '/' ? `${base}/` : `${base}${path}` })
+  for (const page of sources.uiPages ?? uiSitemapPages()) localisedEntries(base, page).forEach(add)
+  for (const path of STATIC_SITEMAP_PATHS) add({ loc: `${base}${path}` })
   for (const page of sources.marketingPages ?? []) localisedEntries(base, page).forEach(add)
   for (const path of [...sources.docsPaths].sort(compareCodeUnits)) add(withLastmod(`${base}${path}`, sources.docsLastmod?.[path]))
   if (sources.legalSurfaces) for (const path of LEGAL_SITEMAP_PATHS) add(withLastmod(`${base}${path}`, LEGAL_LASTMOD[path]))

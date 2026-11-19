@@ -3,7 +3,7 @@ import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest'
 import { mountSuspended, registerEndpoint, mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { flushPromises } from '@vue/test-utils'
 import { defineComponent, h, nextTick } from 'vue'
-import { CommonLegalFooter, NuxtPage, PricingWaitlistForm } from '#components'
+import { CommonLegalFooter, HomeDashboard, NuxtPage, PricingWaitlistForm } from '#components'
 import { DEFAULT_TIERS, type TiersMap } from '~~/shared/config/tiers'
 import { CURRENCIES, DEFAULT_PLAN_PRICES, type PlanPricesResponse } from '~~/shared/config/pricing'
 import { MINIMAL_INSTANCE_CONFIG, type InstanceConfig } from '~~/shared/config/instance'
@@ -13,9 +13,11 @@ import type { BillingMode } from '~~/shared/config/billingMode'
 // marketing layout. Its first import compiles Nuxt UI's footer theme
 // modules; under a full parallel run that can finish after this file's
 // environment is torn down (EnvironmentTeardownError). The static import
-// above loads it with the test file instead.
+// above loads it with the test file instead. Same for the dashboard, which
+// the app's first route (`/`) loads lazily while the test opens /pricing.
 beforeAll(() => {
   if (!CommonLegalFooter) throw new Error('CommonLegalFooter did not load')
+  if (!HomeDashboard) throw new Error('HomeDashboard did not load')
 })
 
 // Pins the pricing page in the three instance shapes:

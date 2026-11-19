@@ -9,8 +9,10 @@ import {
   localisedEntries,
   marketingSitemapPages,
   sitemapBaseUrl,
-  sitemapEntries
+  sitemapEntries,
+  uiSitemapPages
 } from '../../../server/utils/platform/sitemap'
+import { REVIEWED_UI_LOCALES } from '../../../shared/seo/marketing'
 
 // sitemap.xml: hosted marketing site only, absolute URLs from
 // NUXT_SITE_URL (server/utils/platform/sitemap.ts).
@@ -70,6 +72,39 @@ describe('sitemapEntries', () => {
         { hreflang: 'de', href: `${BASE}/de/markdown-to-pdf` },
         { hreflang: 'x-default', href: `${BASE}/markdown-to-pdf` }
       ])
+    }
+  })
+})
+
+describe('uiSitemapPages (/, /pricing, /demo in every reviewed UI language)', () => {
+  it('lists only the reviewed UI languages, English as x-default', () => {
+    const pages = uiSitemapPages()
+    expect(pages.map(p => p.paths.en)).toEqual(['/', '/pricing', '/demo'])
+    for (const page of pages) {
+      expect(Object.keys(page.paths)).toEqual([...REVIEWED_UI_LOCALES])
+      expect(page.defaultLanguage).toBe('en')
+    }
+  })
+
+  it('a reviewed translation gets its own entry and both alternates; the home page keeps its trailing slash', () => {
+    const entries = sitemapEntries(BASE, {
+      docsPaths: [],
+      legalSurfaces: false,
+      uiPages: [{ paths: { en: '/', de: '/de' }, defaultLanguage: 'en' }]
+    })
+    expect(entries.slice(0, 2).map(e => e.loc)).toEqual([`${BASE}/`, `${BASE}/de`])
+    expect(entries[1]?.alternates).toEqual([
+      { hreflang: 'en', href: `${BASE}/` },
+      { hreflang: 'de', href: `${BASE}/de` },
+      { hreflang: 'x-default', href: `${BASE}/` }
+    ])
+  })
+
+  it('unreviewed UI languages (noindex) are not in the sitemap', () => {
+    const xml = buildSitemapXml(sitemapEntries(BASE, { docsPaths: [], legalSurfaces: false }))
+    for (const locale of ['de', 'fr', 'es', 'ja', 'zh'].filter(l => !REVIEWED_UI_LOCALES.includes(l as never))) {
+      expect(xml).not.toContain(`${BASE}/${locale}/pricing`)
+      expect(xml).not.toContain(`hreflang="${locale}"`)
     }
   })
 })

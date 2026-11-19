@@ -2595,6 +2595,12 @@
       },
       "caption": "Die aktuelle Liste für markoto.app, aus demselben Verzeichnis wie die rechtliche Seite.",
       "link": "Auftragsverarbeiter, mit Datenschutzerklärungen und AVV"
+    },
+    "language": {
+      "label": "Sprache",
+      "suggestion": "Diese Seite gibt es auch auf Deutsch.",
+      "switch": "Wechseln",
+      "dismiss": "Schliessen"
     }
   },
   "home": {

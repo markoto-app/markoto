@@ -117,6 +117,24 @@ function numberPrefix(title: string): { number: string, length: number } | null 
   return { number: token.replace(/\.$/, ''), length: title.length - rest.trimStart().length }
 }
 
+/**
+ * The title a heading rename should write: the new title, with the current
+ * heading's written number kept in front ("2 Old" renamed to "New" gives
+ * "2 New", "2. Old" gives "2. New") unless the new title brings its own
+ * number. A model renaming "chapter 2's heading" tends to drop the number;
+ * the user only loses it when they ask for that (`removeNumber`).
+ */
+export function titleKeepingNumber(currentTitle: string, nextTitle: string, removeNumber = false): string {
+  if (removeNumber) {
+    const own = numberPrefix(nextTitle)
+    return own ? nextTitle.slice(own.length) : nextTitle
+  }
+  if (!numberPrefix(currentTitle) || numberPrefix(nextTitle)) return nextTitle
+  const space = currentTitle.search(/[ \t]/)
+  const token = space === -1 ? currentTitle : currentTitle.slice(0, space)
+  return `${token} ${nextTitle}`
+}
+
 /** Remove an ATX closing sequence: trailing `#`s that follow a space (or are all there is). */
 function stripClosingHashes(text: string): string {
   const trimmed = text.trimEnd()

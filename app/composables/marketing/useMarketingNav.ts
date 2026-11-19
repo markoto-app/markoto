@@ -46,14 +46,16 @@ function asMarketingLocale(code: string): MarketingLocale {
  * Header + footer menus of the marketing site, built from the `marketing`
  * content collection (`navGroup` / `navLabel` / `navOrder` frontmatter of
  * the English pages). A page links to its version in the current UI
- * language when one exists and is reviewed, under that version's own
- * `navLabel` (or title); the hub pages are labelled from the locale
- * files. Empty off the marketing site
+ * language when one exists (reviewed or not: links on a German page stay
+ * German), under that version's own `navLabel` (or title); the hub pages
+ * are labelled from the locale files. On the docs (English) the current
+ * language is English. Empty off the marketing site
  * (the pages 404 there), no query is made.
  */
 export function useMarketingNav() {
   const { marketingSite } = useInstanceConfig()
-  const { locale, t } = useI18n()
+  const { t } = useI18n()
+  const locale = useAreaLocale()
 
   const { data } = useAsyncData('marketing:nav', async () => {
     if (!marketingSite.value) return []
@@ -66,11 +68,11 @@ export function useMarketingNav() {
     const items = data.value
     if (!marketingSite.value || items.length === 0) return EMPTY
     const current = asMarketingLocale(locale.value)
-    // Reviewed versions with their own label, so a link to the German page reads in German.
+    // Language versions with their own label, so a link to the German page reads in German.
     const translated = new Map<string, string>()
     for (const item of items) {
       const target = parseMarketingContentPath(item.path)
-      if (target && item.reviewed !== false) translated.set(`${target.locale}:${target.slug}`, item.navLabel ?? item.title)
+      if (target) translated.set(`${target.locale}:${target.slug}`, item.navLabel ?? item.title)
     }
     type Ordered = MarketingNavLink & { order: number }
     const nav: Record<NavGroup, Ordered[]> = { useCases: [], compare: [], templates: [] }

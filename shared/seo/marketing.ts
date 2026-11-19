@@ -1,23 +1,64 @@
 import { trimChars } from '../utils/trimChars'
 // Marketing pages (hosted markoto.app only): routes, language versions,
-// hreflang and indexing rules. Pure, shared by the catch-all page
-// (app/pages/[...marketing].vue), the URL-locale plugin and the sitemap.
+// hreflang and indexing rules. Pure, shared by the marketing pages, the
+// URL-locale plugin (app/plugins/marketing-locale.ts), the route setup in
+// nuxt.config.ts and the sitemap.
 //
-// Files: content/marketing/<locale>/<slug>.md (Nuxt Content collection
-// `marketing`, content path `/marketing/<locale>/<slug>`).
-// Routes: English at the root (`/<slug>`), translations under a locale
-// prefix (`/de/<slug>`, `/fr/<slug>`). Only marketing pages get prefixes;
-// the app itself stays `no_prefix` with the cookie-based UI language.
+// Two kinds of public marketing page, both with one URL per language:
+//  - UI pages: Vue pages whose text comes from the locale files (`/`,
+//    `/pricing`, `/demo`, MARKETING_UI_PAGES). They exist in every UI
+//    language; nuxt.config.ts adds a route per prefixed language
+//    (`/de`, `/de/pricing`, ...; marketingUiRoutes()).
+//  - Content pages: content/marketing/<locale>/<slug>.md (Nuxt Content
+//    collection `marketing`, content path `/marketing/<locale>/<slug>`),
+//    rendered by app/pages/[...marketing].vue. They exist in the languages
+//    that have a file.
+// English at the root (`/pricing`, `/<slug>`), every other language under
+// its prefix (`/de/pricing`, `/fr/<slug>`). On these URLs the UI language
+// follows the URL, never the cookie or Accept-Language. The app itself
+// (editor, workspaces, settings, docs, ...) stays `no_prefix` with the
+// cookie-based UI language.
 
-/** Languages marketing pages can exist in. The first one is the default (x-default, no prefix). */
-export const MARKETING_LOCALES = ['en', 'de', 'fr'] as const
+/**
+ * Languages marketing pages can exist in: the UI languages (`i18n.locales`
+ * in nuxt.config.ts, pinned by tests/unit/seo/marketingLocales.test.ts).
+ * The first one is the default (x-default, no prefix).
+ */
+export const MARKETING_LOCALES = ['en', 'de', 'fr', 'es', 'ja', 'zh'] as const
 export type MarketingLocale = typeof MARKETING_LOCALES[number]
 
 export const DEFAULT_MARKETING_LOCALE: MarketingLocale = 'en'
 
 /** Locales whose pages live under `/<locale>/…`. */
-export const PREFIXED_MARKETING_LOCALES = ['de', 'fr'] as const
+export const PREFIXED_MARKETING_LOCALES = ['de', 'fr', 'es', 'ja', 'zh'] as const
 export type PrefixedMarketingLocale = typeof PREFIXED_MARKETING_LOCALES[number]
+
+/**
+ * UI languages whose texts on the UI pages (product tour, pricing, demo;
+ * `tour.*`, `pricing.*`, `demo.*`, `landing.*` in i18n/locales/) a native
+ * speaker has read. The others are served with `noindex`, stay out of the
+ * sitemap and get no hreflang, like a content page with `reviewed: false`.
+ * Add a language here once its review is done.
+ */
+export const REVIEWED_UI_LOCALES: readonly MarketingLocale[] = ['en']
+
+/** The UI pages: route paths of their English versions. */
+export const MARKETING_UI_PAGES = ['/', '/pricing', '/demo'] as const
+export type MarketingUiPage = typeof MARKETING_UI_PAGES[number]
+
+/**
+ * Router names of the pages whose UI language follows the URL: the UI
+ * pages (and their per-language copies, `<name>-<locale>`) and the
+ * content catch-all. `index` only for signed-out visitors: signed in, `/`
+ * is the dashboard, which is the app.
+ */
+const UI_PAGE_ROUTE_NAMES: Readonly<Record<MarketingUiPage, string>> = { '/': 'index', '/pricing': 'pricing', '/demo': 'demo' }
+const CONTENT_ROUTE_NAME = 'marketing'
+
+/** Router name of a UI page's copy in a prefixed language. */
+export function localisedRouteName(name: string, locale: PrefixedMarketingLocale): string {
+  return `${name}-${locale}`
+}
 
 /** The install guide in the docs: where "Self-host" points off the marketing site. */
 const SELF_HOST_DOCS_PATH = '/docs/self-hosting'
@@ -50,15 +91,152 @@ function trimSlashes(path: string): string {
 }
 
 /**
- * The language a route path's locale prefix names (`/de/…` → `de`), or
- * null. Used by the URL-locale plugin: on these routes the UI language
- * follows the URL, not the cookie.
+ * The language a route path's locale prefix names (`/de/…`, bare `/de`)
+ * and the path without it; English and the path itself otherwise.
+ * `/de/pricing` → de + `/pricing`; `/de` → de + `/`; `/pricing` → en.
  */
-export function prefixedMarketingLocale(path: string): PrefixedMarketingLocale | null {
+export function splitMarketingLocale(path: string): { locale: MarketingLocale, path: string } {
   const pathname = path.split(/[?#]/)[0] ?? ''
-  const first = trimSlashes(pathname).split('/')[0]
-  const rest = trimSlashes(pathname).split('/').slice(1).join('/')
-  return isPrefixedLocale(first) && SLUG_RE.test(rest) ? first : null
+  const parts = trimSlashes(pathname).split('/')
+  const first = parts[0]
+  if (isPrefixedLocale(first)) return { locale: first, path: `/${parts.slice(1).join('/')}` }
+  return { locale: DEFAULT_MARKETING_LOCALE, path: pathname || '/' }
+}
+
+/** A route path in a language: `('de', '/pricing')` → `/de/pricing`, `('de', '/')` → `/de`. */
+export function localisedPath(locale: MarketingLocale, path: string): string {
+  const clean = `/${trimSlashes(path)}`
+  if (locale === DEFAULT_MARKETING_LOCALE) return clean
+  return clean === '/' ? `/${locale}` : `/${locale}${clean}`
+}
+
+export interface UrlLocaleInput {
+  /** Router name of the matched route. */
+  routeName: string | null | undefined
+  /** Route path. */
+  path: string
+  /** NUXT_MARKETING_SITE_ENABLED. */
+  marketingSite: boolean
+  /** A signed-in visitor (`/` is their dashboard). */
+  signedIn: boolean
+}
+
+/** True when `name` is a UI page's route or one of its per-language copies. */
+function isUiPageRoute(name: string, base: string): boolean {
+  return name === base || PREFIXED_MARKETING_LOCALES.some(l => name === localisedRouteName(base, l))
+}
+
+/** The UI page a router name belongs to, or null. */
+export function uiPageOfRoute(name: string | null | undefined): MarketingUiPage | null {
+  if (!name) return null
+  return MARKETING_UI_PAGES.find(page => isUiPageRoute(name, UI_PAGE_ROUTE_NAMES[page])) ?? null
+}
+
+/**
+ * The UI language a route's URL fixes, or null when the route keeps the
+ * visitor's language (cookie / Accept-Language): every route off the
+ * marketing site, the app's routes, and `/` for signed-in visitors.
+ */
+export function marketingUrlLocale(input: UrlLocaleInput): MarketingLocale | null {
+  if (!input.marketingSite || !input.routeName) return null
+  const page = uiPageOfRoute(input.routeName)
+  if (page === '/' && input.signedIn) return null
+  if (!page && input.routeName !== CONTENT_ROUTE_NAME) return null
+  return splitMarketingLocale(input.path).locale
+}
+
+/** True for a UI page's per-language copy (`/de/pricing`): 404 off the marketing site. */
+export function isLocalisedUiRoute(name: string | null | undefined): boolean {
+  if (!name) return false
+  return MARKETING_UI_PAGES.some(page => PREFIXED_MARKETING_LOCALES.some(l => name === localisedRouteName(UI_PAGE_ROUTE_NAMES[page], l)))
+}
+
+/** The route fields `marketingUiRoutes` reads (Nuxt's NuxtPage has them). */
+export interface PageRoute {
+  name?: string
+  path: string
+  alias?: unknown
+}
+
+/**
+ * Per-language copies of the UI pages (`pages:extend` in nuxt.config.ts):
+ * `/de`, `/de/pricing`, `/de/demo`, ... with the same component. Aliases
+ * (the dashboard's `/f/:folderId`) are not copied.
+ */
+export function marketingUiRoutes<T extends PageRoute>(pages: readonly T[]): T[] {
+  const out: T[] = []
+  for (const uiPath of MARKETING_UI_PAGES) {
+    const page = pages.find(p => p.name === UI_PAGE_ROUTE_NAMES[uiPath])
+    if (!page) continue
+    for (const locale of PREFIXED_MARKETING_LOCALES) {
+      const copy: T = { ...page, name: localisedRouteName(UI_PAGE_ROUTE_NAMES[uiPath], locale), path: localisedPath(locale, uiPath) }
+      delete copy.alias
+      out.push(copy)
+    }
+  }
+  return out
+}
+
+/**
+ * The marketing language a visitor prefers: the locale cookie when it
+ * names one, else the first of the browser's languages that matches one
+ * (`de-CH` → `de`), else null. Drives the language suggestion only, never
+ * which language a URL is served in.
+ */
+export function preferredMarketingLocale(cookie: string | null | undefined, browserLanguages: readonly string[]): MarketingLocale | null {
+  const chosen = cookie ?? undefined
+  if (isMarketingLocale(chosen)) return chosen
+  for (const tag of browserLanguages) {
+    const primary = tag.toLowerCase().split('-')[0]
+    if (isMarketingLocale(primary)) return primary
+  }
+  return null
+}
+
+/** One language version of a page. */
+export interface MarketingVariant {
+  locale: MarketingLocale
+  /** Route path. */
+  path: string
+  /** Reviewed: indexable, in hreflang and the sitemap. */
+  indexable: boolean
+}
+
+/** Whether the UI pages' texts in a language are reviewed (REVIEWED_UI_LOCALES). */
+export function isReviewedUiLocale(locale: MarketingLocale): boolean {
+  return REVIEWED_UI_LOCALES.includes(locale)
+}
+
+/** The language versions of a UI page: every UI language. */
+export function uiPageVariants(page: MarketingUiPage): MarketingVariant[] {
+  return MARKETING_LOCALES.map(locale => ({ locale, path: localisedPath(locale, page), indexable: isReviewedUiLocale(locale) }))
+}
+
+/** The language versions of a content page: the languages with a file, in MARKETING_LOCALES order. */
+export function contentPageVariants(slug: string, versions: MarketingVersion[]): MarketingVariant[] {
+  const found = new Map<MarketingLocale, boolean>()
+  for (const version of versions) {
+    const target = parseMarketingContentPath(version.path)
+    if (target?.slug === slug) found.set(target.locale, isIndexableVersion(version))
+  }
+  return MARKETING_LOCALES
+    .filter(locale => found.has(locale))
+    .map(locale => ({ locale, path: marketingRoutePath(locale, slug), indexable: found.get(locale) === true }))
+}
+
+/**
+ * hreflang alternates of a page shown in `current`: every indexable
+ * version, plus `x-default` → English when English is one of them. None
+ * when the page itself isn't indexable (an unreviewed translation is
+ * noindex; alternates pointing at or from it are an error for search
+ * engines).
+ */
+export function variantAlternates(variants: readonly MarketingVariant[], current: MarketingLocale): HreflangLink[] {
+  if (!variants.some(v => v.locale === current && v.indexable)) return []
+  const links: HreflangLink[] = variants.filter(v => v.indexable).map(v => ({ hreflang: v.locale, path: v.path }))
+  const fallback = variants.find(v => v.locale === DEFAULT_MARKETING_LOCALE && v.indexable)
+  if (fallback) links.push({ hreflang: 'x-default', path: fallback.path })
+  return links
 }
 
 /**
@@ -119,28 +297,6 @@ export interface HreflangLink {
   hreflang: string
   /** Route path. */
   path: string
-}
-
-/**
- * hreflang alternates for one slug: every indexable language version
- * that exists, in MARKETING_LOCALES order, plus `x-default` → English
- * when the English version is among them. Unreviewed translations are
- * left out: an alternate pointing at a noindex page is an error for
- * search engines.
- */
-export function hreflangLinks(slug: string, versions: MarketingVersion[]): HreflangLink[] {
-  const available = new Set<MarketingLocale>()
-  for (const version of versions) {
-    const target = parseMarketingContentPath(version.path)
-    if (target?.slug === slug && isIndexableVersion(version)) available.add(target.locale)
-  }
-  const links: HreflangLink[] = MARKETING_LOCALES
-    .filter(locale => available.has(locale))
-    .map(locale => ({ hreflang: locale, path: marketingRoutePath(locale, slug) }))
-  if (available.has(DEFAULT_MARKETING_LOCALE)) {
-    links.push({ hreflang: 'x-default', path: marketingRoutePath(DEFAULT_MARKETING_LOCALE, slug) })
-  }
-  return links
 }
 
 /** Indexable language versions grouped per slug: `{ slug: { en: '/slug', de: '/de/slug' } }`. */

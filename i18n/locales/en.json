@@ -2595,6 +2595,12 @@
       },
       "caption": "The live list for markoto.app, read from the same registry as the legal page.",
       "link": "Sub-processors, with privacy policies and DPAs"
+    },
+    "language": {
+      "label": "Language",
+      "suggestion": "This page is also available in English.",
+      "switch": "Switch",
+      "dismiss": "Dismiss"
     }
   },
   "home": {

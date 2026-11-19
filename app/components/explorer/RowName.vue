@@ -172,14 +172,21 @@ const snippet = computed(() => props.item.kind === 'doc' && props.item.doc.snipp
         </p>
       </div>
       <template v-else>
+        <!-- `w-0 min-w-full`: the name and the search snippet take the
+             cell's width but add nothing to the table's column sizing, so
+             a long snippet or name is cut off inside the name column
+             instead of widening it (columns pushed right, horizontal
+             scrolling). -->
         <span
-          class="block truncate"
+          class="block w-0 min-w-full truncate"
           :class="item.kind === 'folder' ? 'font-medium' : ''"
+          :title="item.label"
           data-testid="explorer-item-name"
         >{{ item.label }}</span>
         <span
           v-if="snippet.length > 0"
-          class="block text-xs text-muted truncate"
+          class="block w-0 min-w-full text-xs text-muted truncate"
+          data-testid="explorer-item-snippet"
         >
           <template
             v-for="(part, i) in snippet"

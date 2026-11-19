@@ -28,17 +28,21 @@ const router = useRouter()
 const { t, te, locale } = useI18n()
 
 const slug = computed(() => String(route.params.slug ?? ''))
+// The document's language: the UI language (cookie / Accept-Language; one
+// URL per document, the English text is authoritative), or `?locale=en`
+// from "View the authoritative version".
+const docLocale = computed(() => (route.query.locale === 'en' ? 'en' : locale.value))
 
 // SSR-friendly fetch: useFetch hits the internal endpoint with the
 // active i18n locale. The page renders the doc via `v-html` since
 // the markdown comes back already rendered + sanitised by the
 // server (markdown-it with html: false).
 const api = useApi()
-const { data, error, pending, refresh } = await useAsyncData(
+const { data, error, pending } = await useAsyncData(
   // The key follows the slug and the language: a change of either re-fetches
   // (the page component is reused when the slug changes).
-  () => `legal:${slug.value}:${locale.value}`,
-  () => api('/api/_internal/legal/:slug', { path: { slug: slug.value }, query: { locale: locale.value } })
+  () => `legal:${slug.value}:${docLocale.value}`,
+  () => api('/api/_internal/legal/:slug', { path: { slug: slug.value }, query: { locale: docLocale.value } })
 )
 
 const pageTitle = computed(() => data.value?.title ?? 'Legal')
@@ -67,10 +71,9 @@ function onClose(): void {
 }
 
 function viewAuthoritative(): void {
-  // Force English by appending ?locale=en. The same query-string
-  // path the i18n switcher uses elsewhere; refresh re-fetches.
-  void router.replace({ query: { ...route.query, locale: data.value?.authoritativeLocale ?? 'en' } })
-  void refresh()
+  // Force English with ?locale=en (docLocale); the data key follows it,
+  // so the English text is fetched.
+  void router.replace({ query: { ...route.query, locale: 'en' } })
 }
 
 function fmtDate(iso: string): string {
@@ -122,6 +125,7 @@ function fmtDate(iso: string): string {
 
       <article
         v-else
+        :lang="data.actualLocale"
         :data-testid="`legal-doc-${data.slug}`"
       >
         <!-- Eyebrow + version chip + effective date in mono. -->

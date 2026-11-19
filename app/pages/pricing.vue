@@ -325,10 +325,15 @@ const faqItems = computed<FaqItem[]>(() => {
 // Meta description: the hosted free-only + self-hosted subtitles are short
 // enough; with billing on, a dedicated one (the subtitle runs long).
 const metaDescription = computed(() => (billingEnabled.value ? t('pricing.metaDescription') : pageSubtitle.value))
+// Language versions (`/pricing`, `/de/pricing`, ...; shared/seo/marketing.ts):
+// hreflang, and noindex while a language's texts are unreviewed.
+const { noindex } = useUiPageLanguages('/pricing')
+const pageRoute = useRoute()
 const { imageUrl } = useMarketingSeo({
   title: pageTitle,
   description: () => metaDescription.value,
-  imageGroup: 'pricing'
+  imageGroup: 'pricing',
+  noindex: () => noindex.value
 })
 
 // SoftwareApplication + Offer JSON-LD, marketing site only (like the
@@ -350,13 +355,13 @@ function paidOffers(): PricingOffer[] {
   }))))
 }
 usePageStructuredData(() => {
-  if (!optionsLayout.value) return null
+  if (!optionsLayout.value || noindex.value) return null
   const offers: PricingOffer[] = [{ name: t('pricing.plans.free'), price: 0 }, ...(billingEnabled.value ? paidOffers() : [])]
   return {
     name: pageTitle.value,
     description: metaDescription.value,
     image: imageUrl.value,
-    breadcrumbs: pageBreadcrumbs('/pricing', pageTitle.value),
+    breadcrumbs: pageBreadcrumbs(pageRoute.path, pageTitle.value),
     about: [{ self: true }],
     extraNodes: [pricingStructuredData({
       siteUrl: siteUrl.value,

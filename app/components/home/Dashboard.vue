@@ -28,6 +28,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const router = useRouter()
+const marketingPath = useMarketingPath()
 const { loggedIn, user } = useUserSession()
 // The create buttons are server-rendered; before hydration a click on them
 // would do nothing at all, so they show disabled until then.
@@ -61,7 +62,7 @@ const workspaceCapShortLabel = computed(() =>
 
 function onCapReachedClick() {
   if (pricingVisible.value) {
-    void router.push('/pricing')
+    void router.push(marketingPath('/pricing'))
     return
   }
   // Self-hosted: nothing to buy, say so instead of a dead link.

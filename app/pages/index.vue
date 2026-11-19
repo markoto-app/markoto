@@ -6,8 +6,10 @@ import { DEFAULT_TITLE } from '~~/shared/seo/meta'
 // for both addresses: opening a folder keeps the dashboard mounted. A page
 // of its own remounted the whole dashboard on every folder change, and an
 // action that opens a folder first ("New folder" inside another folder)
-// finished on the unmounted copy: the rename never started.
-definePageMeta({ alias: '/f/:folderId', key: 'home' })
+// finished on the unmounted copy: the rename never started. The alias is
+// set in nuxt.config.ts (`pages:extend`), not here: a `definePageMeta`
+// alias would also land on the page's per-language copies (`/de`, ...).
+definePageMeta({ key: 'home' })
 
 const { t } = useI18n()
 const router = useRouter()
@@ -26,10 +28,15 @@ useLeanResourceHints(() => showTour.value)
 
 // Home: the brand-led default title, untemplated. The hero sentence
 // (`landing.subtitle`, also the tour's hero copy) is the description.
+// Language versions (`/`, `/de`, ...; shared/seo/marketing.ts): hreflang,
+// and noindex while a language's texts are unreviewed. Not for the
+// dashboard, which is the app.
+const { noindex } = useUiPageLanguages('/', () => showTour.value)
 useMarketingSeo({
   title: DEFAULT_TITLE,
   description: () => t('landing.subtitle'),
-  bareTitle: true
+  bareTitle: true,
+  noindex: () => noindex.value
 })
 // JSON-LD (Organization + WebSite + SoftwareApplication), hosted only.
 useHomeStructuredData()
@@ -144,5 +151,9 @@ function createDocumentIn(folderId?: string | null) {
 
     <!-- Hydrates when scrolled to (server-rendered links until then). -->
     <LazyCommonLegalFooter hydrate-on-visible />
+    <!-- "Also in German" on the product tour: browser-only, after mount. -->
+    <ClientOnly v-if="showTour">
+      <LazyMarketingLanguageSuggestion />
+    </ClientOnly>
   </div>
 </template>

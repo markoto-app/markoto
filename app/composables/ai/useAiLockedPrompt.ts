@@ -16,6 +16,7 @@ export function useAiLockedPrompt() {
   const toast = useToast()
   const { billingEnabled, plansComingSoon } = useBillingMode()
   const workspace = useAiWorkspaceContext()
+  const marketingPath = useMarketingPath()
 
   function explainLocked(feature: 'aiVoice' | 'aiImage') {
     const go = (href: string) => () => {
@@ -27,10 +28,10 @@ export function useAiLockedPrompt() {
       description = t('ai.locked.askAdmin')
     } else if (billingEnabled.value) {
       description = t('ai.locked.upgrade')
-      actions.push({ label: t('ai.upgradeCta'), color: 'neutral', onClick: go('/pricing') })
+      actions.push({ label: t('ai.upgradeCta'), color: 'neutral', onClick: go(marketingPath('/pricing')) })
     } else if (plansComingSoon.value) {
       description = t('ai.locked.comingSoon')
-      actions.push({ label: t('billing.comingSoonCta'), color: 'neutral', onClick: go('/pricing') })
+      actions.push({ label: t('billing.comingSoonCta'), color: 'neutral', onClick: go(marketingPath('/pricing')) })
     } else {
       description = t('ai.locked.operator')
     }
