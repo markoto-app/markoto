@@ -95,7 +95,7 @@ export async function revertJobUnits(deps: { jobId: string, store: JobStore, doc
  * Remove the job's open suggestions. `units` counts the units (suggestion
  * groups) they belonged to, so "N parts restored" reads the same in both modes.
  */
-export function removeJobSuggestions(doc: JobDocHandles, jobId: string): { units: number, suggestions: number } {
+function removeJobSuggestions(doc: JobDocHandles, jobId: string): { units: number, suggestions: number } {
   const map = suggestionsMap(doc.ydoc)
   const ids: string[] = []
   const groups = new Set<string>()

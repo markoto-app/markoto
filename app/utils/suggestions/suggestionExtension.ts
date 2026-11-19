@@ -32,7 +32,7 @@ export interface SuggestionMark {
 export const setSuggestionMarks = StateEffect.define<SuggestionMark[]>()
 
 /** The plan of one local edit made while suggesting, for the host to write. */
-export const suggestionPlanned = StateEffect.define<SuggestPlan>()
+const suggestionPlanned = StateEffect.define<SuggestPlan>()
 
 /** Whether local edits become suggestions. Reconfigured through a compartment by the host. */
 export const suggestingFacet = Facet.define<boolean, boolean>({

@@ -333,7 +333,7 @@ export async function restoreDocToYjsId(opts: RestoreDocOptions): Promise<Restor
 }
 
 /** Replace the live suggestions with past ones, re-anchored at their past offsets (call inside the restore transaction, after the text). */
-export function restoreSuggestions(ydoc: Y.Doc, past: ReadonlyArray<{ record: SuggestionRecord, from: number, to: number }>): void {
+function restoreSuggestions(ydoc: Y.Doc, past: ReadonlyArray<{ record: SuggestionRecord, from: number, to: number }>): void {
   const map = suggestionsMap(ydoc)
   const ytext = ydoc.getText('content')
   for (const key of [...map.keys()]) map.delete(key)

@@ -70,7 +70,28 @@ export class EditorPage {
       comments: this.page.locator(sel(TESTID.SIDEBAR_TAB_COMMENTS)),
       activity: this.page.locator(sel(TESTID.SIDEBAR_TAB_ACTIVITY)),
       theme: this.page.locator(sel(TESTID.SIDEBAR_TAB_THEME)),
-      knowledge: this.page.locator(sel(TESTID.SIDEBAR_TAB_KNOWLEDGE))
+      knowledge: this.page.locator(sel(TESTID.SIDEBAR_TAB_KNOWLEDGE)),
+      suggestions: this.page.locator('[data-testid="sidebar-tab-suggestions"]')
+    }
+  }
+
+  // Suggestion mode: the Editing / Suggesting switch, the marks in the
+  // text and the suggestions panel.
+  get suggestions() {
+    return {
+      modeToggle: this.page.locator('[data-testid="edit-mode-toggle"]'),
+      /** Struck text of a suggestion in the editor. */
+      struck: this.page.locator('.cm-suggest-del'),
+      /** Proposed text of a suggestion in the editor. */
+      inserted: this.page.locator('.cm-suggest-ins'),
+      panel: this.page.locator('[data-testid="suggestions-panel"]'),
+      card: this.page.locator('[data-testid="suggestion-card"]'),
+      acceptAll: this.page.locator('[data-testid="suggestions-accept-all"]'),
+      rejectAll: this.page.locator('[data-testid="suggestions-reject-all"]'),
+      acceptIn: (card: Locator) => card.locator('[data-testid="suggestion-accept"]'),
+      rejectIn: (card: Locator) => card.locator('[data-testid="suggestion-reject"]'),
+      /** Share dialog: "Everyone suggests changes". */
+      requiredSwitch: this.page.locator('[data-testid="suggestion-settings-required"]')
     }
   }
 
@@ -268,7 +289,8 @@ export class EditorPage {
       comments: this.page.locator('[data-testid="mobile-tab-bar"] button[aria-label="Comments"]'),
       activity: this.page.locator('[data-testid="mobile-tab-bar"] button[aria-label="Activity"]'),
       theme: this.page.locator('[data-testid="mobile-tab-bar"] button[aria-label="Theme"]'),
-      knowledge: this.page.locator('[data-testid="mobile-tab-bar"] button[aria-label="Knowledge"]')
+      knowledge: this.page.locator('[data-testid="mobile-tab-bar"] button[aria-label="Knowledge"]'),
+      suggestions: this.page.locator('[data-testid="mobile-tab-bar"] button[aria-label="Suggest"]')
     }
   }
 

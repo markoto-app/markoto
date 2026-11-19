@@ -52,7 +52,7 @@ export interface ResolveSuggestionsResult {
 }
 
 /** At most this many distinct authors per accept call (one connection each). */
-export const MAX_AUTHORS_PER_ACCEPT = 20
+const MAX_AUTHORS_PER_ACCEPT = 20
 
 function pick(all: readonly ResolvedSuggestion[], select: SuggestionSelection): ResolvedSuggestion[] {
   const ids = select.ids ? new Set(select.ids) : null
@@ -181,7 +181,7 @@ export async function resolveSuggestions(input: ResolveSuggestionsInput): Promis
 }
 
 /** A short "struck -> inserted" line for the activity feed. */
-export function suggestionPreview(r: Pick<SuggestionRecord, 'text' | 'deleted'>): string {
+function suggestionPreview(r: Pick<SuggestionRecord, 'text' | 'deleted'>): string {
   const clip = (t: string) => {
     const one = t.replace(/\s+/g, ' ').trim()
     return one.length > 60 ? `${one.slice(0, 59)}…` : one
