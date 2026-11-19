@@ -30,7 +30,7 @@ vi.mock('../../../server/repos/docProvenance', () => ({
   hasForeignContentActivity: vi.fn()
 }))
 
-const names = (decls: Array<{ name: string }>) => decls.map(d => d.name)
+const names = (decls: Array<{ name?: string }>) => decls.map(d => d.name)
 
 beforeEach(() => {
   vi.resetAllMocks()
