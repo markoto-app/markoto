@@ -1,4 +1,4 @@
-import * as Y from 'yjs'
+import type * as Y from 'yjs'
 import type { Awareness } from 'y-protocols/awareness'
 import { createInjectionState } from '@vueuse/core'
 import { nanoid } from 'nanoid'

@@ -1,5 +1,5 @@
 import { decideSuggestionAccess, decideTokenAccess, docStateOf, type ActorState, type DocState, type SuggestionDecision } from '~~/shared/utils/documents/docPermissions'
-import type { DocAuthzRow } from '../../repos/access/docAuthz'
+import type { DocAuthzRow } from '../access/docProof'
 
 // The write level (full, suggest-only, read-only) a caller holds on a
 // document: the token's decision with the document's suggestion settings

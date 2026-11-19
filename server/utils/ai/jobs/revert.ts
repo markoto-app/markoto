@@ -43,6 +43,23 @@ const REASONS: Record<RevertKeptKind, string> = { edited: REVERT_EDITED_SINCE, e
 
 const REVERTIBLE_FROM: readonly AiJobStatus[] = ['done', 'cancelled', 'failed', 'stopped_access', 'paused_budget', 'interrupted']
 
+type Unit = Awaited<ReturnType<JobStore['listUnits']>>[number]
+
+/** Whether a unit can be undone, and what with. */
+function revertCheck(doc: JobDocHandles, u: Unit): 'nothing' | { kept: RevertKeptKind } | { range: { start: number, end: number }, followUp: boolean, before: string } {
+  if (u.beforeText === null) return { kept: 'expired' }
+  const range = resolveUnitRange(doc, u.startRel, u.endRel)
+  if (!range) return { kept: 'deleted' }
+  const current = doc.ytext.toString().slice(range.start, range.end)
+  // Already reads as before the job (a suggestion nobody accepted, removed
+  // by `removeJobSuggestions`, or someone undid it by hand): nothing to do.
+  if (current === u.beforeText) return 'nothing'
+  const rev = unitRev(current)
+  const followUp = u.sessionAfterHash !== null && rev === u.sessionAfterHash && rev !== u.afterHash
+  if (rev !== u.afterHash && !followUp) return { kept: 'edited' }
+  return { range, followUp, before: u.beforeText }
+}
+
 export async function revertJobUnits(deps: { jobId: string, store: JobStore, doc: JobDocHandles }): Promise<RevertResult> {
   const { store, doc } = deps
   const units = await store.listUnits(['applied', 'flagged'])
@@ -56,27 +73,13 @@ export async function revertJobUnits(deps: { jobId: string, store: JobStore, doc
   if (pending.units > 0) reverted += pending.units
   for (const u of units) {
     if (u.afterHash === null) continue // comment / scan units changed no text
-    const skip = (kind: RevertKeptKind) => skipped.push({ ordinal: u.ordinal, headingPath: u.headingPath, kind, reason: REASONS[kind] })
-    if (u.beforeText === null) {
-      skip('expired')
+    const check = revertCheck(doc, u)
+    if (check === 'nothing') continue
+    if ('kept' in check) {
+      skipped.push({ ordinal: u.ordinal, headingPath: u.headingPath, kind: check.kept, reason: REASONS[check.kept] })
       continue
     }
-    const range = resolveUnitRange(doc, u.startRel, u.endRel)
-    if (!range) {
-      skip('deleted')
-      continue
-    }
-    const current = doc.ytext.toString().slice(range.start, range.end)
-    // Already reads as before the job (a suggestion nobody accepted, removed
-    // above, or someone undid it by hand): nothing to undo, nothing to report.
-    if (current === u.beforeText) continue
-    const rev = unitRev(current)
-    const followUp = u.sessionAfterHash !== null && rev === u.sessionAfterHash && rev !== u.afterHash
-    if (rev !== u.afterHash && !followUp) {
-      skip('edited')
-      continue
-    }
-    const before = u.beforeText
+    const { range, followUp, before } = check
     doc.ydoc.transact(() => {
       applyMinimalDiff(doc.ytext, range.start, range.end, before)
     }, revertOrigin(deps.jobId))

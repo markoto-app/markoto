@@ -1,5 +1,4 @@
 import { diffArrays } from 'diff'
-import type * as Y from 'yjs'
 
 /**
  * Minimal word-level replacement of a Y.Text range.

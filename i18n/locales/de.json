@@ -49,7 +49,8 @@
       "updateTooLarge": "Diese Änderung ist zu gross, um sie auf einmal zu synchronisieren. Lade neu und füge den Inhalt in kleineren Teilen ein.",
       "documentTooLarge": "Dieses Dokument hat seine maximale Grösse erreicht. Lade neu und entferne Inhalt oder teile ihn auf mehrere Dokumente auf.",
       "invalidMeta": "Eine Dokumenteinstellung (Titel, Theme oder Angaben) hatte einen Wert, den der Server nicht annehmen konnte. Lade neu, um weiterzuarbeiten.",
-      "invalidUpdate": "Der Server konnte eine Änderung aus diesem Tab nicht verarbeiten. Lade neu, um weiterzuarbeiten."
+      "invalidUpdate": "Der Server konnte eine Änderung aus diesem Tab nicht verarbeiten. Lade neu, um weiterzuarbeiten.",
+      "invalidSuggestion": "Dieser Tab hat versucht, etwas zu ändern, wozu du nur Vorschläge machen kannst (zum Beispiel nachdem der Eigentümer den Vorschlagsmodus eingeschaltet hat). Lade die Seite neu, um im Vorschlagsmodus weiterzuarbeiten."
     },
     "bold": "Fett",
     "italic": "Kursiv",
@@ -203,6 +204,10 @@
         "search_knowledge": "hat die Wissensdatenbank durchsucht",
         "get_knowledge_file": "hat eine Wissensdatei gelesen",
         "replace_all": "hat Text im ganzen Dokument ersetzt"
+      },
+      "suggestion": {
+        "accepted": "hat einen Vorschlag angenommen | hat einen Vorschlag angenommen | hat {n} Vorschläge angenommen",
+        "rejected": "hat einen Vorschlag abgelehnt | hat einen Vorschlag abgelehnt | hat {n} Vorschläge abgelehnt"
       }
     },
     "detail": {
@@ -210,7 +215,8 @@
       "replacedAll": "{count}× “{from}” → “{to}”",
       "restoredFrom": "Von {ago}",
       "jobProgress": "{done} von {total} Teilen geändert",
-      "jobReverted": "{reverted} Teile wiederhergestellt, {skipped} nach Änderungen belassen"
+      "jobReverted": "{reverted} Teile wiederhergestellt, {skipped} nach Änderungen belassen",
+      "suggestions": "{preview} ({authors}) | {preview} ({authors}) | {count} von {authors}, z. B. {preview}"
     },
     "restore": {
       "button": {
@@ -858,7 +864,8 @@
     "commentsShort": "Kommentare",
     "activityShort": "Aktivität",
     "themeShort": "Design",
-    "knowledgeShort": "Wissen"
+    "knowledgeShort": "Wissen",
+    "suggestionsShort": "Vorschl."
   },
   "editorCommands": {
     "formatting": "Formatierung",
@@ -3530,5 +3537,63 @@
       "hint": "Durchsucht Titel und Text deiner Dokumente, deiner Workspaces und der mit dir geteilten Dokumente."
     },
     "subfolders": "{n} Ordner | {n} Ordner"
+  },
+  "suggestions": {
+    "title": "Vorschläge",
+    "aiAuthor": "markoto KI",
+    "kind": {
+      "insert": "Hinzufügen",
+      "delete": "Löschen",
+      "replace": "Ersetzen",
+      "obsolete": "Nichts mehr zu ändern"
+    },
+    "accept": "Annehmen",
+    "reject": "Ablehnen",
+    "withdraw": "Deinen Vorschlag zurückziehen",
+    "obsoleteHint": "Jemand hat diesen Text inzwischen entfernt. Lehne den Vorschlag ab, um ihn zu entfernen.",
+    "changedHint": "Der Text hat sich seit diesem Vorschlag geändert. Beim Annehmen wird er auf den aktuellen Text angewendet.",
+    "replyPlaceholder": "Auf diesen Vorschlag antworten…",
+    "allAuthors": "Alle",
+    "filterAuthor": "Vorschläge anzeigen von",
+    "acceptAll": "Alle annehmen",
+    "rejectAll": "Alle ablehnen",
+    "acceptShown": "Diese annehmen",
+    "rejectShown": "Diese ablehnen",
+    "acceptedN": "Keine Vorschläge angenommen | {n} Vorschlag angenommen | {n} Vorschläge angenommen",
+    "rejectedN": "Keine Vorschläge abgelehnt | {n} Vorschlag abgelehnt | {n} Vorschläge abgelehnt",
+    "failed": "Die Vorschläge konnten nicht aktualisiert werden. Bitte versuche es erneut.",
+    "empty": "Noch keine Vorschläge. Wechsle zu Vorschlagen, um Änderungen vorzuschlagen, die andere annehmen oder ablehnen können.",
+    "emptyReadOnly": "Keine Vorschläge in diesem Dokument.",
+    "mode": {
+      "editing": "Bearbeiten",
+      "suggesting": "Vorschlagen",
+      "editingHint": "Du bearbeitest den Text direkt. Wechsle zu Vorschlagen, um stattdessen Änderungen vorzuschlagen.",
+      "suggestingHint": "Deine Änderungen werden zu Vorschlägen, die andere annehmen oder ablehnen können.",
+      "requiredHint": "Der Eigentümer dieses Dokuments verlangt Vorschläge: Deine Änderungen werden zu Vorschlägen, die andere annehmen oder ablehnen.",
+      "viewerHint": "Du kannst Änderungen an diesem Dokument vorschlagen. Die Personen, die es bearbeiten, nehmen sie an oder lehnen sie ab.",
+      "suggestingFooter": "vorschlagen"
+    },
+    "ai": {
+      "toggle": "KI schlägt Änderungen vor",
+      "on": "Die KI macht ihre Änderungen als Vorschläge, die du annimmst oder ablehnst. Klicke, damit sie direkt bearbeitet.",
+      "off": "Die KI bearbeitet den Text direkt. Klicke, damit sie stattdessen Vorschläge macht.",
+      "forced": "Dieses Dokument verlangt Vorschläge, deshalb macht auch die KI ihre Änderungen als Vorschläge.",
+      "settingTitle": "Vorschläge",
+      "settingLabel": "Die KI schlägt vor, statt zu bearbeiten",
+      "settingDescription": "Änderungen, welche die KI an einem Dokument macht, auch bei grossen Bearbeitungen im Hintergrund, kommen als Vorschläge, die du oder dein Team annehmen oder ablehnen. Du kannst es pro Prompt in der KI-Leiste umschalten.",
+      "saveFailed": "Die Einstellung konnte nicht gespeichert werden. Bitte versuche es erneut."
+    },
+    "settings": {
+      "title": "Vorschläge",
+      "required": "Alle machen Vorschläge",
+      "requiredHelp": "Änderungen anderer werden zu Vorschlägen, die du annimmst oder ablehnst, wie bei der Durchsicht eines Entwurfs durch eine vorgesetzte Person. Du bearbeitest immer direkt.",
+      "exemptTitle": "Diese Workspace-Rollen bearbeiten weiterhin direkt:",
+      "exemptAdmins": "Workspace-Administratoren",
+      "exemptEditors": "Workspace-Bearbeiter",
+      "viewers": "Betrachter dürfen vorschlagen",
+      "viewersHelp": "Angemeldete Personen, die dieses Dokument nur ansehen dürfen, können Änderungen vorschlagen und auf Vorschläge antworten.",
+      "saveFailed": "Die Vorschlagseinstellungen konnten nicht gespeichert werden"
+    },
+    "exportCritic": "Markdown mit Vorschlägen herunterladen (CriticMarkup)"
   }
 }

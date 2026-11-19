@@ -26,21 +26,22 @@ export default defineApiHandler({
       exemptRoles: [...new Set(body.exemptRoles ?? before.exemptRoles)],
       viewersMaySuggest: body.viewersMaySuggest ?? before.viewersMaySuggest
     }
-    if (JSON.stringify(next) === JSON.stringify(before)) return next
-    await setSuggestionPolicy(docAccess, next)
-    // Every connection's write level may have changed (suggest-only or
-    // not, a viewer who may now suggest): reconnect with fresh tokens.
-    notifySyncReauthDocument(docId)
-    await appendAuditEvent({
-      by: docAccess,
-      actorIp: getClientIp(event),
-      scope: 'doc',
-      scopeId: docId,
-      workspaceId: doc.workspaceId,
-      action: AUDIT_DOC_SUGGESTION_SETTINGS_CHANGED,
-      before,
-      after: next
-    })
+    if (JSON.stringify(next) !== JSON.stringify(before)) {
+      await setSuggestionPolicy(docAccess, next)
+      // Every connection's write level may have changed (suggest-only or
+      // not, a viewer who may now suggest): reconnect with fresh tokens.
+      notifySyncReauthDocument(docId)
+      await appendAuditEvent({
+        by: docAccess,
+        actorIp: getClientIp(event),
+        scope: 'doc',
+        scopeId: docId,
+        workspaceId: doc.workspaceId,
+        action: AUDIT_DOC_SUGGESTION_SETTINGS_CHANGED,
+        before,
+        after: next
+      })
+    }
     return next
   }
 })

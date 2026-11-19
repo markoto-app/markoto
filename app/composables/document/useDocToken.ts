@@ -154,8 +154,10 @@ export function useDocToken(docId: string) {
     pendingPasswordUnlock.value = true
     // The unlock token's own claims say what it allows (the sync server
     // enforces them): edit, suggest only, or read (a workspace viewer).
+    // An unreadable token keeps the unlock's usual meaning (edit); the
+    // sync server decides either way.
     const claims = jwtClaims(newToken)
-    const readOnly = claims?.readOnly !== false
+    const readOnly = claims !== null && claims.readOnly !== false
     isReadOnly.value = readOnly
     state.suggestOnly.value = !readOnly && claims?.suggestOnly === true
     tokenData.value = { token: newToken, readOnly }

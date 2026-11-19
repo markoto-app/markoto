@@ -37,6 +37,9 @@ const hoisted = vi.hoisted(() => {
     tokenState: {
       tokenData: ref<{ token: string, readOnly: boolean } | null>({ token: 'jwt-v1', readOnly: false }),
       isReadOnly: ref(false),
+      suggestOnly: ref(false),
+      suggestionsRequired: ref(false),
+      contentWriter: ref(true),
       isOwner: ref(false),
       hasOwner: ref(false),
       requiresPassword: ref(false),
@@ -139,6 +142,9 @@ mockNuxtImport('useDocToken', () => {
   return (_docId: string) => ({
     tokenData: hoisted.tokenState.tokenData,
     isReadOnly: hoisted.tokenState.isReadOnly,
+    suggestOnly: hoisted.tokenState.suggestOnly,
+    suggestionsRequired: hoisted.tokenState.suggestionsRequired,
+    contentWriter: hoisted.tokenState.contentWriter,
     isOwner: hoisted.tokenState.isOwner,
     hasOwner: hoisted.tokenState.hasOwner,
     requiresPassword: hoisted.tokenState.requiresPassword,

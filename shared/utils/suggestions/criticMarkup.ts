@@ -23,14 +23,17 @@ export function toCriticMarkup(text: string, suggestions: readonly CriticSuggest
   for (const s of sorted) {
     const to = Math.min(s.to, floor)
     const from = Math.min(s.from, to)
-    const struck = out.slice(from, to)
-    let mark = ''
-    if (struck && s.text) mark = `{~~${struck}~>${s.text}~~}`
-    else if (struck) mark = `{--${struck}--}`
-    else if (s.text) mark = `{++${s.text}++}`
-    else continue
+    const mark = markFor(out.slice(from, to), s.text)
+    if (mark === null) continue
     out = out.slice(0, from) + mark + out.slice(to)
     floor = from
   }
   return out
+}
+
+function markFor(struck: string, text: string): string | null {
+  if (struck && text) return `{~~${struck}~>${text}~~}`
+  if (struck) return `{--${struck}--}`
+  if (text) return `{++${text}++}`
+  return null
 }

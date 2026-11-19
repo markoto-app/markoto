@@ -1,5 +1,5 @@
 import type { UserScope } from '../../../repos/proofs'
-import type { DocAuthzRow } from '../../../repos/access/docAuthz'
+import type { DocAuthzRow } from '../../access/docProof'
 import { getAiSuggestEdits } from '../../../repos/users'
 import { mustSuggest } from '../../suggestions/suggestionAccess'
 

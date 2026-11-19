@@ -25,10 +25,10 @@ export interface SuggestChange {
   insert: string
 }
 
-export type SuggestWrite =
-  | { kind: 'create', from: number, to: number, text: string }
-  | { kind: 'update', id: string, from: number, to: number, text: string }
-  | { kind: 'remove', id: string }
+export type SuggestWrite
+  = | { kind: 'create', from: number, to: number, text: string }
+    | { kind: 'update', id: string, from: number, to: number, text: string }
+    | { kind: 'remove', id: string }
 
 export interface SuggestPlan {
   writes: SuggestWrite[]
@@ -109,6 +109,16 @@ function planInsert(c: SuggestChange, work: OwnSuggestion[], put: (s: OwnSuggest
   return c.from
 }
 
+/** Backspace after your own inserted text: remove its last character (by code point, an emoji is one). */
+function trimTyped(c: SuggestChange, work: OwnSuggestion[], put: (s: OwnSuggestion) => void, remove: (s: OwnSuggestion) => void): boolean {
+  const typed = work.find(s => s.to === c.to && s.text.length > 0)
+  if (!typed) return false
+  typed.text = [...typed.text].slice(0, -1).join('')
+  if (typed.text.length === 0 && typed.from === typed.to) remove(typed)
+  else put(typed)
+  return true
+}
+
 function planDelete(
   c: SuggestChange,
   work: OwnSuggestion[],
@@ -118,16 +128,7 @@ function planDelete(
   create: (f: number, t: number, x: string) => void
 ): number {
   // Backspace right after your own inserted text takes from that text.
-  if (backward) {
-    const typed = work.find(s => s.to === c.to && s.text.length > 0)
-    if (typed) {
-      // One character per Backspace, by code point (an emoji is one).
-      typed.text = [...typed.text].slice(0, -1).join('')
-      if (typed.text.length === 0 && typed.from === typed.to) remove(typed)
-      else put(typed)
-      return c.to
-    }
-  }
+  if (backward && trimTyped(c, work, put, remove)) return c.to
   // Already struck by you: nothing changes but the caret.
   if (work.some(s => s.from <= c.from && c.to <= s.to)) return backward ? c.from : c.to
   // Extend your own strike next to it; a replacement only grows at its start

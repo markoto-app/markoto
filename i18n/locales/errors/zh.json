@@ -424,6 +424,15 @@
       "cycle": "文件夹不能移动到自身或其子文件夹中。",
       "forbidden": "你无权在此处更改文件夹。",
       "delete-blocked": "此文件夹中有 {blocked} 个文档你无法删除，因此未删除任何内容。"
+    },
+    "suggestion": {
+      "invalid": "此建议无效。",
+      "not-allowed": "你无法在此文档中提出建议。",
+      "review-not-allowed": "只有能编辑此文档的人才能接受或拒绝建议。",
+      "not-found": "此建议已不存在。可能已被其他人接受或拒绝。",
+      "too-many": "此文档的未处理建议过多({max} 条)。请先接受或拒绝一部分。",
+      "too-many-authors": "一次最多只能接受 {max} 位作者的建议。",
+      "rate-limited": "请求过多。请稍等片刻后重试。"
     }
   }
 }

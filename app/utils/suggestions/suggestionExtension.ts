@@ -49,7 +49,7 @@ const marksField = StateField.define<SuggestionMark[]>({
     for (const e of tr.effects) if (e.is(setSuggestionMarks)) return e.value
     if (!tr.docChanged) return marks
     // Follow remote edits until the host re-resolves the anchors.
-    return marks.map(m => {
+    return marks.map((m) => {
       const from = tr.changes.mapPos(m.from, 1)
       const to = Math.max(from, tr.changes.mapPos(m.to, -1))
       return { ...m, from, to }

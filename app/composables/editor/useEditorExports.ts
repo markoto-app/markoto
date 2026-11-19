@@ -97,7 +97,6 @@ export function useEditorExports(opts: {
     downloadMarkdown(content, `${opts.title.value} (suggestions)`)
   }
 
-
   // Server-rendered PDF from the Playwright renderer, served by /api/docs/:id/pdf
   // as a 302 to a presigned S3 URL. Unlike `exportPdf()` (browser print dialog +
   // paged.js), the bytes are produced server-side, so the recipient needn't have

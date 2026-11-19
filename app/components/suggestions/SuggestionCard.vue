@@ -63,6 +63,7 @@ function submitReply(body: string) {
     class="rounded-md border bg-default p-3 space-y-2"
     :class="focused ? 'border-default ring-1 ring-[var(--suggest-color)]' : 'border-default/60'"
     :style="{ '--suggest-color': suggestion.color }"
+    role="presentation"
     :data-suggestion-card="suggestion.id"
     data-testid="suggestion-card"
     @click="emit('focus', suggestion.id)"

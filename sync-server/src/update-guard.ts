@@ -404,21 +404,33 @@ function checkSuggestOnlyItem(doc: Y.Doc, s: Y.Item, placement: Resolution, acce
 function checkSuggestOnlyDeletions(doc: Y.Doc, ds: DeleteSet, update: StructIndex, placementOf: PlacementOf, access: ConnectionAccess): void {
   for (const [client, ranges] of ds.clients) {
     for (const range of ranges) {
-      let clock = range.clock
-      const end = range.clock + range.len
-      while (clock < end) {
-        const id = Y.createID(client, clock)
-        let s: Y.Item | Y.GC | null
-        try {
-          s = Y.getState(doc.store, client) > clock ? Y.getItem(doc.store, id) as Y.Item | Y.GC : findIn(update, id)
-        } catch {
-          s = null
-        }
-        if (s === null) throw new SyncRejection(SYNC_CLOSE_REASONS.invalidSuggestion, 'deletes unknown state')
+      for (const s of structsInRange(doc, update, client, range.clock, range.clock + range.len)) {
         if (s instanceof Y.Item && !s.deleted) checkSuggestOnlyDeletion(s, placementOf(s), access)
-        clock = s.id.clock + s.length
       }
     }
+  }
+}
+
+/** The structs covering `client`'s clocks `from` .. `end`, from the document or the update itself. */
+function* structsInRange(doc: Y.Doc, update: StructIndex, client: number, from: number, end: number): Generator<Y.Item | Y.GC> {
+  let clock = from
+  while (clock < end) {
+    const s = structAt(doc, update, Y.createID(client, clock))
+    if (s === null) throw new SyncRejection(SYNC_CLOSE_REASONS.invalidSuggestion, 'deletes unknown state')
+    yield s
+    clock = s.id.clock + s.length
+  }
+}
+
+function structAt(doc: Y.Doc, update: StructIndex, id: Y.ID): Y.Item | Y.GC | null {
+  try {
+    if (Y.getState(doc.store, id.client) > id.clock) {
+      const s: unknown = Y.getItem(doc.store, id)
+      return s instanceof Y.Item || s instanceof Y.GC ? s : null
+    }
+    return findIn(update, id)
+  } catch {
+    return null
   }
 }
 
