@@ -2,15 +2,15 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { describe, it, expect } from 'vitest'
 import {
-  hreflangLinks,
+  contentPageVariants,
   isIndexableVersion,
   marketingContentPath,
   marketingRoutePath,
   parseMarketingContentPath,
   parseMarketingRoute,
-  prefixedMarketingLocale,
   PREFIXED_MARKETING_LOCALES,
-  selfHostPath
+  selfHostPath,
+  variantAlternates
 } from '../../../shared/seo/marketing'
 import { flowStripData, stripCaption } from '../../../shared/docs/flowStrip'
 import { faqStructuredData, serializeJsonLd } from '../../../shared/seo/structuredData'
@@ -41,25 +41,14 @@ describe('parseMarketingRoute', () => {
   })
 })
 
-describe('prefixedMarketingLocale (UI language from the URL)', () => {
-  it('names de / fr for prefixed marketing paths only', () => {
-    expect(prefixedMarketingLocale('/de/markdown-cheat-sheet')).toBe('de')
-    expect(prefixedMarketingLocale('/fr/markdown-cheat-sheet?x=1')).toBe('fr')
-    expect(prefixedMarketingLocale('/markdown-cheat-sheet')).toBeNull()
-    expect(prefixedMarketingLocale('/de')).toBeNull()
-    expect(prefixedMarketingLocale('/docs/de/x')).toBeNull()
-    expect(prefixedMarketingLocale('/d/abc')).toBeNull()
-    expect(prefixedMarketingLocale('/es/markdown-cheat-sheet')).toBeNull()
-  })
-})
-
 describe('content ↔ route paths', () => {
   it('round-trips', () => {
     expect(marketingContentPath('de', 'markdown-cheat-sheet')).toBe('/marketing/de/markdown-cheat-sheet')
     expect(marketingRoutePath('en', 'markdown-cheat-sheet')).toBe('/markdown-cheat-sheet')
     expect(marketingRoutePath('fr', 'markdown-cheat-sheet')).toBe('/fr/markdown-cheat-sheet')
     expect(parseMarketingContentPath('/marketing/fr/x-y')).toEqual({ locale: 'fr', slug: 'x-y' })
-    expect(parseMarketingContentPath('/marketing/es/x')).toBeNull()
+    expect(parseMarketingContentPath('/marketing/es/x')).toEqual({ locale: 'es', slug: 'x' })
+    expect(parseMarketingContentPath('/marketing/it/x')).toBeNull()
     expect(parseMarketingContentPath('/docs/en/x')).toBeNull()
   })
 
@@ -82,12 +71,12 @@ describe('indexing + hreflang', () => {
   })
 
   it('lists the existing reviewed versions in a fixed order, plus x-default → English', () => {
-    expect(hreflangLinks('markdown-to-pdf', [
+    expect(variantAlternates(contentPageVariants('markdown-to-pdf', [
       { path: '/marketing/fr/markdown-to-pdf' },
       { path: '/marketing/en/markdown-to-pdf' },
       { path: '/marketing/de/markdown-to-pdf' },
       { path: '/marketing/de/other-page' }
-    ])).toEqual([
+    ]), 'de')).toEqual([
       { hreflang: 'en', path: '/markdown-to-pdf' },
       { hreflang: 'de', path: '/de/markdown-to-pdf' },
       { hreflang: 'fr', path: '/fr/markdown-to-pdf' },
@@ -96,17 +85,24 @@ describe('indexing + hreflang', () => {
   })
 
   it('leaves out languages without a file and unreviewed translations', () => {
-    expect(hreflangLinks('markdown-cheat-sheet', [
+    const variants = contentPageVariants('markdown-cheat-sheet', [
       { path: '/marketing/en/markdown-cheat-sheet' },
       { path: '/marketing/de/markdown-cheat-sheet', reviewed: false }
-    ])).toEqual([
+    ])
+    expect(variants).toEqual([
+      { locale: 'en', path: '/markdown-cheat-sheet', indexable: true },
+      { locale: 'de', path: '/de/markdown-cheat-sheet', indexable: false }
+    ])
+    expect(variantAlternates(variants, 'en')).toEqual([
       { hreflang: 'en', path: '/markdown-cheat-sheet' },
       { hreflang: 'x-default', path: '/markdown-cheat-sheet' }
     ])
+    // The unreviewed version itself lists none.
+    expect(variantAlternates(variants, 'de')).toEqual([])
   })
 
   it('no x-default without an English version', () => {
-    expect(hreflangLinks('eu-only', [{ path: '/marketing/de/eu-only' }])).toEqual([
+    expect(variantAlternates(contentPageVariants('eu-only', [{ path: '/marketing/de/eu-only' }]), 'de')).toEqual([
       { hreflang: 'de', path: '/de/eu-only' }
     ])
   })
@@ -224,7 +220,7 @@ describe('translated marketing pages', () => {
   )
 
   it('finds the de and fr pages', () => {
-    for (const locale of PREFIXED_MARKETING_LOCALES) {
+    for (const locale of ['de', 'fr']) {
       expect(translated.filter(t => t.locale === locale).length, locale).toBeGreaterThan(0)
     }
   })

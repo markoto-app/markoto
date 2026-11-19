@@ -308,7 +308,7 @@ export default defineNuxtConfig({
     // `/demo` (shared/seo/marketing.ts). The app keeps `no_prefix`; the
     // content pages' prefixes are handled by pages/[...marketing].vue.
     'pages:extend'(pages) {
-      pages.push(...(marketingUiRoutes(pages) as typeof pages))
+      pages.push(...marketingUiRoutes(pages))
     },
     // Production server entry: the bun preset's entry plus a request-body
     // size limit enforced by Bun (the preset buffers every body before

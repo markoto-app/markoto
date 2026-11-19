@@ -151,14 +151,11 @@ export function isLocalisedUiRoute(name: string | null | undefined): boolean {
   return MARKETING_UI_PAGES.some(page => PREFIXED_MARKETING_LOCALES.some(l => name === localisedRouteName(UI_PAGE_ROUTE_NAMES[page], l)))
 }
 
-/** The minimal route shape `marketingUiRoutes` works on (Nuxt's NuxtPage). */
+/** The route fields `marketingUiRoutes` reads (Nuxt's NuxtPage has them). */
 export interface PageRoute {
   name?: string
   path: string
-  file?: string
-  alias?: string[] | string
-  children?: PageRoute[]
-  [key: string]: unknown
+  alias?: unknown
 }
 
 /**
@@ -166,14 +163,15 @@ export interface PageRoute {
  * `/de`, `/de/pricing`, `/de/demo`, ... with the same component. Aliases
  * (the dashboard's `/f/:folderId`) are not copied.
  */
-export function marketingUiRoutes(pages: readonly PageRoute[]): PageRoute[] {
-  const out: PageRoute[] = []
+export function marketingUiRoutes<T extends PageRoute>(pages: readonly T[]): T[] {
+  const out: T[] = []
   for (const uiPath of MARKETING_UI_PAGES) {
     const page = pages.find(p => p.name === UI_PAGE_ROUTE_NAMES[uiPath])
     if (!page) continue
     for (const locale of PREFIXED_MARKETING_LOCALES) {
-      const { alias: _alias, ...rest } = page
-      out.push({ ...rest, name: localisedRouteName(UI_PAGE_ROUTE_NAMES[uiPath], locale), path: localisedPath(locale, uiPath) })
+      const copy: T = { ...page, name: localisedRouteName(UI_PAGE_ROUTE_NAMES[uiPath], locale), path: localisedPath(locale, uiPath) }
+      delete copy.alias
+      out.push(copy)
     }
   }
   return out
