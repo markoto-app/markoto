@@ -214,9 +214,17 @@ test('Organize a workspace', async ({ page, flow, editor }) => {
 
   // ---------- search ----------
   await flow.heading('Find a document by a word in it', 3)
-  await flow.narrate('The search box looks at titles and text. It searches the open folder; tick "All folders" to search the whole workspace.')
+  await flow.narrate('The search box looks at titles and text. It searches the open folder and its subfolders; tick "All folders" to search the whole workspace.')
+  if (!editor.isMobile) {
+    // Search from Research: neither it nor Interviews mentions pricing, so
+    // the result does not depend on how far the search index has got.
+    await flow.hover('Double-click "Research" to open it', explorer.row('Research'))
+    await openFolder('Research')
+    await page.waitForURL(new RegExp(`/w/${workspaceId}/f/${researchId}`))
+    await expect(explorer.row('Interviews')).toBeVisible()
+  }
   await flow.type('Type "pricing"', explorer.search, 'pricing', {
-    result: editor.isMobile ? '"Launch plan" mentions the pricing review.' : 'Nothing at the top level mentions it.',
+    result: editor.isMobile ? '"Launch plan" mentions the pricing review.' : 'Nothing in Research mentions it.',
     after: async () => {
       await page.waitForURL(/[?&]q=pricing/)
       if (editor.isMobile) await expect(explorer.row('Launch plan')).toBeVisible()
