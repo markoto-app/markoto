@@ -679,8 +679,8 @@
       "waiting": "Wartet auf deine Bestätigung…",
       "allow": "Erlauben",
       "deny": "Ablehnen",
-      "notePlaceholder": "Optional: Sag markoto, was es stattdessen tun soll, dann Ablehnen",
-      "noteLabel": "Hinweis an markoto beim Ablehnen",
+      "notePlaceholder": "Optional: Sag markoto, was es stattdessen tun soll, dann {action}",
+      "noteLabel": "Hinweis an markoto bei {action}",
       "tools": {
         "view_other_document": "markoto möchte „{target}“ lesen.",
         "list_my_documents": "markoto möchte deine Dokumente auflisten.",
@@ -1601,7 +1601,8 @@
     "confirm": "Duplizieren",
     "success": "Dokument dupliziert",
     "successDesc": "\"{title}\" ist bereit.",
-    "failed": "Duplizieren fehlgeschlagen"
+    "failed": "Duplizieren fehlgeschlagen",
+    "copyOf": "Kopie von {title}"
   },
   "move": {
     "title": "Dokument verschieben",
@@ -3631,7 +3632,8 @@
       "insert": "Hinzufügen",
       "delete": "Löschen",
       "replace": "Ersetzen",
-      "obsolete": "Nichts mehr zu ändern"
+      "obsolete": "Nichts mehr zu ändern",
+      "group": "{n} Änderungen"
     },
     "accept": "Annehmen",
     "reject": "Ablehnen",

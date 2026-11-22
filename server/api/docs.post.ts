@@ -4,6 +4,7 @@ import { enforceAnonGate } from '../utils/anonGate/gate'
 import { ANON_DOC_CREATE_LIMITS } from '~~/shared/config/anonLimits'
 import { INITIAL_CONTENT_MAX_LENGTH } from '~~/shared/config/docCreate'
 import { createDocBody } from '~~/shared/api/docs'
+import { requestLocale } from '../utils/platform/requestLocale'
 import { captureDocumentConversion } from '../utils/analytics/adConversions'
 
 // Document creation. Anonymous creation is allowed (falls back to `open-edit`
@@ -66,7 +67,8 @@ export default defineApiHandler({
       title: body?.title,
       description: body?.description,
       audience: body?.audience,
-      language: body?.language,
+      // No language chosen: the creator's UI language (new text follows it).
+      language: body?.language ?? requestLocale(event) ?? undefined,
       templateId: body?.templateId,
       themePreset: body?.themePreset,
       themeId: body?.themeId,

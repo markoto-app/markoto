@@ -3,6 +3,7 @@ import type { Awareness } from 'y-protocols/awareness'
 import SuggestionCard from '~/components/suggestions/SuggestionCard.vue'
 import { useSuggestionsContext } from '~/composables/suggestions/useSuggestions'
 import { useCommentsContext } from '~/composables/comments/useComments'
+import { cardIdOf, groupSuggestions } from '~/utils/suggestions/groupSuggestions'
 
 // The suggestions of the document as margin cards, in document order, with
 // "Accept all" / "Reject all", optionally for one author. Opened from the
@@ -55,6 +56,8 @@ watch(authors, (list) => {
 })
 const shown = computed(() => authorFilter.value === 'all' ? suggestions.value : suggestions.value.filter(s => s.authorKey === authorFilter.value))
 
+const cards = computed(() => groupSuggestions(shown.value))
+
 const threadsBySuggestion = computed(() => {
   const map = new Map<string, (typeof comments.value)[number]>()
   for (const c of comments.value) if (c.suggestionId !== null && !map.has(c.suggestionId)) map.set(c.suggestionId, c)
@@ -64,12 +67,12 @@ const threadsBySuggestion = computed(() => {
 const busyIds = ref<Set<string>>(new Set())
 const bulkBusy = ref(false)
 
-async function run(action: 'accept' | 'reject', select: { ids?: string[], authorKey?: string }) {
+async function run(action: 'accept' | 'reject', select: { ids?: string[], authorKey?: string }, announce = false) {
   const ids = select.ids ?? []
   for (const id of ids) busyIds.value.add(id)
   try {
     const result = await resolve(action, select)
-    if (!select.ids || select.ids.length > 1) {
+    if (announce || !select.ids) {
       toast.add({
         title: t(action === 'accept' ? 'suggestions.acceptedN' : 'suggestions.rejectedN', { n: result.resolved }, result.resolved),
         icon: action === 'accept' ? 'i-lucide-check' : 'i-lucide-x',
@@ -113,6 +116,9 @@ function onFocus(id: string) {
 /** Called by the layout when a suggestion is clicked in the text. */
 function focusSuggestion(id: string) {
   authorFilter.value = 'all'
+  // The card shows a whole group: any member id leads to it.
+  const groups = groupSuggestions(suggestions.value)
+  id = cardIdOf(groups, id)
   focusedId.value = id
   focusFade.start()
   void nextTick(() => {
@@ -171,18 +177,14 @@ defineExpose({ focusSuggestion })
 
     <div
       v-if="suggestions.length > 0"
-      class="px-2 pt-2 flex flex-wrap items-center gap-1.5 shrink-0"
+      class="px-2 pt-2 flex flex-col gap-1.5 shrink-0"
     >
-      <USelect
-        v-if="authors.length > 1"
-        v-model="authorFilter"
-        :items="authorItems"
-        size="xs"
-        class="min-w-0 flex-1"
-        :aria-label="t('suggestions.filterAuthor')"
-        data-testid="suggestions-author-filter"
-      />
-      <template v-if="canReview">
+      <!-- The bulk buttons come first so they keep their place when the author
+           filter below appears or goes away (a misclick on "Accept all"). -->
+      <div
+        v-if="canReview"
+        class="flex flex-wrap items-center gap-1.5"
+      >
         <UButton
           icon="i-lucide-check-check"
           color="neutral"
@@ -205,7 +207,16 @@ defineExpose({ focusSuggestion })
         >
           {{ authorFilter === 'all' ? t('suggestions.rejectAll') : t('suggestions.rejectShown') }}
         </UButton>
-      </template>
+      </div>
+      <USelect
+        v-if="authors.length > 1"
+        v-model="authorFilter"
+        :items="authorItems"
+        size="xs"
+        class="w-full min-w-0"
+        :aria-label="t('suggestions.filterAuthor')"
+        data-testid="suggestions-author-filter"
+      />
     </div>
 
     <div class="flex-1 overflow-y-auto p-2 space-y-2 min-h-0">
@@ -217,19 +228,20 @@ defineExpose({ focusSuggestion })
         {{ canWrite ? t('suggestions.empty') : t('suggestions.emptyReadOnly') }}
       </p>
       <SuggestionCard
-        v-for="s in shown"
-        :key="s.id"
-        :suggestion="s"
+        v-for="c in cards"
+        :key="c.primary.id"
+        :suggestion="c.primary"
+        :members="c.members"
         :can-review="canReview"
         :can-reply="canWrite"
-        :thread="threadsBySuggestion.get(s.id) ?? null"
-        :focused="focusedId === s.id"
-        :busy="busyIds.has(s.id)"
+        :thread="threadsBySuggestion.get(c.primary.id) ?? null"
+        :focused="focusedId === c.primary.id"
+        :busy="c.members.some(m => busyIds.has(m.id))"
         :viewer-id="viewerId"
         :viewer-name="viewerName"
         @focus="onFocus"
-        @accept="(id) => run('accept', { ids: [id] })"
-        @reject="(id) => run('reject', { ids: [id] })"
+        @accept="(ids) => run('accept', { ids }, ids.length > 1)"
+        @reject="(ids) => run('reject', { ids }, ids.length > 1)"
         @withdraw="withdraw"
         @reply="replyTo"
         @reply-thread="(threadId, body) => postReply(threadId, body)"

@@ -34,7 +34,7 @@ const { billing, refresh: refreshBilling } = useBilling()
 // a Team / Business workspace that is the workspace's pooled budget (the
 // member's limit), everywhere else the user's own.
 const workspaceContext = useAiWorkspaceContext()
-const { state: credits, planPointsRemaining, pointsTotal, creditPoints, fillRatio, isFreeAllowanceExhausted, isWorkspaceShared } = useAiCredits(workspaceContext)
+const { state: credits, isKnown, planPointsRemaining, pointsTotal, creditPoints, fillRatio, isFreeAllowanceExhausted, isWorkspaceShared } = useAiCredits(workspaceContext)
 const { billingEnabled, plansComingSoon } = useBillingMode()
 // AI Points only measure platform-paid AI (an operator's model-alias
 // defaults). Calls on the user's own key never touch them, so the meter is
@@ -162,7 +162,7 @@ function onManage(): void {
     </template>
   </UPopover>
   <UPopover
-    v-else-if="billing && anyPlatformBilled"
+    v-else-if="billing && anyPlatformBilled && isKnown"
     v-model:open="open"
     :content="{ align: 'end', side: 'bottom', sideOffset: 8 }"
   >

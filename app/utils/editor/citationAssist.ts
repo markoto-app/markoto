@@ -1,5 +1,5 @@
 import { autocompletion, type Completion, type CompletionContext, type CompletionResult } from '@codemirror/autocomplete'
-import { hoverTooltip, type EditorView, type Tooltip } from '@codemirror/view'
+import { hoverTooltip, tooltips, type EditorView, type Tooltip } from '@codemirror/view'
 import type { Extension } from '@codemirror/state'
 import { describeItem, type CslItem } from '~~/shared/utils/citations/cslItem'
 import { formatEntryText, type CitationStyleId } from '~~/shared/utils/citations/citationStyles'
@@ -99,8 +99,15 @@ function hoverSource(src: CitationAssistSource) {
   }
 }
 
+/** The editor's own box: the popup is kept inside it, never over the preview next door. */
+export function editorTooltipSpace(view: EditorView): { top: number, bottom: number, left: number, right: number } {
+  const r = view.dom.getBoundingClientRect()
+  return { top: r.top, bottom: r.bottom, left: r.left, right: r.right }
+}
+
 export function citationAssist(src: CitationAssistSource): Extension {
   return [
+    tooltips({ tooltipSpace: editorTooltipSpace }),
     autocompletion({ override: [completionSource(src)], icons: false }),
     hoverTooltip(hoverSource(src), { hoverTime: 350 })
   ]

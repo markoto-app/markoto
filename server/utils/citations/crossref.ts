@@ -1,4 +1,5 @@
 import { normalizeCslItem, type CslItem } from '~~/shared/utils/citations/cslItem'
+import { cleanCrossrefRecord } from '~~/shared/utils/citations/crossrefClean'
 import { citationKeyFor, normalizeDoi } from '~~/shared/utils/citations/citationKey'
 import { trimTrailingSlashes } from '~~/shared/utils/trimTrailingSlashes'
 import { isTestModeEnabled } from '~~/shared/utils/security/testMode'
@@ -69,9 +70,10 @@ export async function lookupDoi(doiInput: string, taken: (key: string) => boolea
   // Verified: Crossref's record names the DOI we asked for.
   const returned = typeof record.DOI === 'string' ? record.DOI : ''
   if (returned.toLowerCase() !== doi.toLowerCase()) throw new DoiLookupError('not-found')
-  const key = citationKeyFor(normalizeCslItem({ ...record, id: 'tmp' }) ?? { title: '' }, taken)
+  const tidy = cleanCrossrefRecord(record)
+  const key = citationKeyFor(normalizeCslItem({ ...tidy, id: 'tmp' }) ?? { title: '' }, taken)
   // Crossref's own `id` is not a citation key; the abstract is not kept.
-  const { id: _id, abstract: _abstract, ...rest } = record
+  const { id: _id, abstract: _abstract, ...rest } = tidy
   const item = normalizeCslItem({ ...rest, id: key, DOI: doi })
   if (!item) throw new DoiLookupError('not-found')
   return item

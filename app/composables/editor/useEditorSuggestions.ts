@@ -55,18 +55,19 @@ export function useEditorSuggestions(opts: {
   }
 
   // "AI suggests instead of editing" for this tab: starts from the user's
-  // setting (Settings > AI); the prompt bar's switch overrides it per prompt;
+  // setting (Settings > AI), and is on while the user has switched themselves
+  // to Suggesting; the prompt bar's switch overrides it per prompt;
   // the server forces it on where the document requires suggestions.
   const aiSuggestPreference = useAiSuggestQuery()
   const aiSuggestChosen = ref<boolean | null>(null)
   const aiSuggest = computed({
-    get: () => aiSuggestChosen.value ?? aiSuggestPreference.data.value?.suggest ?? false,
+    get: () => aiSuggestChosen.value ?? (suggesting.value || (aiSuggestPreference.data.value?.suggest ?? false)),
     set: (v: boolean) => {
       aiSuggestChosen.value = v
     }
   })
   /** What the next prompt asks for; undefined = the user's setting. */
-  const aiSuggestRequest = () => aiSuggestChosen.value ?? undefined
+  const aiSuggestRequest = () => aiSuggestChosen.value ?? (suggesting.value ? true : undefined)
   provide(AI_SUGGEST_SWITCH, { aiSuggest, forced: computed(() => opts.suggestOnly.value) })
 
   return { api, suggestingChosen, suggesting, canReview, count, panelRef, onSuggestionClick, onSuggestionFocus, aiSuggest, aiSuggestRequest }

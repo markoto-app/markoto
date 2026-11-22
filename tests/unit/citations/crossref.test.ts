@@ -43,6 +43,29 @@ describe('lookupDoi', () => {
     vi.unstubAllGlobals()
   })
 
+  it('tidies an all-caps Crossref record (Turing, Mind 1950)', async () => {
+    safeFetchMock.mockResolvedValue(ok({
+      'DOI': '10.1093/mind/lix.236.433',
+      'type': 'article-journal',
+      'title': 'I.\u2014COMPUTING MACHINERY AND INTELLIGENCE',
+      'author': [{ family: 'TURING', given: 'A. M.' }],
+      'container-title': 'Mind',
+      'publisher': 'Oxford University Press (OUP)',
+      'volume': 'LIX',
+      'issue': '236',
+      'page': '433-460',
+      'issued': { 'date-parts': [[1950]] }
+    }))
+    const item = await lookupDoi('10.1093/mind/LIX.236.433')
+    expect(item.title).toBe('Computing Machinery and Intelligence')
+    expect(item.author).toEqual([{ family: 'Turing', given: 'A. M.' }])
+    expect(item['container-title']).toBe('Mind')
+    expect(item.volume).toBe('LIX')
+    expect(item.issue).toBe('236')
+    expect(item.page).toBe('433-460')
+    expect(item.id).toMatch(/^turing1950/)
+  })
+
   it('rejects input that is not a DOI without any request', async () => {
     expect(await reason(lookupDoi('not a doi'))).toBe('invalid')
     expect(safeFetchMock).not.toHaveBeenCalled()

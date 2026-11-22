@@ -26,12 +26,12 @@ const { showError } = useErrorHandler()
 const duplicating = ref(false)
 const newTitle = ref('')
 
-// Prefill "Copy of X" whenever the modal opens, mirrors how desktop
-// Finder / Drive handle duplicates. Truncate to 255 to match the DB
+// Prefill "Copy of X" (in the UI language) whenever the modal opens, mirrors
+// how desktop Finder / Drive handle duplicates. Truncate to 255 to match the DB
 // limit.
 watch(open, (v) => {
   if (!v) return
-  const base = `Copy of ${props.sourceTitle || 'Untitled'}`
+  const base = t('duplicate.copyOf', { title: props.sourceTitle || t('editor.untitled') })
   newTitle.value = base.length > 255 ? base.slice(0, 255) : base
 })
 

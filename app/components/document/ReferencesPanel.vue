@@ -53,7 +53,16 @@ const locale = computed(() => documentLocale(props.language))
 // Adding
 type AddMode = 'doi' | 'paste'
 const addMode = ref<AddMode | null>(null)
+watch(addMode, async (mode) => {
+  await nextTick()
+  if (mode === 'doi') doiField.value?.inputRef?.focus()
+  else if (mode === 'paste') pasteField.value?.textareaRef?.focus()
+})
 const doiInput = ref('')
+// Opening a field puts the caret in it: Enter then submits it instead of
+// pressing the (still focused) button that opened it, which closed it again.
+const doiField = useTemplateRef<{ inputRef?: HTMLInputElement | null }>('doiField')
+const pasteField = useTemplateRef<{ textareaRef?: HTMLTextAreaElement | null }>('pasteField')
 const pasteInput = ref('')
 const busy = ref(false)
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -254,6 +263,7 @@ const problemText = (p: ReferenceProblem) => t(`references.problem.${p.kind}`, {
           @submit.prevent="addDoi"
         >
           <UInput
+            ref="doiField"
             v-model="doiInput"
             :placeholder="t('references.doiPlaceholder')"
             class="flex-1"
@@ -275,6 +285,7 @@ const problemText = (p: ReferenceProblem) => t(`references.problem.${p.kind}`, {
           class="space-y-1.5"
         >
           <UTextarea
+            ref="pasteField"
             v-model="pasteInput"
             :placeholder="t('references.pastePlaceholder')"
             :rows="6"

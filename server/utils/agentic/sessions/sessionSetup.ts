@@ -99,13 +99,14 @@ export async function resolveSessionWorkspace(rawWorkspaceId: string | null, use
 }
 
 /** The `<document_context>` block (title, description, audience, language); empty without a document row. */
-export function documentContextBlockFor(doc: Awaited<ReturnType<typeof getDoc>>): string {
+export function documentContextBlockFor(doc: Awaited<ReturnType<typeof getDoc>>, uiLanguage?: string | null): string {
   return doc
     ? buildDocumentContext({
         title: doc.title,
         description: doc.description,
         audience: doc.audience,
-        language: doc.language
+        language: doc.language,
+        uiLanguage
       })
     : ''
 }

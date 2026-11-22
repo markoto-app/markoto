@@ -111,9 +111,7 @@ watch(() => props.folderId !== null && data.folders.status.value === 'success' &
 })
 
 const items = computed<ExplorerItem[]>(() => {
-  const subfolders = q.value
-    ? []
-    : folders.value.filter(f => f.parentId === props.folderId).sort((a, b) => a.name.localeCompare(b.name, locale.value, { numeric: true, sensitivity: 'base' }))
+  const subfolders = q.value ? [] : folders.value.filter(f => f.parentId === props.folderId).sort((a, b) => a.name.localeCompare(b.name, locale.value, { numeric: true, sensitivity: 'base' }))
   return [...subfolders.map(folderItem), ...data.docRows.value.map(docItem)]
 })
 const keys = computed(() => items.value.map(i => i.key))
@@ -573,7 +571,9 @@ defineExpose({ refresh: data.refresh })
               <span v-else>{{ folderSize(row.original.folder) }}</span>
             </template>
             <template #empty>
+              <ExplorerListSkeleton v-if="data.firstLoadPending.value" />
               <div
+                v-else
                 class="py-12 text-center space-y-1"
                 data-testid="explorer-empty"
               >

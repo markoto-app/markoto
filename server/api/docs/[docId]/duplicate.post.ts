@@ -6,6 +6,8 @@ import { duplicateDocument, ImageQuotaExceededError } from '../../../utils/docum
 import { withIdempotency } from '../../../utils/platform/idempotency'
 import { imageQuotaError, resolveImageQuota } from '../../../utils/storage/imageQuota'
 import { flushSyncDocument } from '../../../utils/documents/syncNotify'
+import { requestLocale } from '../../../utils/platform/requestLocale'
+import { duplicateTitle } from '~~/shared/utils/documents/duplicateTitle'
 import { canDownload } from '~~/shared/utils/documents/docPermissions'
 import { duplicateDocBody } from '~~/shared/api/sharing'
 import { useEnv } from '~~/shared/env/load'
@@ -15,7 +17,7 @@ import { useEnv } from '~~/shared/env/load'
 // workspace by default (pass `workspaceId: null` to park it as a
 // personal doc, or a string to re-target).
 //
-// Inherits: title (as "Copy of …" unless overridden), theme,
+// Inherits: title (as "Copy of …" in the caller's language unless overridden), theme,
 // accessMode, password, word/size counters, Y.js state (with image URL
 // rewrite so `/api/files/{docId}/…` paths target the new doc), and all
 // S3 image assets (CopyObject'd into the new prefix).
@@ -40,7 +42,7 @@ export default defineApiHandler({
   handler: async ({ event, user, self, prove, docId: sourceDocId, docAccess, doc: source, state, actor, body }) => {
     if (!canDownload(state, actor, source.shareNoDownload)) throw apiError('share/download-disabled')
 
-    const title = resolveTitle(body?.title, source.title)
+    const title = resolveTitle(body?.title, source.title, requestLocale(event))
     // Left out: the source's workspace; null: a personal copy.
     const targetWorkspaceId = body?.workspaceId === undefined ? source.workspaceId : body.workspaceId
     const target = await assertCanCreateInTarget(prove, user.id, targetWorkspaceId)
@@ -77,14 +79,9 @@ export default defineApiHandler({
   }
 })
 
-/** Title: user-provided > "Copy of {source.title}" > "Copy of Untitled". Caps at 255 chars. */
-function resolveTitle(rawTitle: string | undefined, sourceTitle: string | null | undefined): string {
-  let title: string
-  if (rawTitle !== undefined && rawTitle.trim().length > 0) {
-    title = rawTitle.trim()
-  } else {
-    title = `Copy of ${sourceTitle || 'Untitled'}`
-  }
+/** Title: user-provided > "Copy of {source.title}" in the caller's UI language. Caps at 255 chars. */
+function resolveTitle(rawTitle: string | undefined, sourceTitle: string | null | undefined, locale: string | null): string {
+  const title = rawTitle !== undefined && rawTitle.trim().length > 0 ? rawTitle.trim() : duplicateTitle(sourceTitle, locale)
   return title.length > 255 ? title.slice(0, 255) : title
 }
 

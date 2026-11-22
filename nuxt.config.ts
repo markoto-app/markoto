@@ -358,6 +358,14 @@ export default defineNuxtConfig({
     }
   },
 
+  // Icons used by name anywhere in the app ship in the client bundle. Without
+  // this only Nuxt UI's own icons do, and the rest (menus and dropdowns that
+  // first render on a click, like the explorer's context menu) were fetched
+  // from the icon API on first use, so they opened with empty icon slots.
+  icon: {
+    clientBundle: { scan: true, sizeLimitKb: 512 }
+  },
+
   // MCP server config. Tools, resources, and prompts auto-discovered from
   // server/mcp/{tools,resources,prompts}/. Sessions on so external clients
   // can stash a docId index across calls; defaultHandlerStrategy: 'orphans'

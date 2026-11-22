@@ -115,5 +115,9 @@ export function useExplorerData(scope: Ref<ExplorerScope>, params: Ref<DocListPa
     } catch { /* the poll catches up */ }
   }
 
-  return { folders, docs, docRows, total, refresh, afterChange }
+  // Nothing has arrived yet (also during SSR, where the queries don't run): the
+  // list shows a skeleton, not "this folder is empty".
+  const firstLoadPending = computed(() => (docs.data.value === undefined && docs.status.value !== 'error') || (folders.data.value === undefined && folders.status.value !== 'error'))
+
+  return { folders, docs, docRows, total, firstLoadPending, refresh, afterChange }
 }

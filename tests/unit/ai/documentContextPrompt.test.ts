@@ -117,6 +117,14 @@ describe('buildDocumentContext', () => {
     expect(titleLine.length).toBeLessThan(270)
   })
 
+  it('answers in the prompt language, falling back to the UI language (not the document language)', () => {
+    const withUi = buildDocumentContext({ title: 'T', description: '', audience: 'casual', language: 'en', uiLanguage: 'de' })
+    expect(withUi).toContain('Write all prose in "English".')
+    expect(withUi).toContain('write them in the language of the user\'s prompt, or in "Deutsch" when that is unclear')
+    const withoutUi = buildDocumentContext({ title: 'T', description: '', audience: 'casual', language: 'fr' })
+    expect(withoutUi).toContain('or in "français" when that is unclear')
+  })
+
   it('places audience guidance ABOVE language guidance for stable ordering', () => {
     const out = buildDocumentContext({
       title: 'T',
