@@ -221,7 +221,7 @@
         "x": 803,
         "y": 549
       },
-      "path": "/d/JwEfbXh7JE"
+      "path": "/d/wzlnEbqAAS"
     },
     {
       "kind": "chapter",
@@ -236,7 +236,7 @@
         "x": 640,
         "y": 24
       },
-      "path": "/d/JwEfbXh7JE"
+      "path": "/d/wzlnEbqAAS"
     },
     {
       "kind": "outcome",
@@ -246,7 +246,7 @@
         "x": 640,
         "y": 24
       },
-      "path": "/d/JwEfbXh7JE"
+      "path": "/d/wzlnEbqAAS"
     },
     {
       "kind": "chapter",
@@ -261,7 +261,7 @@
         "x": 640,
         "y": 24
       },
-      "path": "/d/JwEfbXh7JE"
+      "path": "/d/wzlnEbqAAS"
     },
     {
       "kind": "approach",
@@ -271,7 +271,7 @@
         "x": 1119,
         "y": 24
       },
-      "path": "/d/JwEfbXh7JE",
+      "path": "/d/wzlnEbqAAS",
       "annotations": [
         {
           "label": "lock icon",
@@ -291,21 +291,21 @@
         "x": 1119,
         "y": 24
       },
-      "path": "/d/JwEfbXh7JE",
+      "path": "/d/wzlnEbqAAS",
       "highlights": [
         {
           "label": "The link to share",
-          "x": 408.41357421875,
-          "y": 375.543701171875,
-          "w": 327.10333251953125,
-          "h": 27.9500732421875
+          "x": 408.1778869628906,
+          "y": 375.518798828125,
+          "w": 327.4362487792969,
+          "h": 27.978515625
         },
         {
           "label": "One-click copy",
-          "x": 743.608154296875,
-          "y": 375.51873779296875,
-          "w": 92.241943359375,
-          "h": 27.97857666015625
+          "x": 743.6080322265625,
+          "y": 375.518798828125,
+          "w": 92.24169921875,
+          "h": 27.978515625
         }
       ]
     },
@@ -317,7 +317,7 @@
         "x": 789,
         "y": 389
       },
-      "path": "/d/JwEfbXh7JE"
+      "path": "/d/wzlnEbqAAS"
     },
     {
       "kind": "outcome",
@@ -327,7 +327,7 @@
         "x": 789,
         "y": 389
       },
-      "path": "/d/JwEfbXh7JE",
+      "path": "/d/wzlnEbqAAS",
       "hero": true
     }
   ],

@@ -1,0 +1,166 @@
+{
+  "version": 2,
+  "title": "Navigate with the outline",
+  "slug": "navigate-with-the-outline",
+  "locale": "en",
+  "variant": "light-mobile",
+  "viewport": {
+    "w": 390,
+    "h": 720
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Jump to a heading"
+    },
+    {
+      "kind": "narration",
+      "text": "A long document is easier to move around when you can see its structure. The outline lists every heading of the document, with sections nested under their chapters, and takes you to any of them in one click.",
+      "file": "01.webp",
+      "cursor": null,
+      "path": "/d/NzaqlTI6hX"
+    },
+    {
+      "kind": "approach",
+      "file": "01.webp",
+      "caption": "Open the menu at the top right",
+      "cursor": {
+        "x": 362,
+        "y": 20
+      },
+      "path": "/d/NzaqlTI6hX"
+    },
+    {
+      "kind": "outcome",
+      "file": "02.webp",
+      "caption": "Outline and documents is one of the entries.",
+      "cursor": {
+        "x": 362,
+        "y": 20
+      },
+      "path": "/d/NzaqlTI6hX"
+    },
+    {
+      "kind": "approach",
+      "file": "03.webp",
+      "caption": "Tap \"Outline and documents\"",
+      "cursor": {
+        "x": 273,
+        "y": 398
+      },
+      "path": "/d/NzaqlTI6hX"
+    },
+    {
+      "kind": "outcome",
+      "file": "04.webp",
+      "caption": "A sheet slides up with the outline of the document.",
+      "cursor": {
+        "x": 273,
+        "y": 398
+      },
+      "path": "/d/NzaqlTI6hX"
+    },
+    {
+      "kind": "approach",
+      "file": "05.webp",
+      "caption": "Tap \"Risks\"",
+      "cursor": null,
+      "path": "/d/NzaqlTI6hX"
+    },
+    {
+      "kind": "outcome",
+      "file": "06.webp",
+      "caption": "The sheet closes and the editor shows the Risks section, the cursor at the end of its heading.",
+      "cursor": null,
+      "path": "/d/NzaqlTI6hX"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Switch to another document"
+    },
+    {
+      "kind": "narration",
+      "text": "The second tab lists the documents of the workspace, in their folders, so you can switch without going back to the workspace page. For a document outside any workspace it lists your own documents.",
+      "file": "06.webp",
+      "cursor": {
+        "x": 273,
+        "y": 398
+      },
+      "path": "/d/NzaqlTI6hX"
+    },
+    {
+      "kind": "approach",
+      "file": "06.webp",
+      "caption": "Open the menu at the top right",
+      "cursor": {
+        "x": 362,
+        "y": 20
+      },
+      "path": "/d/NzaqlTI6hX"
+    },
+    {
+      "kind": "outcome",
+      "file": "07.webp",
+      "caption": "Outline and documents is one of the entries.",
+      "cursor": {
+        "x": 362,
+        "y": 20
+      },
+      "path": "/d/NzaqlTI6hX"
+    },
+    {
+      "kind": "approach",
+      "file": "08.webp",
+      "caption": "Open \"Outline and documents\" again",
+      "cursor": {
+        "x": 273,
+        "y": 398
+      },
+      "path": "/d/NzaqlTI6hX"
+    },
+    {
+      "kind": "outcome",
+      "file": "09.webp",
+      "caption": "The outline marks the section the cursor is in.",
+      "cursor": {
+        "x": 273,
+        "y": 398
+      },
+      "path": "/d/NzaqlTI6hX"
+    },
+    {
+      "kind": "approach",
+      "file": "10.webp",
+      "caption": "Tap the \"Workspace\" tab",
+      "cursor": null,
+      "path": "/d/NzaqlTI6hX"
+    },
+    {
+      "kind": "outcome",
+      "file": "11.webp",
+      "caption": "The documents of your workspace, in their folders. The one you are in is marked.",
+      "cursor": null,
+      "path": "/d/NzaqlTI6hX"
+    },
+    {
+      "kind": "approach",
+      "file": "11.webp",
+      "caption": "Tap \"Board memo\"",
+      "cursor": null,
+      "path": "/d/NzaqlTI6hX"
+    },
+    {
+      "kind": "outcome",
+      "file": "12.webp",
+      "caption": "Board memo opens.",
+      "cursor": null,
+      "path": "/d/O1HzjwkQre"
+    }
+  ],
+  "next": {
+    "slug": "organize-a-workspace",
+    "why": "Sort the documents of your workspace into folders"
+  }
+}

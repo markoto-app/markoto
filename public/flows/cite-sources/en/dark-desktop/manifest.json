@@ -22,7 +22,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/S-ZRywUvJv"
+      "path": "/d/LV31Vj19n_"
     },
     {
       "kind": "approach",
@@ -32,7 +32,7 @@
         "x": 1260,
         "y": 98
       },
-      "path": "/d/S-ZRywUvJv",
+      "path": "/d/LV31Vj19n_",
       "annotations": [
         {
           "label": "references",
@@ -52,7 +52,7 @@
         "x": 1260,
         "y": 98
       },
-      "path": "/d/S-ZRywUvJv"
+      "path": "/d/LV31Vj19n_"
     },
     {
       "kind": "approach",
@@ -62,7 +62,7 @@
         "x": 1129,
         "y": 301
       },
-      "path": "/d/S-ZRywUvJv"
+      "path": "/d/LV31Vj19n_"
     },
     {
       "kind": "approach",
@@ -72,7 +72,7 @@
         "x": 987,
         "y": 417
       },
-      "path": "/d/S-ZRywUvJv"
+      "path": "/d/LV31Vj19n_"
     },
     {
       "kind": "outcome",
@@ -82,7 +82,7 @@
         "x": 987,
         "y": 417
       },
-      "path": "/d/S-ZRywUvJv"
+      "path": "/d/LV31Vj19n_"
     },
     {
       "kind": "approach",
@@ -92,7 +92,7 @@
         "x": 1246,
         "y": 503
       },
-      "path": "/d/S-ZRywUvJv"
+      "path": "/d/LV31Vj19n_"
     },
     {
       "kind": "outcome",
@@ -102,7 +102,7 @@
         "x": 1246,
         "y": 503
       },
-      "path": "/d/S-ZRywUvJv"
+      "path": "/d/LV31Vj19n_"
     },
     {
       "kind": "approach",
@@ -112,7 +112,7 @@
         "x": 1222,
         "y": 406
       },
-      "path": "/d/S-ZRywUvJv"
+      "path": "/d/LV31Vj19n_"
     },
     {
       "kind": "outcome",
@@ -122,7 +122,7 @@
         "x": 1222,
         "y": 406
       },
-      "path": "/d/S-ZRywUvJv"
+      "path": "/d/LV31Vj19n_"
     },
     {
       "kind": "approach",
@@ -132,7 +132,7 @@
         "x": 1256,
         "y": 139
       },
-      "path": "/d/S-ZRywUvJv"
+      "path": "/d/LV31Vj19n_"
     },
     {
       "kind": "outcome",
@@ -142,7 +142,7 @@
         "x": 1256,
         "y": 139
       },
-      "path": "/d/S-ZRywUvJv",
+      "path": "/d/LV31Vj19n_",
       "hero": true
     },
     {
@@ -155,7 +155,7 @@
       "file": "13.webp",
       "caption": "The PDF has the citation in the text and the formatted entry under References.",
       "cursor": null,
-      "path": "/api/docs/S-ZRywUvJv/pdf?inline=1",
+      "path": "/api/docs/LV31Vj19n_/pdf?inline=1",
       "actor": "pdf"
     }
   ],

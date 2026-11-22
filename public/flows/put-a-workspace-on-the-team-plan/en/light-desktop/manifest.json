@@ -19,7 +19,7 @@
       "text": "Team is bought for a workspace, not for a person. You pay per seat, and everyone in the workspace gets Team inside it, with one shared AI budget for the month. Only workspace admins see the Billing tab.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/w/rGrzbczQZ2"
+      "path": "/w/MmWVyDbT3L"
     },
     {
       "kind": "approach",
@@ -29,7 +29,7 @@
         "x": 950,
         "y": 283
       },
-      "path": "/w/rGrzbczQZ2",
+      "path": "/w/MmWVyDbT3L",
       "annotations": [
         {
           "label": "Billing",
@@ -49,7 +49,7 @@
         "x": 950,
         "y": 283
       },
-      "path": "/w/rGrzbczQZ2"
+      "path": "/w/MmWVyDbT3L"
     },
     {
       "kind": "outcome",
@@ -59,7 +59,7 @@
         "x": 950,
         "y": 283
       },
-      "path": "/w/rGrzbczQZ2",
+      "path": "/w/MmWVyDbT3L",
       "highlights": [
         {
           "label": "Total",
@@ -78,7 +78,7 @@
         "x": 93,
         "y": 709
       },
-      "path": "/w/rGrzbczQZ2"
+      "path": "/w/MmWVyDbT3L"
     },
     {
       "kind": "outcome",
@@ -88,7 +88,7 @@
         "x": 93,
         "y": 709
       },
-      "path": "/w/rGrzbczQZ2"
+      "path": "/w/MmWVyDbT3L"
     },
     {
       "kind": "approach",
@@ -98,7 +98,7 @@
         "x": 173,
         "y": 747
       },
-      "path": "/w/rGrzbczQZ2"
+      "path": "/w/MmWVyDbT3L"
     },
     {
       "kind": "outcome",
@@ -130,7 +130,7 @@
         "x": 1238,
         "y": 42
       },
-      "path": "/w/rGrzbczQZ2",
+      "path": "/w/MmWVyDbT3L",
       "highlights": [
         {
           "label": "Team",
@@ -157,52 +157,52 @@
     {
       "kind": "narration",
       "text": "The fourth seat is free, so the first invitation goes straight out. When every seat is taken, markoto asks before adding one: the extra seat is charged pro rata on the next invoice.",
-      "file": "09.webp",
+      "file": "08.webp",
       "cursor": {
         "x": 1238,
         "y": 42
       },
-      "path": "/w/rGrzbczQZ2"
+      "path": "/w/MmWVyDbT3L"
     },
     {
       "kind": "approach",
-      "file": "10.webp",
+      "file": "09.webp",
       "caption": "Invite a fifth person",
       "cursor": {
         "x": 831,
         "y": 595
       },
-      "path": "/w/rGrzbczQZ2"
+      "path": "/w/MmWVyDbT3L"
     },
     {
       "kind": "outcome",
-      "file": "11.webp",
+      "file": "10.webp",
       "caption": "All four seats are taken, so markoto asks whether to add one.",
       "cursor": {
         "x": 831,
         "y": 595
       },
-      "path": "/w/rGrzbczQZ2"
+      "path": "/w/MmWVyDbT3L"
     },
     {
       "kind": "approach",
-      "file": "12.webp",
+      "file": "11.webp",
       "caption": "Click \"Add a seat and invite\"",
       "cursor": {
         "x": 793,
         "y": 649
       },
-      "path": "/w/rGrzbczQZ2"
+      "path": "/w/MmWVyDbT3L"
     },
     {
       "kind": "outcome",
-      "file": "13.webp",
+      "file": "12.webp",
       "caption": "The plan now has five seats and the invitation is on its way.",
       "cursor": {
         "x": 793,
         "y": 649
       },
-      "path": "/w/rGrzbczQZ2"
+      "path": "/w/MmWVyDbT3L"
     },
     {
       "kind": "chapter",
@@ -212,32 +212,32 @@
     {
       "kind": "narration",
       "text": "By default each member may use up to two seats' worth of the AI budget a month. You can lower or raise it per person, or remove it; the workspace budget always applies.",
-      "file": "14.webp",
+      "file": "13.webp",
       "cursor": {
         "x": 793,
         "y": 649
       },
-      "path": "/w/rGrzbczQZ2"
+      "path": "/w/MmWVyDbT3L"
     },
     {
       "kind": "approach",
-      "file": "15.webp",
+      "file": "14.webp",
       "caption": "Save Ben's limit of 3,000 AI Points a month",
       "cursor": {
         "x": 1171,
-        "y": 786
+        "y": 618
       },
-      "path": "/w/rGrzbczQZ2"
+      "path": "/w/MmWVyDbT3L"
     },
     {
       "kind": "outcome",
-      "file": "16.webp",
+      "file": "15.webp",
       "caption": "Ben can now use up to 3,000 of the workspace's AI Points this month.",
       "cursor": {
         "x": 1171,
-        "y": 786
+        "y": 618
       },
-      "path": "/w/rGrzbczQZ2"
+      "path": "/w/MmWVyDbT3L"
     },
     {
       "kind": "chapter",
@@ -247,42 +247,42 @@
     {
       "kind": "narration",
       "text": "If the workspace needs more AI this month, buy extra AI Points. They are used only after the month's points are spent and last a year.",
-      "file": "17.webp",
+      "file": "16.webp",
       "cursor": {
         "x": 1171,
-        "y": 786
+        "y": 618
       },
-      "path": "/w/rGrzbczQZ2"
+      "path": "/w/MmWVyDbT3L"
     },
     {
       "kind": "approach",
-      "file": "18.webp",
+      "file": "17.webp",
       "caption": "Tick the box for the AI Points",
       "cursor": {
         "x": 93,
-        "y": 452
+        "y": 284
       },
-      "path": "/w/rGrzbczQZ2"
+      "path": "/w/MmWVyDbT3L"
     },
     {
       "kind": "outcome",
-      "file": "19.webp",
+      "file": "18.webp",
       "caption": "For AI Points the box also says that the right of withdrawal ends once they are used.",
       "cursor": {
         "x": 93,
-        "y": 452
+        "y": 284
       },
-      "path": "/w/rGrzbczQZ2"
+      "path": "/w/MmWVyDbT3L"
     },
     {
       "kind": "approach",
-      "file": "20.webp",
+      "file": "19.webp",
       "caption": "Buy 25,000 AI Points for €25",
       "cursor": {
         "x": 639,
-        "y": 494
+        "y": 326
       },
-      "path": "/w/rGrzbczQZ2"
+      "path": "/w/MmWVyDbT3L"
     },
     {
       "kind": "outcome",
@@ -290,19 +290,19 @@
       "caption": "Stripe takes the payment.",
       "cursor": {
         "x": 639,
-        "y": 494
+        "y": 326
       },
       "path": "/pay/c/cs_test_a1YS1URlnyQCN5fUUduORoQ7Pw41PJqDWkIVQCpJPqkfIhd6tVY8XB1OLY"
     },
     {
       "kind": "outcome",
-      "file": "21.webp",
+      "file": "20.webp",
       "caption": "The AI Points are on the workspace, with the date they expire.",
       "cursor": {
         "x": 1238,
         "y": 42
       },
-      "path": "/w/rGrzbczQZ2",
+      "path": "/w/MmWVyDbT3L",
       "highlights": [
         {
           "label": "Extra AI Points",

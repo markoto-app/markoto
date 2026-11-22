@@ -163,7 +163,7 @@
     },
     {
       "kind": "approach",
-      "file": "11.webp",
+      "file": "12.webp",
       "caption": "Tick the consent box",
       "cursor": {
         "x": 453,
@@ -173,7 +173,7 @@
     },
     {
       "kind": "outcome",
-      "file": "12.webp",
+      "file": "13.webp",
       "caption": "With consent given, the button becomes active.",
       "cursor": {
         "x": 453,
@@ -183,7 +183,7 @@
     },
     {
       "kind": "approach",
-      "file": "13.webp",
+      "file": "14.webp",
       "caption": "Click \"Join the waitlist\"",
       "cursor": {
         "x": 1118,
@@ -193,7 +193,7 @@
     },
     {
       "kind": "outcome",
-      "file": "14.webp",
+      "file": "15.webp",
       "caption": "Check your inbox: the sign-up only counts once you click the confirmation link in the email.",
       "cursor": {
         "x": 1118,

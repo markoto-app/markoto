@@ -19,7 +19,7 @@
       "text": "Keep the facts of your project in an ordinary document: characters, places, a glossary, a style guide. Mark it as AI context and markoto reads it whenever you ask the AI for help in this workspace.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/w/QYdPX3KlFl"
+      "path": "/w/tstzU_PzVT"
     },
     {
       "kind": "outcome",
@@ -29,7 +29,7 @@
         "x": 92,
         "y": 474
       },
-      "path": "/w/QYdPX3KlFl",
+      "path": "/w/tstzU_PzVT",
       "highlights": [
         {
           "label": "Actions",
@@ -48,7 +48,7 @@
         "x": 195,
         "y": 636
       },
-      "path": "/w/QYdPX3KlFl"
+      "path": "/w/tstzU_PzVT"
     },
     {
       "kind": "outcome",
@@ -58,7 +58,7 @@
         "x": 195,
         "y": 636
       },
-      "path": "/w/QYdPX3KlFl"
+      "path": "/w/tstzU_PzVT"
     },
     {
       "kind": "outcome",
@@ -68,7 +68,7 @@
         "x": 195,
         "y": 636
       },
-      "path": "/w/QYdPX3KlFl",
+      "path": "/w/tstzU_PzVT",
       "highlights": [
         {
           "label": "AI context",
@@ -92,7 +92,7 @@
         "x": 139,
         "y": 695
       },
-      "path": "/d/ytRnewYg2C"
+      "path": "/d/oSfn7atTXb"
     },
     {
       "kind": "outcome",
@@ -102,7 +102,7 @@
         "x": 139,
         "y": 695
       },
-      "path": "/d/ytRnewYg2C"
+      "path": "/d/oSfn7atTXb"
     },
     {
       "kind": "outcome",
@@ -112,7 +112,7 @@
         "x": 139,
         "y": 695
       },
-      "path": "/d/ytRnewYg2C",
+      "path": "/d/oSfn7atTXb",
       "highlights": [
         {
           "label": "AI context",
@@ -131,82 +131,82 @@
     {
       "kind": "narration",
       "text": "Ask for a scene without repeating the facts. The prompt names neither the town nor the ferry; the AI takes both from the bible.",
-      "file": "08.webp",
+      "file": "05.webp",
       "cursor": {
         "x": 364,
         "y": 339
       },
-      "path": "/d/ytRnewYg2C"
+      "path": "/d/oSfn7atTXb"
     },
     {
       "kind": "approach",
-      "file": "08.webp",
+      "file": "05.webp",
       "caption": "Click into the AI prompt bar",
       "cursor": {
         "x": 159,
         "y": 602
       },
-      "path": "/d/ytRnewYg2C"
+      "path": "/d/oSfn7atTXb"
     },
     {
       "kind": "outcome",
-      "file": "09.webp",
+      "file": "08.webp",
       "caption": "The prompt bar is ready.",
       "cursor": {
         "x": 159,
         "y": 602
       },
-      "path": "/d/ytRnewYg2C"
+      "path": "/d/oSfn7atTXb"
     },
     {
       "kind": "approach",
-      "file": "09.webp",
+      "file": "08.webp",
       "caption": "Ask for the opening scene",
       "cursor": {
         "x": 76,
         "y": 603
       },
-      "path": "/d/ytRnewYg2C"
+      "path": "/d/oSfn7atTXb"
     },
     {
       "kind": "outcome",
-      "file": "10.webp",
+      "file": "09.webp",
       "caption": "A short ask; the facts come from the bible.",
       "cursor": {
         "x": 76,
         "y": 603
       },
-      "path": "/d/ytRnewYg2C"
+      "path": "/d/oSfn7atTXb"
     },
     {
       "kind": "approach",
-      "file": "10.webp",
+      "file": "09.webp",
       "caption": "Send it",
       "cursor": {
         "x": 350,
         "y": 602
       },
-      "path": "/d/ytRnewYg2C"
+      "path": "/d/oSfn7atTXb"
     },
     {
       "kind": "outcome",
-      "file": "11.webp",
+      "file": "10.webp",
       "caption": "markoto is writing.",
       "cursor": {
         "x": 350,
         "y": 602
       },
-      "path": "/d/ytRnewYg2C"
+      "path": "/d/oSfn7atTXb"
     },
     {
       "kind": "outcome",
-      "file": "12.webp",
+      "file": "11.webp",
       "caption": "The opening names Vellmar and the Heron, facts only the bible holds.",
       "cursor": {
         "x": 350,
         "y": 602
       },
-      "path": "/d/ytRnewYg2C",
+      "path": "/d/oSfn7atTXb",
       "highlights": [
         {
           "label": "AI's paragraph",
