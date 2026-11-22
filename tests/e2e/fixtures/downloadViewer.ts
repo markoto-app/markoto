@@ -93,7 +93,7 @@ export async function pdfText(page: Page, pdf: Buffer): Promise<string> {
  * 1843 )". Collapse whitespace and drop the space after an opening bracket
  * and before closing punctuation, so assertions read like the rendered text.
  */
-export function normalizePdfText(text: string): string {
+function normalizePdfText(text: string): string {
   return text
     .split('\n')
     .map(line => line
