@@ -111,6 +111,17 @@ describe('pagedPreviewIframe.html', () => {
     expect(WITHOUT_COMMENT).toContain('0 0 0 calc(1px / var(--page-zoom, 1)) rgba(20, 17, 13, 0.10)')
   })
 
+  it('scrolls to an outline heading by comparing ids inside the shown pages', () => {
+    expect(WITHOUT_COMMENT).toContain('data.type === \'scroll-to-heading\'')
+    expect(WITHOUT_COMMENT).toContain('data.id.length <= 512')
+    expect(WITHOUT_COMMENT).toContain('else if (msg.type === \'scroll-to-heading\') scrollToHeading(msg.id);')
+    const fn = WITHOUT_COMMENT.slice(WITHOUT_COMMENT.indexOf('function scrollToHeading(id)'))
+    // No selector built from the message: ids are compared as strings, in #mount only.
+    expect(fn.slice(0, 500)).toContain('document.getElementById(\'mount\')')
+    expect(fn.slice(0, 500)).toContain('withId[i].id === id')
+    expect(fn.slice(0, 500)).not.toContain('querySelector(\'#\' + id')
+  })
+
   it('keeps print at 100 % whatever the preview zoom is', () => {
     const print = WITHOUT_COMMENT.slice(WITHOUT_COMMENT.indexOf('@media print'))
     expect(print).toContain('zoom: 1 !important;')

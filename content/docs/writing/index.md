@@ -19,6 +19,7 @@ without losing their visual structure.
 - [Citations, bibliography and cross-references](/docs/writing/citations): cite with `[@key]`, pick a citation style, number figures and tables.
 - [Speak instead of typing](/docs/writing/voice-dictate): live dictation streams text as you speak.
 - [Zoom the preview and see all pages](/docs/writing/zoom-the-preview): zoom in, step back to every page at once.
+- [Navigate with the outline](/docs/writing/outline-and-documents): jump to any heading, switch to another document of the workspace.
 
 **Doc lifecycle**
 - [Duplicate a document](/docs/writing/duplicate): clone everything into a new URL.

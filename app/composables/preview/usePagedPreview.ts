@@ -18,7 +18,8 @@ import {
   currentCspNonce,
   parseFrameMessage,
   mayReferenceOwnUploads,
-  postToFrame
+  postToFrame,
+  buildScrollToHeadingMessage
 } from '~/utils/preview/previewFrame'
 
 /**
@@ -217,6 +218,13 @@ export function usePagedPreview(opts: PagedPreviewOptions) {
     }))
   }
 
+  /** Scroll the shown pages to a heading's anchor (the editor's outline). */
+  function scrollToHeading(id: string) {
+    const frame = iframe?.contentWindow
+    const msg = buildScrollToHeadingMessage(id)
+    if (frame && isReady.value && msg) postToFrame(frame, msg)
+  }
+
   /** Mirror the app's color mode into the iframe (it can't read the parent DOM). */
   function sendColorMode() {
     const frame = iframe?.contentWindow
@@ -279,6 +287,7 @@ export function usePagedPreview(opts: PagedPreviewOptions) {
     pageCount: readonly(pageCount),
     isPaginating: readonly(isPaginating),
     isReady: readonly(isReady),
-    error: readonly(error)
+    error: readonly(error),
+    scrollToHeading
   }
 }

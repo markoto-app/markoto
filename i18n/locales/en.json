@@ -1854,6 +1854,32 @@
     "uploadStorageFailed": "The file could not be uploaded to storage (status {status}).",
     "uploadNetworkError": "Network error during upload."
   },
+  "leftPanel": {
+    "label": "Outline and documents",
+    "show": "Show outline and documents",
+    "hide": "Hide outline and documents",
+    "close": "Close outline and documents",
+    "tabs": {
+      "outline": "Outline",
+      "workspace": "Workspace"
+    },
+    "outline": {
+      "emptyTitle": "No headings yet",
+      "emptyHint": "Start a line with # for a heading and ## for a section below it. Your headings appear here as you write."
+    },
+    "workspace": {
+      "myDocuments": "My documents",
+      "openWorkspace": "Open in workspace",
+      "openMyDocuments": "Open in My documents",
+      "empty": "No documents here yet.",
+      "loadFailed": "The documents could not be loaded.",
+      "retry": "Try again",
+      "showMore": "Show more",
+      "signedOut": "Sign in to see your other documents here.",
+      "notMember": "Documents of this workspace appear here once someone shares them with you.",
+      "sharedWithYou": "Shared with you"
+    }
+  },
   "designImport": {
     "button": "Create a design from a document",
     "title": "Create a design from a document",

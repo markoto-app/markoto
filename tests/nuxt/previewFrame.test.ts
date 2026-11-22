@@ -9,6 +9,7 @@ import {
   attachOwnUploadTokens,
   buildRenderMessage,
   buildZoomMessage,
+  buildScrollToHeadingMessage,
   mayReferenceOwnUploads,
   parseFrameMessage,
   withOwnUploadToken
@@ -143,6 +144,15 @@ describe('buildZoomMessage', () => {
     const srcdoc = buildPreviewSrcdoc({ parentOrigin: 'https://markoto.app', nonce: 'bm9uY2Utbm9uY2Utbm9uY2U=', dark: false })
     expect(srcdoc).not.toContain('__PREVIEW_ZOOM_SCRIPT__')
     expect(srcdoc).toContain('var previewZoom = (function installPreviewZoom(')
+  })
+})
+
+describe('buildScrollToHeadingMessage', () => {
+  it('builds the outline\'s scroll message and refuses ids the frame would refuse', () => {
+    expect(buildScrollToHeadingMessage('results')).toEqual({ type: 'scroll-to-heading', id: 'results' })
+    expect(buildScrollToHeadingMessage('')).toBeNull()
+    expect(buildScrollToHeadingMessage('x'.repeat(513))).toBeNull()
+    expect(buildScrollToHeadingMessage('x'.repeat(512))).not.toBeNull()
   })
 })
 

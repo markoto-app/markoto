@@ -22,6 +22,7 @@ const emit = defineEmits<{
   'open-docs': []
   'start-tour': []
   'logout': []
+  'open-navigator': []
 }>()
 const { t } = useI18n()
 
@@ -90,7 +91,11 @@ const mobileMenuItems = computed(() => {
     { label: t('menubar.help.docs'), icon: 'i-lucide-book-open', onSelect: () => emit('open-docs') },
     { label: t('menubar.help.tour'), icon: 'i-lucide-map', onSelect: () => emit('start-tour') }
   ]
-  return [fileGroup(), viewModeGroup, themeGroup, helpGroup, authGroup()]
+  // The desktop left panel (outline, workspace documents) as a sheet.
+  const navigateGroup = [
+    { label: t('leftPanel.label'), icon: 'i-lucide-list-tree', onSelect: () => emit('open-navigator') }
+  ]
+  return [fileGroup(), viewModeGroup, navigateGroup, themeGroup, helpGroup, authGroup()]
 })
 </script>
 

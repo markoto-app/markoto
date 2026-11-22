@@ -222,6 +222,7 @@ markoto usa **únicamente el almacenamiento estrictamente necesario** para prest
 | `markoto:preview-zoom` (almacenamiento local) | Recuerda el nivel de zoom de la vista previa del documento. | Hasta que lo borre |
 | `markoto-created-first-doc` (almacenamiento local) | Recuerda que este navegador ya ha creado un documento, para que el cuadro de diálogo de nuevo documento no vuelva a ofrecer las opciones del primer documento. | Hasta que lo borre |
 | `markoto:editor-tour` (almacenamiento local) | Recuerda que ha terminado u omitido el breve recorrido inicial del editor. | Hasta que lo borre |
+| `markoto:editor-left-panel` (almacenamiento local) | Recuerda si el panel de esquema y documentos del editor está abierto y qué pestaña usó por última vez. | Hasta que lo borre |
 | `markoto-pending-invite` (almacenamiento de sesión) | Conserva un enlace de invitación a un espacio de trabajo mientras inicia sesión para aceptarla. | Hasta que cierre la pestaña |
 | `markoto-anon-avatar` (almacenamiento de sesión) | Un token aleatorio que elige la cara que ven sus colaboradores mientras trabaja en un documento sin cuenta. También se guarda con las ediciones y comentarios que hace sin cuenta, para que el registro de actividad muestre la misma cara. Más allá de eso, no está vinculado a usted ni a su navegador. | En el navegador: hasta que cierre la pestaña. Con sus ediciones y comentarios: mientras exista el documento (apartado 5) |
 | Caché del service worker | Permite que markoto cargue más rápido y funcione sin conexión. | Hasta que la borre |

@@ -1854,6 +1854,32 @@
     "uploadStorageFailed": "文件无法上传到存储（状态码 {status}）。",
     "uploadNetworkError": "上传时发生网络错误。"
   },
+  "leftPanel": {
+    "label": "大纲和文档",
+    "show": "显示大纲和文档",
+    "hide": "隐藏大纲和文档",
+    "close": "关闭大纲和文档",
+    "tabs": {
+      "outline": "大纲",
+      "workspace": "工作区"
+    },
+    "outline": {
+      "emptyTitle": "还没有标题",
+      "emptyHint": "以 # 开头的行是标题，以 ## 开头的行是其下的小节。标题会在你写作时显示在这里。"
+    },
+    "workspace": {
+      "myDocuments": "我的文档",
+      "openWorkspace": "在工作区中打开",
+      "openMyDocuments": "在我的文档中打开",
+      "empty": "这里还没有文档。",
+      "loadFailed": "无法加载文档。",
+      "retry": "重试",
+      "showMore": "显示更多",
+      "signedOut": "登录后可在这里看到你的其他文档。",
+      "notMember": "有人与你共享此工作区的文档后，它们会显示在这里。",
+      "sharedWithYou": "与你共享"
+    }
+  },
   "designImport": {
     "button": "从文档创建设计",
     "title": "从文档创建设计",

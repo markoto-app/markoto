@@ -1,4 +1,5 @@
-// Shared so MobileTabBar and EditorLayout agree on the panel identifiers (including the "editor" drawer).
+// Shared so MobileTabBar and EditorLayout agree on the panel identifiers (including the "editor" drawer
+// and the phone's "navigator" sheet: the desktop left panel's outline and workspace documents).
 
 export type TabName
   = | 'document'
@@ -9,3 +10,4 @@ export type TabName
     | 'knowledge'
     | 'references'
     | 'editor'
+    | 'navigator'
