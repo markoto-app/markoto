@@ -679,8 +679,8 @@
       "waiting": "あなたの確認を待っています…",
       "allow": "許可",
       "deny": "拒否",
-      "notePlaceholder": "任意：代わりに何をしてほしいか markoto に伝えてから「拒否」",
-      "noteLabel": "拒否時の markoto へのメモ",
+      "notePlaceholder": "任意：代わりに何をしてほしいか markoto に伝えてから「{action}」",
+      "noteLabel": "「{action}」時の markoto へのメモ",
       "tools": {
         "view_other_document": "markoto が「{target}」を読もうとしています。",
         "list_my_documents": "markoto があなたのドキュメント一覧を取得しようとしています。",
@@ -1601,7 +1601,8 @@
     "confirm": "複製",
     "success": "ドキュメントを複製しました",
     "successDesc": "「{title}」の準備ができました。",
-    "failed": "複製できませんでした"
+    "failed": "複製できませんでした",
+    "copyOf": "{title} のコピー"
   },
   "move": {
     "title": "ドキュメントを移動",
@@ -3631,7 +3632,8 @@
       "insert": "追加",
       "delete": "削除",
       "replace": "置換",
-      "obsolete": "変更するものはありません"
+      "obsolete": "変更するものはありません",
+      "group": "{n} 件の変更"
     },
     "accept": "承認",
     "reject": "却下",

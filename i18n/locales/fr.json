@@ -679,8 +679,8 @@
       "waiting": "En attente de votre confirmation…",
       "allow": "Autoriser",
       "deny": "Refuser",
-      "notePlaceholder": "Facultatif : dites à markoto quoi faire à la place, puis Refuser",
-      "noteLabel": "Note pour markoto avec Refuser",
+      "notePlaceholder": "Facultatif : dites à markoto quoi faire à la place, puis {action}",
+      "noteLabel": "Note pour markoto avec {action}",
       "tools": {
         "view_other_document": "markoto veut lire « {target} ».",
         "list_my_documents": "markoto veut lister vos documents.",
@@ -1601,7 +1601,8 @@
     "confirm": "Dupliquer",
     "success": "Document dupliqué",
     "successDesc": "« {title} » est prêt.",
-    "failed": "Impossible de dupliquer"
+    "failed": "Impossible de dupliquer",
+    "copyOf": "Copie de {title}"
   },
   "move": {
     "title": "Déplacer le document",
@@ -3631,7 +3632,8 @@
       "insert": "Ajouter",
       "delete": "Supprimer",
       "replace": "Remplacer",
-      "obsolete": "Plus rien à modifier"
+      "obsolete": "Plus rien à modifier",
+      "group": "{n} modifications"
     },
     "accept": "Accepter",
     "reject": "Rejeter",

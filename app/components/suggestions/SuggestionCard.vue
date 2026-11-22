@@ -11,6 +11,8 @@ import { REPLY_BODY_MAX } from '~/utils/comments/commentBody'
 
 const props = defineProps<{
   suggestion: DerivedSuggestion
+  /** All suggestions of this card: one AI edit makes several word-level suggestions, shown (and resolved) together. */
+  members?: DerivedSuggestion[]
   /** May accept and reject (edits directly). */
   canReview: boolean
   /** May write replies (not read-only). */
@@ -24,8 +26,8 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'focus': [id: string]
-  'accept': [id: string]
-  'reject': [id: string]
+  'accept': [ids: string[]]
+  'reject': [ids: string[]]
   'withdraw': [id: string]
   'reply': [suggestionId: string, body: string]
   'reply-thread': [threadId: string, body: string]
@@ -35,10 +37,13 @@ const emit = defineEmits<{
 const { t } = useI18n()
 
 const avatarSeed = computed(() => avatarSeedFor({ id: props.suggestion.authorId, avatarSeed: props.suggestion.authorAvatarSeed, fallback: props.suggestion.authorName }))
-const relativeTime = useRelativeTime(() => new Date(props.suggestion.updatedAt))
+const items = computed(() => props.members && props.members.length > 0 ? props.members : [props.suggestion])
+const ids = computed(() => items.value.map(m => m.id))
+const grouped = computed(() => items.value.length > 1)
 const authorLabel = computed(() => props.suggestion.isAi ? t('suggestions.aiAuthor') : props.suggestion.authorName)
 
 const kindLabel = computed(() => {
+  if (grouped.value) return t('suggestions.kind.group', { n: items.value.length })
   if (props.suggestion.obsolete) return t('suggestions.kind.obsolete')
   return t(`suggestions.kind.${props.suggestion.kind}`)
 })
@@ -86,7 +91,10 @@ function submitReply(body: string) {
             class="font-medium text-default truncate"
             data-testid="suggestion-author"
           >{{ authorLabel }}</span>
-          <span class="font-mono text-[10.5px] tracking-[0.04em] text-muted shrink-0 lowercase">{{ relativeTime }}</span>
+          <CommonTimeAgo
+            :ts="suggestion.updatedAt"
+            class="font-mono text-[10.5px] tracking-[0.04em] text-muted shrink-0"
+          />
         </div>
         <span class="font-mono text-[10.5px] uppercase tracking-[0.06em] text-muted">{{ kindLabel }}</span>
       </div>
@@ -104,7 +112,7 @@ function submitReply(body: string) {
               :loading="busy"
               :aria-label="t('suggestions.accept')"
               data-testid="suggestion-accept"
-              @click="emit('accept', suggestion.id)"
+              @click="emit('accept', ids)"
             />
           </UTooltip>
           <UTooltip :text="t('suggestions.reject')">
@@ -116,7 +124,7 @@ function submitReply(body: string) {
               :disabled="busy"
               :aria-label="t('suggestions.reject')"
               data-testid="suggestion-reject"
-              @click="emit('reject', suggestion.id)"
+              @click="emit('reject', ids)"
             />
           </UTooltip>
         </template>
@@ -137,17 +145,22 @@ function submitReply(body: string) {
       </div>
     </div>
 
-    <div class="text-sm break-words whitespace-pre-wrap leading-relaxed">
+    <div
+      v-for="m in items"
+      :key="m.id"
+      class="text-sm break-words whitespace-pre-wrap leading-relaxed"
+    >
       <span
-        v-if="suggestion.current || suggestion.deleted"
+        v-if="m.current || m.deleted"
         class="suggest-card-del"
         data-testid="suggestion-deleted-text"
-      >{{ clip(suggestion.current || suggestion.deleted) }}</span>
+      >{{ clip(m.current || m.deleted) }}</span>
       <span
-        v-if="suggestion.text"
+        v-if="m.text"
         class="suggest-card-ins"
+        :class="{ 'suggest-card-ai': suggestion.isAi }"
         data-testid="suggestion-inserted-text"
-      >{{ clip(suggestion.text) }}</span>
+      >{{ clip(m.text) }}</span>
     </div>
 
     <p
@@ -205,8 +218,11 @@ function submitReply(body: string) {
 <style scoped>
 .suggest-card-del {
   text-decoration: line-through;
-  text-decoration-color: var(--suggest-color);
-  color: var(--ui-text-muted);
+  text-decoration-thickness: 2px;
+  color: var(--mk-suggest-del-fg);
+  background-color: var(--mk-suggest-del-bg);
+  border-radius: 2px;
+  padding: 0 2px;
 }
 
 .suggest-card-ins {
@@ -214,6 +230,15 @@ function submitReply(body: string) {
   text-decoration-color: var(--suggest-color);
   text-decoration-thickness: 2px;
   text-underline-offset: 3px;
+  color: var(--mk-suggest-ins-fg);
+  background-color: var(--mk-suggest-ins-bg);
+  border-radius: 2px;
+  padding: 0 2px;
   margin-left: 0.25rem;
+}
+
+.suggest-card-ai {
+  box-shadow: inset 2px 0 0 var(--suggest-color);
+  padding-left: 4px;
 }
 </style>

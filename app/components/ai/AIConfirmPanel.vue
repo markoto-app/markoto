@@ -44,6 +44,8 @@ const { t, te, locale } = useI18n()
 const isJob = computed(() => props.request?.kind === 'job' && !!props.request.job)
 const isReplace = computed(() => props.request?.kind === 'replace' && !!props.request.replace)
 const kind = computed(() => isJob.value ? 'job' : isReplace.value ? 'replace' : 'tool')
+// The button that sends the note with it; the hint under the field names the same word.
+const denyLabel = computed(() => isJob.value ? t('ai.confirm.job.cancel') : isReplace.value ? t('ai.confirm.replace.cancel') : t('ai.confirm.deny'))
 
 /**
  * The target language is named in the UI language: the planner writes
@@ -136,7 +138,7 @@ const question = computed(() => {
             data-testid="ai-confirm-deny"
             @click="deny"
           >
-            {{ isJob ? t('ai.confirm.job.cancel') : isReplace ? t('ai.confirm.replace.cancel') : t('ai.confirm.deny') }}
+            {{ denyLabel }}
           </UButton>
           <UButton
             color="neutral"
@@ -155,8 +157,8 @@ const question = computed(() => {
         size="sm"
         :maxlength="CONFIRM_NOTE_MAX_LENGTH"
         :disabled="busy"
-        :placeholder="t('ai.confirm.notePlaceholder')"
-        :aria-label="t('ai.confirm.noteLabel')"
+        :placeholder="t('ai.confirm.notePlaceholder', { action: denyLabel })"
+        :aria-label="t('ai.confirm.noteLabel', { action: denyLabel })"
         data-testid="ai-confirm-note"
         @keydown.enter.prevent="note.trim() && deny()"
       />

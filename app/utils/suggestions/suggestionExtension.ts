@@ -27,6 +27,8 @@ export interface SuggestionMark {
   /** Nothing left to change (struck text gone, no text): drawn faintly. */
   obsolete: boolean
   authorName: string
+  /** Written by the AI: drawn with a bar on its leading edge. */
+  ai?: boolean
 }
 
 export const setSuggestionMarks = StateEffect.define<SuggestionMark[]>()
@@ -63,12 +65,12 @@ class InsertionWidget extends WidgetType {
   }
 
   override eq(other: InsertionWidget): boolean {
-    return other.mark.id === this.mark.id && other.mark.text === this.mark.text && other.mark.color === this.mark.color && other.mark.obsolete === this.mark.obsolete
+    return other.mark.id === this.mark.id && other.mark.text === this.mark.text && other.mark.color === this.mark.color && other.mark.obsolete === this.mark.obsolete && other.mark.ai === this.mark.ai
   }
 
   toDOM(): HTMLElement {
     const el = document.createElement('span')
-    el.className = 'cm-suggest-ins'
+    el.className = this.mark.ai ? 'cm-suggest-ins cm-suggest-ai' : 'cm-suggest-ins'
     el.textContent = this.mark.text
     el.dataset.suggestionId = this.mark.id
     el.style.setProperty('--suggest-color', this.mark.color)
@@ -90,7 +92,7 @@ function decorationsOf(marks: readonly SuggestionMark[], docLength: number): Dec
     const style = `--suggest-color: ${m.color}`
     if (to > from) {
       ranges.push(Decoration.mark({
-        class: m.obsolete ? 'cm-suggest-del cm-suggest-obsolete' : 'cm-suggest-del',
+        class: `cm-suggest-del${m.ai ? ' cm-suggest-ai' : ''}${m.obsolete ? ' cm-suggest-obsolete' : ''}`,
         attributes: { 'data-suggestion-id': m.id, 'style': style, 'title': m.authorName }
       }).range(from, to))
     }

@@ -679,8 +679,8 @@
       "waiting": "Waiting for your confirmation…",
       "allow": "Allow",
       "deny": "Deny",
-      "notePlaceholder": "Optional: tell markoto what to do instead, then Deny",
-      "noteLabel": "Note for markoto with Deny",
+      "notePlaceholder": "Optional: tell markoto what to do instead, then {action}",
+      "noteLabel": "Note for markoto with {action}",
       "tools": {
         "view_other_document": "markoto wants to read “{target}”.",
         "list_my_documents": "markoto wants to list your documents.",
@@ -1601,7 +1601,8 @@
     "confirm": "Duplicate",
     "success": "Document duplicated",
     "successDesc": "\"{title}\" is ready.",
-    "failed": "Could not duplicate"
+    "failed": "Could not duplicate",
+    "copyOf": "Copy of {title}"
   },
   "move": {
     "title": "Move document",
@@ -3631,7 +3632,8 @@
       "insert": "Add",
       "delete": "Delete",
       "replace": "Replace",
-      "obsolete": "Nothing left to change"
+      "obsolete": "Nothing left to change",
+      "group": "{n} changes"
     },
     "accept": "Accept",
     "reject": "Reject",

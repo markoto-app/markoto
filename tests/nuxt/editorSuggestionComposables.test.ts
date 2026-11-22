@@ -167,6 +167,21 @@ describe('useEditorSuggestions', () => {
     expect(injected!.forced.value).toBe(true)
   })
 
+  it('makes the AI suggest while the user is in Suggesting mode, unless the prompt bar says otherwise', async () => {
+    suggestSetting = { suggest: false }
+    const f = editorFixture()
+    const { value: s } = await inComponent(() => useEditorSuggestions({ ...f, docId: 'd1' }))
+    await useQueryCache().invalidateQueries({ key: aiKeys.suggest() })
+    expect(s.aiSuggest.value).toBe(false)
+    expect(s.aiSuggestRequest()).toBeUndefined()
+    s.suggestingChosen.value = true
+    expect(s.aiSuggest.value).toBe(true)
+    expect(s.aiSuggestRequest()).toBe(true)
+    s.aiSuggest.value = false
+    expect(s.aiSuggest.value).toBe(false)
+    expect(s.aiSuggestRequest()).toBe(false)
+  })
+
   it('has no switch outside the editor', async () => {
     let injected: unknown = 'unset'
     await inComponent(() => {

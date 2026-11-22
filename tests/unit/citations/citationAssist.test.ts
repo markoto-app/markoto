@@ -5,7 +5,7 @@ import { EditorView } from '@codemirror/view'
 import { CompletionContext } from '@codemirror/autocomplete'
 import type { Tooltip } from '@codemirror/view'
 
-import { citationAssist, type CitationAssistSource } from '../../../app/utils/editor/citationAssist'
+import { citationAssist, editorTooltipSpace, type CitationAssistSource } from '../../../app/utils/editor/citationAssist'
 import type { CslItem } from '../../../shared/utils/citations/cslItem'
 // The completion and hover sources are internal; capture them as the extension hands them to CodeMirror.
 const captured = vi.hoisted(() => ({ complete: null as null | ((c: unknown) => unknown), hover: null as null | ((v: unknown, p: number) => unknown) }))
@@ -118,5 +118,14 @@ describe('citation hover', () => {
   it('describes a defined label and flags an undefined one', () => {
     expect(hover('{#fig:map} see @fig:map', 20).text).toBe('Figure: fig:map')
     expect(hover('see @tbl:nope', 8).text).toBe('Unknown: tbl:nope')
+  })
+})
+
+describe('citation popup placement', () => {
+  it('keeps popups inside the editor box', () => {
+    const view = new EditorView({ state: EditorState.create({ doc: 'x' }) })
+    view.dom.getBoundingClientRect = () => ({ top: 10, bottom: 410, left: 20, right: 620, width: 600, height: 400, x: 20, y: 10, toJSON: () => ({}) })
+    expect(editorTooltipSpace(view)).toEqual({ top: 10, bottom: 410, left: 20, right: 620 })
+    view.destroy()
   })
 })

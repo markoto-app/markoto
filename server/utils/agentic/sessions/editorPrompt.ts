@@ -7,6 +7,7 @@ import { validateEditorSelection, wrapPromptWithEditorState } from '../editorSta
 import { buildKnowledgeBlock, buildWorkspaceMembersBlock, withKnowledgeNote } from '../workspacePromptBlocks'
 import { assemblePromptContext, PROMPT_SYSTEM_PROMPT } from '../promptAssembly'
 import { useLogger } from '../../platform/logger'
+import { requestLocale } from '../../platform/requestLocale'
 import { documentContextBlockFor, openAiSession, resolveSessionWorkspace } from './sessionSetup'
 import { runAgentSession } from './runSession'
 import { withSuggestNote, type SessionSuggestMode } from './suggestMode'
@@ -40,7 +41,7 @@ export async function startEditorPrompt(event: H3Event, request: EditorPromptReq
 
   const doc = await getDoc(docAccess)
   const wsCtx = await resolveSessionWorkspace(doc?.workspaceId ?? null, userId, docAccess)
-  const documentContextBlock = documentContextBlockFor(doc)
+  const documentContextBlock = documentContextBlockFor(doc, requestLocale(event))
   const conversationBlock = await loadConversationBlock(docAccess)
   // Ordered for prompt caching (`agentic/promptAssembly.ts`): the system
   // message is the static prompt alone; the per-document blocks

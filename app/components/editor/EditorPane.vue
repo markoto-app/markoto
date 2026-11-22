@@ -122,6 +122,45 @@ function buildResponsiveTheme(mobile: boolean) {
       fontSize: '12px',
       lineHeight: '1.45'
     },
+    // Citation / cross-reference autocomplete: the app's surface, font and tokens
+    // (the CodeMirror default is a blue selection on a system-font list).
+    '.cm-tooltip.cm-tooltip-autocomplete': {
+      backgroundColor: 'var(--ui-bg)',
+      color: 'var(--ui-text)',
+      border: '1px solid var(--ui-border)',
+      borderRadius: '8px',
+      boxShadow: '0 6px 20px rgb(0 0 0 / 0.12)',
+      overflow: 'hidden',
+      fontFamily: 'var(--font-sans)'
+    },
+    '.cm-tooltip.cm-tooltip-autocomplete > ul': {
+      fontFamily: 'var(--font-sans)',
+      fontSize: '13px',
+      maxWidth: 'min(28rem, 100%)',
+      maxHeight: '14rem',
+      padding: '4px'
+    },
+    '.cm-tooltip.cm-tooltip-autocomplete > ul > li': {
+      padding: '4px 8px',
+      borderRadius: '5px',
+      lineHeight: '1.4',
+      color: 'var(--ui-text)'
+    },
+    '.cm-tooltip.cm-tooltip-autocomplete > ul > li[aria-selected]': {
+      backgroundColor: 'var(--ui-bg-elevated) !important',
+      color: 'var(--ui-text-highlighted) !important',
+      boxShadow: 'inset 2px 0 0 var(--ui-text-highlighted)'
+    },
+    '.cm-tooltip.cm-tooltip-autocomplete .cm-completionLabel': { fontWeight: '500' },
+    '.cm-tooltip.cm-tooltip-autocomplete .cm-completionDetail': {
+      color: 'var(--ui-text-muted)',
+      fontStyle: 'normal',
+      marginLeft: '0.6em'
+    },
+    '.cm-tooltip.cm-tooltip-autocomplete .cm-completionMatchedText': {
+      textDecoration: 'none',
+      fontWeight: '700'
+    },
     '.cm-comment-anchor': {
       backgroundColor: 'rgba(234, 179, 8, 0.16)',
       borderBottom: '1px dashed rgba(234, 179, 8, 0.7)',
@@ -141,9 +180,11 @@ function buildResponsiveTheme(mobile: boolean) {
     // suggestion's card on click / tap.
     '.cm-suggest-del': {
       textDecoration: 'line-through',
-      textDecorationColor: 'var(--suggest-color)',
+      textDecorationColor: 'var(--mk-suggest-del-fg)',
       textDecorationThickness: '2px',
-      backgroundColor: 'color-mix(in srgb, var(--suggest-color) 12%, transparent)',
+      color: 'var(--mk-suggest-del-fg)',
+      backgroundColor: 'var(--mk-suggest-del-bg)',
+      borderRadius: '2px',
       cursor: 'pointer'
     },
     '.cm-suggest-ins': {
@@ -151,11 +192,14 @@ function buildResponsiveTheme(mobile: boolean) {
       textDecorationColor: 'var(--suggest-color)',
       textDecorationThickness: '2px',
       textUnderlineOffset: '3px',
-      color: 'var(--suggest-color)',
-      backgroundColor: 'color-mix(in srgb, var(--suggest-color) 10%, transparent)',
+      color: 'var(--mk-suggest-ins-fg)',
+      backgroundColor: 'var(--mk-suggest-ins-bg)',
+      borderRadius: '2px',
       whiteSpace: 'pre-wrap',
       cursor: 'pointer'
     },
+    // The AI's suggestions carry a bar in its colour on the leading edge.
+    '.cm-suggest-ai': { boxShadow: 'inset 2px 0 0 var(--suggest-color)', paddingLeft: '2px' },
     '.cm-suggest-obsolete': { opacity: '0.5' }
   })
 }

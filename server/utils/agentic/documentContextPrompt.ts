@@ -33,6 +33,8 @@ export interface DocumentContext {
   description: string
   audience: AudienceKind
   language: string
+  /** The caller's UI language: where the reply language falls back when the prompt's is unclear. */
+  uiLanguage?: string | null
 }
 
 export function buildDocumentContext(ctx: DocumentContext): string {
@@ -43,6 +45,9 @@ export function buildDocumentContext(ctx: DocumentContext): string {
   // Conditionally emit the `About:` line, empty description = "user
   // didn't fill it in", and adding "About: " with a blank value just
   // wastes tokens and looks broken to the model.
+  // Replies to the user are not document text: they follow the language the user
+  // wrote in (their UI language when that is unclear), not the document's.
+  const replyFallback = ctx.uiLanguage ? quoteInline(resolveLanguageDisplayName(ctx.uiLanguage), LANGUAGE_MAX) : languageName
   const aboutLine = ctx.description.trim().length > 0
     ? `About: ${quoteInline(ctx.description, DOC_DESCRIPTION_MAX_LENGTH)}\n`
     : ''
@@ -55,6 +60,7 @@ export function buildDocumentContext(ctx: DocumentContext): string {
     + `Audience guidance:\n${fragment}\n\n`
     + `Language guidance:\n`
     + `Write all prose in ${languageName}. This includes section headings, body text, bullet labels, and any prose you generate. Do NOT translate code blocks, technical identifiers, or proper nouns that have an established form in another language. If the existing document body contains text in another language, treat it as legacy content, write your additions in ${languageName} regardless. An explicit request in the user's prompt for another language ("translate to French", "answer in German") overrides this for that request.\n`
+    + `Your replies to the user (the final answer, questions, notes, comment replies) are not document text: write them in the language of the user's prompt, or in ${replyFallback} when that is unclear.\n`
     + `</document_context>\n\n`
   )
 }

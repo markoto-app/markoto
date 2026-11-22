@@ -135,7 +135,8 @@ export function useSuggestions(ydoc: Y.Doc, awareness: Awareness, docId: string)
     color: s.color,
     mine: s.mine,
     obsolete: s.obsolete,
-    authorName: s.authorName
+    authorName: s.authorName,
+    ai: s.isAi
   })))
 
   /** Write the suggestions a local edit was planned into (suggesting mode). */

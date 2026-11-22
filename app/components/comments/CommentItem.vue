@@ -65,7 +65,7 @@ const relativeTime = useRelativeTime(() => new Date(props.createdAt))
       <!-- Author in weight 500 (the brand stays at 400/500), timestamp in mono at lower opacity. -->
       <div class="flex items-baseline gap-2 text-xs">
         <span class="font-medium text-default truncate">{{ authorName }}</span>
-        <span class="font-mono text-[10.5px] tracking-[0.04em] text-muted shrink-0 lowercase">{{ relativeTime }}</span>
+        <span class="font-mono text-[10.5px] tracking-[0.04em] text-muted shrink-0">{{ relativeTime }}</span>
       </div>
 
       <div
