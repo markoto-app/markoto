@@ -84,7 +84,24 @@ export async function pdfText(page: Page, pdf: Buffer): Promise<string> {
       parts.push(content.items.map((item: { str?: string }) => item.str ?? '').join(' '))
     }
     return parts.join('\n')
-  }, { base64: pdf.toString('base64'), version: PDFJS_VERSION })
+  }, { base64: pdf.toString('base64'), version: PDFJS_VERSION }).then(normalizePdfText)
+}
+
+/**
+ * pdf.js returns one item per text run, and a tagged (accessible) PDF splits
+ * the text into more runs, so joining them with spaces yields "( Lovelace,
+ * 1843 )". Collapse whitespace and drop the space after an opening bracket
+ * and before closing punctuation, so assertions read like the rendered text.
+ */
+function normalizePdfText(text: string): string {
+  return text
+    .split('\n')
+    .map(line => line
+      .replace(/\s+/g, ' ')
+      .replace(/([([{]) /g, '$1')
+      .replace(/ ([)\]}.,;:!?])/g, '$1')
+      .trim())
+    .join('\n')
 }
 
 /**
