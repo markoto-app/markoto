@@ -19,7 +19,7 @@
       "text": "Already have a draft in Word, a PDF, an HTML export from a CMS? markoto converts it to markdown on the way in. The conversion preserves headings, lists, tables, and inline emphasis, what you can’t carry over (custom fonts, page chrome) is dropped, since you’re going to re-style with a markoto theme anyway.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/-RlOR4DlnW"
+      "path": "/d/g33sHAYSlR"
     },
     {
       "kind": "approach",
@@ -29,7 +29,7 @@
         "x": 362,
         "y": 20
       },
-      "path": "/d/-RlOR4DlnW"
+      "path": "/d/g33sHAYSlR"
     },
     {
       "kind": "outcome",
@@ -39,24 +39,24 @@
         "x": 362,
         "y": 20
       },
-      "path": "/d/-RlOR4DlnW"
+      "path": "/d/g33sHAYSlR"
     },
     {
       "kind": "approach",
       "file": "03.webp",
       "caption": "Click \"Import…\" to open the picker",
       "cursor": {
-        "x": 278,
+        "x": 273,
         "y": 92
       },
-      "path": "/d/-RlOR4DlnW",
+      "path": "/d/g33sHAYSlR",
       "annotations": [
         {
           "label": "import",
           "kind": "arrow",
-          "x": 187,
+          "x": 177,
           "y": 76,
-          "w": 183.125,
+          "w": 192.640625,
           "h": 32
         }
       ]
@@ -66,10 +66,10 @@
       "file": "04.webp",
       "caption": "The import dialog opens, drop a file, or click to pick one.",
       "cursor": {
-        "x": 278,
+        "x": 273,
         "y": 92
       },
-      "path": "/d/-RlOR4DlnW"
+      "path": "/d/g33sHAYSlR"
     },
     {
       "kind": "chapter",
@@ -81,10 +81,10 @@
       "text": "The dialog accepts Word (.docx), PDF, PowerPoint, Excel, HTML, and EPUB up to 50 MB. markoto converts it to Markdown with Microsoft’s open-source markitdown library, on its own servers.",
       "file": "05.webp",
       "cursor": {
-        "x": 278,
+        "x": 273,
         "y": 92
       },
-      "path": "/d/-RlOR4DlnW"
+      "path": "/d/g33sHAYSlR"
     },
     {
       "kind": "approach",
@@ -94,7 +94,7 @@
         "x": 195,
         "y": 384
       },
-      "path": "/d/-RlOR4DlnW",
+      "path": "/d/g33sHAYSlR",
       "annotations": [
         {
           "label": "dropzone",
@@ -114,7 +114,7 @@
         "x": 195,
         "y": 384
       },
-      "path": "/d/-RlOR4DlnW"
+      "path": "/d/g33sHAYSlR"
     },
     {
       "kind": "chapter",
@@ -129,7 +129,7 @@
         "x": 195,
         "y": 384
       },
-      "path": "/d/-RlOR4DlnW"
+      "path": "/d/g33sHAYSlR"
     },
     {
       "kind": "approach",
@@ -139,7 +139,7 @@
         "x": 306,
         "y": 532
       },
-      "path": "/d/-RlOR4DlnW"
+      "path": "/d/g33sHAYSlR"
     },
     {
       "kind": "outcome",
@@ -149,7 +149,7 @@
         "x": 306,
         "y": 532
       },
-      "path": "/d/-RlOR4DlnW"
+      "path": "/d/g33sHAYSlR"
     },
     {
       "kind": "approach",
@@ -159,7 +159,7 @@
         "x": 97,
         "y": 435
       },
-      "path": "/d/-RlOR4DlnW"
+      "path": "/d/g33sHAYSlR"
     },
     {
       "kind": "outcome",
@@ -169,7 +169,7 @@
         "x": 97,
         "y": 435
       },
-      "path": "/d/-RlOR4DlnW",
+      "path": "/d/g33sHAYSlR",
       "hero": true
     }
   ],

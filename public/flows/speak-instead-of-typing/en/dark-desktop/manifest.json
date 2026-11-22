@@ -22,22 +22,22 @@
         "x": 319,
         "y": 383
       },
-      "path": "/d/Xsqd4tDzw7"
+      "path": "/d/_QjGZZH4nB"
     },
     {
       "kind": "approach",
       "file": "02.webp",
       "caption": "Click the mic to start dictating",
       "cursor": {
-        "x": 762,
+        "x": 798,
         "y": 98
       },
-      "path": "/d/Xsqd4tDzw7",
+      "path": "/d/_QjGZZH4nB",
       "annotations": [
         {
           "label": "mic",
           "kind": "arrow",
-          "x": 750,
+          "x": 786,
           "y": 86,
           "w": 24,
           "h": 24
@@ -49,10 +49,10 @@
       "file": "03.webp",
       "caption": "The mic lights up red, markoto is listening.",
       "cursor": {
-        "x": 762,
+        "x": 798,
         "y": 98
       },
-      "path": "/d/Xsqd4tDzw7"
+      "path": "/d/_QjGZZH4nB"
     },
     {
       "kind": "chapter",
@@ -64,20 +64,20 @@
       "text": "The words appear as faint text at the cursor first; once a sentence is recognised, it becomes regular text in the document. Your collaborators see it arrive live, and undo removes it like anything you typed.",
       "file": "04.webp",
       "cursor": {
-        "x": 762,
+        "x": 798,
         "y": 98
       },
-      "path": "/d/Xsqd4tDzw7"
+      "path": "/d/_QjGZZH4nB"
     },
     {
       "kind": "outcome",
       "file": "05.webp",
       "caption": "What you said is now part of the document, just like typed text.",
       "cursor": {
-        "x": 762,
+        "x": 798,
         "y": 98
       },
-      "path": "/d/Xsqd4tDzw7",
+      "path": "/d/_QjGZZH4nB",
       "highlights": [
         {
           "label": "dictated text",
@@ -99,30 +99,30 @@
       "text": "Click the mic again to stop. The last words you said are written in, and the editor is back to keyboard-only input. Your browser remembers the mic permission, so starting again needs no new prompt.",
       "file": "06.webp",
       "cursor": {
-        "x": 762,
+        "x": 798,
         "y": 98
       },
-      "path": "/d/Xsqd4tDzw7"
+      "path": "/d/_QjGZZH4nB"
     },
     {
       "kind": "approach",
       "file": "07.webp",
       "caption": "Click the mic again to stop",
       "cursor": {
-        "x": 762,
+        "x": 798,
         "y": 98
       },
-      "path": "/d/Xsqd4tDzw7"
+      "path": "/d/_QjGZZH4nB"
     },
     {
       "kind": "outcome",
       "file": "08.webp",
       "caption": "The mic returns to its idle state, no more streaming.",
       "cursor": {
-        "x": 762,
+        "x": 798,
         "y": 98
       },
-      "path": "/d/Xsqd4tDzw7"
+      "path": "/d/_QjGZZH4nB"
     }
   ],
   "next": {

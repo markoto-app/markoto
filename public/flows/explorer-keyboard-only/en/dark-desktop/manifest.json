@@ -19,14 +19,14 @@
       "text": "A workspace's Documents tab (and My documents on the home page) works like a file manager: arrow keys move, Enter opens, and the shortcuts below do the rest. On a Mac, use Cmd where this says Ctrl.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/w/LczkF3NS6L"
+      "path": "/w/4xXK0AwMmm"
     },
     {
       "kind": "outcome",
       "file": "02.webp",
       "caption": "Press Tab until the list has the focus",
       "cursor": null,
-      "path": "/w/LczkF3NS6L",
+      "path": "/w/4xXK0AwMmm",
       "highlights": [
         {
           "label": "Focus",
@@ -45,21 +45,21 @@
         "x": 368,
         "y": 480
       },
-      "path": "/w/LczkF3NS6L"
+      "path": "/w/4xXK0AwMmm"
     },
     {
       "kind": "outcome",
       "file": "04.webp",
       "caption": "Type \"Drafts\" and press Enter",
       "cursor": null,
-      "path": "/w/LczkF3NS6L"
+      "path": "/w/4xXK0AwMmm"
     },
     {
       "kind": "outcome",
       "file": "05.webp",
       "caption": "Type \"old\" to jump to \"Old draft\"",
       "cursor": null,
-      "path": "/w/LczkF3NS6L"
+      "path": "/w/4xXK0AwMmm"
     },
     {
       "kind": "outcome",
@@ -69,14 +69,14 @@
         "x": 368,
         "y": 603
       },
-      "path": "/w/LczkF3NS6L"
+      "path": "/w/4xXK0AwMmm"
     },
     {
       "kind": "outcome",
       "file": "07.webp",
       "caption": "Type \"Old draft 2025\" and press Enter",
       "cursor": null,
-      "path": "/w/LczkF3NS6L"
+      "path": "/w/4xXK0AwMmm"
     },
     {
       "kind": "chapter",
@@ -88,28 +88,28 @@
       "file": "07.webp",
       "caption": "Press Ctrl+X to cut it",
       "cursor": null,
-      "path": "/w/LczkF3NS6L"
+      "path": "/w/4xXK0AwMmm"
     },
     {
       "kind": "outcome",
       "file": "08.webp",
       "caption": "Type \"arc\" to jump to \"Archive\" and press Enter to open it",
       "cursor": null,
-      "path": "/w/LczkF3NS6L/f/_CcjKOf4FpOq"
+      "path": "/w/4xXK0AwMmm/f/QVJ4NvBBnHWs"
     },
     {
       "kind": "outcome",
       "file": "09.webp",
       "caption": "Press Tab until the list has the focus again",
       "cursor": null,
-      "path": "/w/LczkF3NS6L/f/_CcjKOf4FpOq"
+      "path": "/w/4xXK0AwMmm/f/QVJ4NvBBnHWs"
     },
     {
       "kind": "outcome",
       "file": "10.webp",
       "caption": "Press Ctrl+V to paste",
       "cursor": null,
-      "path": "/w/LczkF3NS6L/f/_CcjKOf4FpOq",
+      "path": "/w/4xXK0AwMmm/f/QVJ4NvBBnHWs",
       "highlights": [
         {
           "label": "Moved here",
@@ -131,28 +131,28 @@
       "file": "11.webp",
       "caption": "Press Backspace to go up one level",
       "cursor": null,
-      "path": "/w/LczkF3NS6L"
+      "path": "/w/4xXK0AwMmm"
     },
     {
       "kind": "outcome",
       "file": "12.webp",
       "caption": "Press Tab until the list has the focus, then type \"scr\"",
       "cursor": null,
-      "path": "/w/LczkF3NS6L"
+      "path": "/w/4xXK0AwMmm"
     },
     {
       "kind": "outcome",
       "file": "13.webp",
       "caption": "Press Delete",
       "cursor": null,
-      "path": "/w/LczkF3NS6L"
+      "path": "/w/4xXK0AwMmm"
     },
     {
       "kind": "outcome",
       "file": "14.webp",
       "caption": "Press Tab until \"Delete\" has the focus, then Enter",
       "cursor": null,
-      "path": "/w/LczkF3NS6L"
+      "path": "/w/4xXK0AwMmm"
     }
   ],
   "next": {

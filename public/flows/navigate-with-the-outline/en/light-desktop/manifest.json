@@ -1,0 +1,180 @@
+{
+  "version": 2,
+  "title": "Navigate with the outline",
+  "slug": "navigate-with-the-outline",
+  "locale": "en",
+  "variant": "light-desktop",
+  "viewport": {
+    "w": 1280,
+    "h": 800
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Jump to a heading"
+    },
+    {
+      "kind": "narration",
+      "text": "A long document is easier to move around when you can see its structure. The outline lists every heading of the document, with sections nested under their chapters, and takes you to any of them in one click.",
+      "file": "01.webp",
+      "cursor": {
+        "x": 640,
+        "y": 26
+      },
+      "path": "/d/fAL9SHPa2w"
+    },
+    {
+      "kind": "approach",
+      "file": "02.webp",
+      "caption": "Click the panel button at the left end of the toolbar",
+      "cursor": {
+        "x": 20,
+        "y": 98
+      },
+      "path": "/d/fAL9SHPa2w",
+      "annotations": [
+        {
+          "label": "outline",
+          "kind": "arrow",
+          "x": 8,
+          "y": 86,
+          "w": 24,
+          "h": 24
+        }
+      ]
+    },
+    {
+      "kind": "outcome",
+      "file": "03.webp",
+      "caption": "The outline opens on the left: the chapters of the report, each section under its chapter. The shell comment in the code block is not a heading, so it is not listed.",
+      "cursor": {
+        "x": 20,
+        "y": 98
+      },
+      "path": "/d/fAL9SHPa2w"
+    },
+    {
+      "kind": "approach",
+      "file": "04.webp",
+      "caption": "Click \"Risks\"",
+      "cursor": {
+        "x": 141,
+        "y": 485
+      },
+      "path": "/d/fAL9SHPa2w"
+    },
+    {
+      "kind": "outcome",
+      "file": "05.webp",
+      "caption": "The cursor jumps to the end of the Risks heading, and the editor and the preview both scroll to it.",
+      "cursor": {
+        "x": 141,
+        "y": 485
+      },
+      "path": "/d/fAL9SHPa2w",
+      "hero": true
+    },
+    {
+      "kind": "approach",
+      "file": "06.webp",
+      "caption": "Click into the text of another section",
+      "cursor": {
+        "x": 514,
+        "y": 194
+      },
+      "path": "/d/fAL9SHPa2w"
+    },
+    {
+      "kind": "outcome",
+      "file": "07.webp",
+      "caption": "The outline marks the section the cursor is in. It follows you as you write and scroll.",
+      "cursor": {
+        "x": 514,
+        "y": 194
+      },
+      "path": "/d/fAL9SHPa2w"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Switch to another document"
+    },
+    {
+      "kind": "narration",
+      "text": "The second tab lists the documents of the workspace, in their folders, so you can switch without going back to the workspace page. For a document outside any workspace it lists your own documents.",
+      "file": "07.webp",
+      "cursor": {
+        "x": 514,
+        "y": 194
+      },
+      "path": "/d/fAL9SHPa2w"
+    },
+    {
+      "kind": "approach",
+      "file": "08.webp",
+      "caption": "Click the \"Workspace\" tab",
+      "cursor": {
+        "x": 129,
+        "y": 134
+      },
+      "path": "/d/fAL9SHPa2w"
+    },
+    {
+      "kind": "outcome",
+      "file": "09.webp",
+      "caption": "The documents of your workspace, in their folders. The one you are in is marked.",
+      "cursor": {
+        "x": 129,
+        "y": 134
+      },
+      "path": "/d/fAL9SHPa2w"
+    },
+    {
+      "kind": "approach",
+      "file": "10.webp",
+      "caption": "Click \"Board memo\"",
+      "cursor": {
+        "x": 141,
+        "y": 261
+      },
+      "path": "/d/fAL9SHPa2w"
+    },
+    {
+      "kind": "outcome",
+      "file": "11.webp",
+      "caption": "Board memo opens in the same tab, and the panel stays open for the next switch. Ctrl + click opens a document in a new tab.",
+      "cursor": {
+        "x": 141,
+        "y": 261
+      },
+      "path": "/d/fdGg4EqCxv"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "From the keyboard"
+    },
+    {
+      "kind": "narration",
+      "text": "Ctrl + Shift + E (Cmd + Shift + E on a Mac) shows and hides the panel and puts you on its tabs. In the outline and the document list, the arrow keys move between entries, Right and Left open and close a section, and Enter jumps to it.",
+      "file": "11.webp",
+      "cursor": null,
+      "path": "/d/fdGg4EqCxv"
+    },
+    {
+      "kind": "outcome",
+      "file": "12.webp",
+      "caption": "Press Ctrl + Shift + E to hide the panel",
+      "cursor": {
+        "x": 19,
+        "y": 383
+      },
+      "path": "/d/fdGg4EqCxv"
+    }
+  ],
+  "next": {
+    "slug": "organize-a-workspace",
+    "why": "Sort the documents of your workspace into folders"
+  }
+}

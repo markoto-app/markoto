@@ -134,17 +134,17 @@
       "highlights": [
         {
           "label": "deleted with you",
-          "x": 40.11882400512695,
+          "x": 40.11903381347656,
           "y": 366.99462890625,
-          "w": 305.7653923034668,
-          "h": 137.89419555664062
+          "w": 305.76499938964844,
+          "h": 137.89401245117188
         },
         {
           "label": "gets a new admin",
-          "x": 40.11882400512695,
-          "y": 516.879638671875,
-          "w": 305.7653923034668,
-          "h": 157.87890625
+          "x": 40.11903381347656,
+          "y": 516.87939453125,
+          "w": 305.76499938964844,
+          "h": 157.878662109375
         }
       ]
     },
@@ -270,7 +270,7 @@
     },
     {
       "kind": "approach",
-      "file": "12.webp",
+      "file": "11.webp",
       "caption": "Click \"Cancel deletion\" in the banner",
       "cursor": {
         "x": 235,
@@ -280,7 +280,7 @@
     },
     {
       "kind": "outcome",
-      "file": "13.webp",
+      "file": "12.webp",
       "caption": "The banner disappears and your account is back to normal, nothing was deleted.",
       "cursor": {
         "x": 235,

@@ -19,7 +19,7 @@
       "text": "When you're done with a draft and don't want it lingering, delete it from File → Delete. markoto asks you to type the doc's title back as a confirmation, strong friction by design, because deletion is permanent. The text, its history, its comments and every image in it are removed, and anyone who has the doc open is told it was deleted and can download a Markdown copy of the text.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/2ya8s5c38p"
+      "path": "/d/MajTdd_WSG"
     },
     {
       "kind": "approach",
@@ -29,7 +29,7 @@
         "x": 362,
         "y": 20
       },
-      "path": "/d/2ya8s5c38p"
+      "path": "/d/MajTdd_WSG"
     },
     {
       "kind": "outcome",
@@ -39,24 +39,24 @@
         "x": 362,
         "y": 20
       },
-      "path": "/d/2ya8s5c38p"
+      "path": "/d/MajTdd_WSG"
     },
     {
       "kind": "approach",
       "file": "03.webp",
       "caption": "Click \"Delete document\"",
       "cursor": {
-        "x": 278,
+        "x": 273,
         "y": 284
       },
-      "path": "/d/2ya8s5c38p",
+      "path": "/d/MajTdd_WSG",
       "annotations": [
         {
           "label": "delete",
           "kind": "arrow",
-          "x": 187,
+          "x": 177,
           "y": 268,
-          "w": 183.125,
+          "w": 192.640625,
           "h": 32
         }
       ]
@@ -66,10 +66,10 @@
       "file": "04.webp",
       "caption": "A confirm modal opens, type the doc's title to enable Delete.",
       "cursor": {
-        "x": 278,
+        "x": 273,
         "y": 284
       },
-      "path": "/d/2ya8s5c38p"
+      "path": "/d/MajTdd_WSG"
     },
     {
       "kind": "chapter",
@@ -81,10 +81,10 @@
       "text": "The Delete button stays disabled until the typed text exactly matches the doc's title. Same shape as GitHub's repo deletion: friction beats a one-click slip.",
       "file": "05.webp",
       "cursor": {
-        "x": 278,
+        "x": 273,
         "y": 284
       },
-      "path": "/d/2ya8s5c38p"
+      "path": "/d/MajTdd_WSG"
     },
     {
       "kind": "approach",
@@ -94,7 +94,7 @@
         "x": 54,
         "y": 435
       },
-      "path": "/d/2ya8s5c38p"
+      "path": "/d/MajTdd_WSG"
     },
     {
       "kind": "outcome",
@@ -104,7 +104,7 @@
         "x": 54,
         "y": 435
       },
-      "path": "/d/2ya8s5c38p"
+      "path": "/d/MajTdd_WSG"
     },
     {
       "kind": "approach",
@@ -114,7 +114,7 @@
         "x": 273,
         "y": 483
       },
-      "path": "/d/2ya8s5c38p"
+      "path": "/d/MajTdd_WSG"
     },
     {
       "kind": "outcome",

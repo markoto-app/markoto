@@ -19,7 +19,7 @@
       "text": "When the document looks right in the preview on the right, the PDF looks the same: same theme, same cover page, same page breaks. markoto builds the file for you and downloads it. No print dialog, no fiddling with margins.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/2LnePO7xr7"
+      "path": "/d/htBR8PeaSp"
     },
     {
       "kind": "approach",
@@ -29,7 +29,7 @@
         "x": 362,
         "y": 20
       },
-      "path": "/d/2LnePO7xr7"
+      "path": "/d/htBR8PeaSp"
     },
     {
       "kind": "outcome",
@@ -39,27 +39,27 @@
         "x": 362,
         "y": 20
       },
-      "path": "/d/2LnePO7xr7"
+      "path": "/d/htBR8PeaSp"
     },
     {
       "kind": "approach",
       "file": "03.webp",
       "caption": "Click \"PDF (.pdf)\" to create and download the file",
       "cursor": {
-        "x": 287,
+        "x": 273,
         "y": 188
       },
-      "path": "/d/2LnePO7xr7"
+      "path": "/d/htBR8PeaSp"
     },
     {
       "kind": "outcome",
       "file": "04.webp",
       "caption": "markoto renders the PDF and your browser downloads it. A new render takes a few seconds; asking again without changes is instant.",
       "cursor": {
-        "x": 287,
+        "x": 273,
         "y": 188
       },
-      "path": "/d/2LnePO7xr7"
+      "path": "/d/htBR8PeaSp"
     },
     {
       "kind": "chapter",
@@ -71,7 +71,7 @@
       "file": "05.webp",
       "caption": "The downloaded PDF opens with the same cover page as the preview.",
       "cursor": null,
-      "path": "/api/docs/2LnePO7xr7/pdf?inline=1",
+      "path": "/api/docs/htBR8PeaSp/pdf?inline=1",
       "hero": true,
       "actor": "pdf"
     }

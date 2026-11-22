@@ -22,7 +22,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/8TosPhtkDO"
+      "path": "/d/_vaL4ONlQx"
     },
     {
       "kind": "outcome",
@@ -32,7 +32,7 @@
         "x": 19,
         "y": 383
       },
-      "path": "/d/8TosPhtkDO"
+      "path": "/d/_vaL4ONlQx"
     },
     {
       "kind": "approach",
@@ -42,7 +42,7 @@
         "x": 391,
         "y": 377
       },
-      "path": "/d/8TosPhtkDO",
+      "path": "/d/_vaL4ONlQx",
       "annotations": [
         {
           "label": "add-comment pill",
@@ -62,7 +62,7 @@
         "x": 391,
         "y": 377
       },
-      "path": "/d/8TosPhtkDO"
+      "path": "/d/_vaL4ONlQx"
     },
     {
       "kind": "approach",
@@ -72,7 +72,7 @@
         "x": 996,
         "y": 236
       },
-      "path": "/d/8TosPhtkDO"
+      "path": "/d/_vaL4ONlQx"
     },
     {
       "kind": "outcome",
@@ -82,7 +82,7 @@
         "x": 996,
         "y": 236
       },
-      "path": "/d/8TosPhtkDO"
+      "path": "/d/_vaL4ONlQx"
     },
     {
       "kind": "approach",
@@ -92,7 +92,7 @@
         "x": 1067,
         "y": 313
       },
-      "path": "/d/8TosPhtkDO"
+      "path": "/d/_vaL4ONlQx"
     },
     {
       "kind": "outcome",
@@ -102,7 +102,7 @@
         "x": 1067,
         "y": 313
       },
-      "path": "/d/8TosPhtkDO",
+      "path": "/d/_vaL4ONlQx",
       "highlights": [
         {
           "label": "Your new thread",
@@ -126,7 +126,7 @@
         "x": 1067,
         "y": 313
       },
-      "path": "/d/8TosPhtkDO"
+      "path": "/d/_vaL4ONlQx"
     },
     {
       "kind": "approach",
@@ -136,7 +136,7 @@
         "x": 996,
         "y": 338
       },
-      "path": "/d/8TosPhtkDO",
+      "path": "/d/_vaL4ONlQx",
       "actor": "sam"
     },
     {
@@ -147,7 +147,7 @@
         "x": 996,
         "y": 338
       },
-      "path": "/d/8TosPhtkDO",
+      "path": "/d/_vaL4ONlQx",
       "actor": "sam"
     },
     {
@@ -158,7 +158,7 @@
         "x": 1067,
         "y": 313
       },
-      "path": "/d/8TosPhtkDO",
+      "path": "/d/_vaL4ONlQx",
       "highlights": [
         {
           "label": "Sam's reply",
@@ -177,52 +177,52 @@
     {
       "kind": "narration",
       "text": "Question answered: resolve the thread. It moves into a \"Resolved\" section so it doesn't crowd the active list, and the whole conversation stays there in case you need it again.",
-      "file": "10.webp",
+      "file": "11.webp",
       "cursor": {
         "x": 1067,
         "y": 313
       },
-      "path": "/d/8TosPhtkDO"
+      "path": "/d/_vaL4ONlQx"
     },
     {
       "kind": "approach",
-      "file": "11.webp",
+      "file": "12.webp",
       "caption": "Click Resolve on the thread",
       "cursor": {
         "x": 1097,
         "y": 260
       },
-      "path": "/d/8TosPhtkDO"
+      "path": "/d/_vaL4ONlQx"
     },
     {
       "kind": "outcome",
-      "file": "12.webp",
+      "file": "13.webp",
       "caption": "The thread leaves the active list, the editor underline disappears.",
       "cursor": {
         "x": 1097,
         "y": 260
       },
-      "path": "/d/8TosPhtkDO"
+      "path": "/d/_vaL4ONlQx"
     },
     {
       "kind": "approach",
-      "file": "13.webp",
+      "file": "14.webp",
       "caption": "Reveal the Resolved section to confirm it's archived",
       "cursor": {
         "x": 1228,
         "y": 139
       },
-      "path": "/d/8TosPhtkDO"
+      "path": "/d/_vaL4ONlQx"
     },
     {
       "kind": "outcome",
-      "file": "14.webp",
+      "file": "15.webp",
       "caption": "Resolved threads tuck into their own section, out of the way, but recoverable.",
       "cursor": {
         "x": 1228,
         "y": 139
       },
-      "path": "/d/8TosPhtkDO",
+      "path": "/d/_vaL4ONlQx",
       "highlights": [
         {
           "label": "Resolved section",

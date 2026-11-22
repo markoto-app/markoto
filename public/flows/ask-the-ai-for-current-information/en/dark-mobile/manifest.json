@@ -19,7 +19,7 @@
       "text": "The AI's training data has a cutoff. For anything more recent, current library versions, latest news, who shipped what last week: it can search the web and weave the result into your doc. The search runs on the instance's European search provider; your AI provider writes the answer. It links the sources it used, so you can verify before publishing.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/j461T5NVLU"
+      "path": "/d/NSgJ8SbrOG"
     },
     {
       "kind": "approach",
@@ -29,7 +29,7 @@
         "x": 159,
         "y": 602
       },
-      "path": "/d/j461T5NVLU"
+      "path": "/d/NSgJ8SbrOG"
     },
     {
       "kind": "outcome",
@@ -39,7 +39,7 @@
         "x": 159,
         "y": 602
       },
-      "path": "/d/j461T5NVLU"
+      "path": "/d/NSgJ8SbrOG"
     },
     {
       "kind": "approach",
@@ -49,7 +49,7 @@
         "x": 76,
         "y": 603
       },
-      "path": "/d/j461T5NVLU"
+      "path": "/d/NSgJ8SbrOG"
     },
     {
       "kind": "outcome",
@@ -59,7 +59,7 @@
         "x": 76,
         "y": 603
       },
-      "path": "/d/j461T5NVLU"
+      "path": "/d/NSgJ8SbrOG"
     },
     {
       "kind": "approach",
@@ -69,7 +69,7 @@
         "x": 350,
         "y": 602
       },
-      "path": "/d/j461T5NVLU"
+      "path": "/d/NSgJ8SbrOG"
     },
     {
       "kind": "outcome",
@@ -79,7 +79,7 @@
         "x": 350,
         "y": 602
       },
-      "path": "/d/j461T5NVLU"
+      "path": "/d/NSgJ8SbrOG"
     },
     {
       "kind": "outcome",
@@ -89,14 +89,14 @@
         "x": 350,
         "y": 602
       },
-      "path": "/d/j461T5NVLU",
+      "path": "/d/NSgJ8SbrOG",
       "highlights": [
         {
           "label": "Answer with its source",
           "x": 16,
           "y": 133.375,
           "w": 358,
-          "h": 135.9375
+          "h": 108.75
         }
       ],
       "hero": true
