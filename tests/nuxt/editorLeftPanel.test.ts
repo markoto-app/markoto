@@ -1,6 +1,6 @@
 // @vitest-environment nuxt
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { defineComponent, h, ref, type Ref } from 'vue'
+import { defineComponent, h, ref, shallowRef, type Ref } from 'vue'
 import { mountSuspended, mockNuxtImport, registerEndpoint } from '@nuxt/test-utils/runtime'
 import { flushPromises, type VueWrapper } from '@vue/test-utils'
 import { EditorState } from '@codemirror/state'
@@ -224,7 +224,7 @@ describe('panel state', () => {
     const wrapper = await mountSuspended(defineComponent({
       setup() {
         api = useEditorLeftPanel({
-          editorView: ref(view), isMobile: ref(false), rightSidebar, docId: 'cur',
+          editorView: shallowRef(view), isMobile: ref(false), rightSidebar, docId: 'cur',
           source: ref(SOURCE), workspaceId: ref(null), workspaceRole: ref(null)
         })
         return () => h('div', [h(Preview, { ref: 'previewPane' })])
