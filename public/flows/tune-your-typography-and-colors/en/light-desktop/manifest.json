@@ -22,22 +22,22 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/mPkWf9E7Mf"
+      "path": "/d/tLYVRJwZGq"
     },
     {
       "kind": "approach",
       "file": "02.webp",
       "caption": "Open the theme panel",
       "cursor": {
-        "x": 1260,
+        "x": 1234,
         "y": 98
       },
-      "path": "/d/mPkWf9E7Mf",
+      "path": "/d/tLYVRJwZGq",
       "annotations": [
         {
           "label": "theme tab",
           "kind": "arrow",
-          "x": 1248,
+          "x": 1222,
           "y": 86,
           "w": 24,
           "h": 24
@@ -49,10 +49,10 @@
       "file": "03.webp",
       "caption": "The theme panel opens: preset cards at the top, a section per detail below.",
       "cursor": {
-        "x": 1260,
+        "x": 1234,
         "y": 98
       },
-      "path": "/d/mPkWf9E7Mf"
+      "path": "/d/tLYVRJwZGq"
     },
     {
       "kind": "approach",
@@ -62,7 +62,7 @@
         "x": 1120,
         "y": 438
       },
-      "path": "/d/mPkWf9E7Mf"
+      "path": "/d/tLYVRJwZGq"
     },
     {
       "kind": "outcome",
@@ -72,7 +72,7 @@
         "x": 1120,
         "y": 438
       },
-      "path": "/d/mPkWf9E7Mf"
+      "path": "/d/tLYVRJwZGq"
     },
     {
       "kind": "chapter",
@@ -87,7 +87,7 @@
         "x": 1120,
         "y": 438
       },
-      "path": "/d/mPkWf9E7Mf"
+      "path": "/d/tLYVRJwZGq"
     },
     {
       "kind": "approach",
@@ -97,7 +97,7 @@
         "x": 1120,
         "y": 510
       },
-      "path": "/d/mPkWf9E7Mf"
+      "path": "/d/tLYVRJwZGq"
     },
     {
       "kind": "outcome",
@@ -107,7 +107,7 @@
         "x": 1120,
         "y": 510
       },
-      "path": "/d/mPkWf9E7Mf"
+      "path": "/d/tLYVRJwZGq"
     },
     {
       "kind": "approach",
@@ -117,7 +117,7 @@
         "x": 1120,
         "y": 671
       },
-      "path": "/d/mPkWf9E7Mf"
+      "path": "/d/tLYVRJwZGq"
     },
     {
       "kind": "outcome",
@@ -127,7 +127,7 @@
         "x": 1120,
         "y": 671
       },
-      "path": "/d/mPkWf9E7Mf",
+      "path": "/d/tLYVRJwZGq",
       "highlights": [
         {
           "label": "Restyled preview",
@@ -152,7 +152,7 @@
         "x": 1120,
         "y": 671
       },
-      "path": "/d/mPkWf9E7Mf"
+      "path": "/d/tLYVRJwZGq"
     },
     {
       "kind": "approach",
@@ -162,7 +162,7 @@
         "x": 1120,
         "y": 438
       },
-      "path": "/d/mPkWf9E7Mf"
+      "path": "/d/tLYVRJwZGq"
     },
     {
       "kind": "outcome",
@@ -172,7 +172,7 @@
         "x": 1120,
         "y": 438
       },
-      "path": "/d/mPkWf9E7Mf",
+      "path": "/d/tLYVRJwZGq",
       "highlights": [
         {
           "label": "Brand colour",

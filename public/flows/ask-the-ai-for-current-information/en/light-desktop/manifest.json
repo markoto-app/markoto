@@ -22,27 +22,27 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/mmeXImEp2-"
+      "path": "/d/E57V3RcEcu"
     },
     {
       "kind": "approach",
       "file": "02.webp",
       "caption": "Click into the AI prompt bar",
       "cursor": {
-        "x": 618,
+        "x": 604,
         "y": 722
       },
-      "path": "/d/mmeXImEp2-"
+      "path": "/d/E57V3RcEcu"
     },
     {
       "kind": "outcome",
       "file": "03.webp",
       "caption": "The prompt bar lifts and glows, ready for your prompt.",
       "cursor": {
-        "x": 618,
+        "x": 604,
         "y": 722
       },
-      "path": "/d/mmeXImEp2-"
+      "path": "/d/E57V3RcEcu"
     },
     {
       "kind": "approach",
@@ -52,7 +52,7 @@
         "x": 316,
         "y": 723
       },
-      "path": "/d/mmeXImEp2-"
+      "path": "/d/E57V3RcEcu"
     },
     {
       "kind": "outcome",
@@ -62,7 +62,7 @@
         "x": 316,
         "y": 723
       },
-      "path": "/d/mmeXImEp2-"
+      "path": "/d/E57V3RcEcu"
     },
     {
       "kind": "approach",
@@ -72,7 +72,7 @@
         "x": 1000,
         "y": 722
       },
-      "path": "/d/mmeXImEp2-"
+      "path": "/d/E57V3RcEcu"
     },
     {
       "kind": "outcome",
@@ -82,7 +82,7 @@
         "x": 1000,
         "y": 722
       },
-      "path": "/d/mmeXImEp2-"
+      "path": "/d/E57V3RcEcu"
     },
     {
       "kind": "outcome",
@@ -92,14 +92,14 @@
         "x": 1000,
         "y": 722
       },
-      "path": "/d/mmeXImEp2-",
+      "path": "/d/E57V3RcEcu",
       "highlights": [
         {
           "label": "Answer with its source",
           "x": 24.75,
           "y": 234.5,
           "w": 590,
-          "h": 49.5
+          "h": 74.25
         }
       ],
       "hero": true

@@ -22,17 +22,17 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/3k06YV4pNZ"
+      "path": "/d/4hWG1owDRM"
     },
     {
       "kind": "approach",
       "file": "02.webp",
       "caption": "Click into the AI prompt bar",
       "cursor": {
-        "x": 618,
+        "x": 604,
         "y": 722
       },
-      "path": "/d/3k06YV4pNZ"
+      "path": "/d/4hWG1owDRM"
     },
     {
       "kind": "approach",
@@ -42,7 +42,7 @@
         "x": 316,
         "y": 723
       },
-      "path": "/d/3k06YV4pNZ"
+      "path": "/d/4hWG1owDRM"
     },
     {
       "kind": "outcome",
@@ -52,7 +52,7 @@
         "x": 316,
         "y": 723
       },
-      "path": "/d/3k06YV4pNZ"
+      "path": "/d/4hWG1owDRM"
     },
     {
       "kind": "approach",
@@ -62,7 +62,7 @@
         "x": 1000,
         "y": 722
       },
-      "path": "/d/3k06YV4pNZ"
+      "path": "/d/4hWG1owDRM"
     },
     {
       "kind": "outcome",
@@ -72,7 +72,7 @@
         "x": 1000,
         "y": 722
       },
-      "path": "/d/3k06YV4pNZ"
+      "path": "/d/4hWG1owDRM"
     },
     {
       "kind": "chapter",
@@ -87,7 +87,7 @@
         "x": 1000,
         "y": 722
       },
-      "path": "/d/3k06YV4pNZ",
+      "path": "/d/4hWG1owDRM",
       "hero": true
     }
   ],

@@ -1,0 +1,184 @@
+{
+  "version": 2,
+  "title": "Suggest and review changes",
+  "slug": "suggest-and-review-changes",
+  "locale": "en",
+  "variant": "dark-desktop",
+  "viewport": {
+    "w": 1280,
+    "h": 800
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Ask for suggestions"
+    },
+    {
+      "kind": "narration",
+      "text": "Want feedback without losing control of the text? Turn on suggestions in the share dialog. Everyone else then proposes changes instead of making them, and you decide what goes in. You keep editing directly.",
+      "file": "01.webp",
+      "cursor": {
+        "x": 640,
+        "y": 26
+      },
+      "path": "/d/WB4XPp_lIC"
+    },
+    {
+      "kind": "approach",
+      "file": "02.webp",
+      "caption": "Open the share dialog",
+      "cursor": {
+        "x": 915,
+        "y": 26
+      },
+      "path": "/d/WB4XPp_lIC"
+    },
+    {
+      "kind": "approach",
+      "file": "03.webp",
+      "caption": "Turn on \"Everyone suggests changes\"",
+      "cursor": {
+        "x": 426,
+        "y": 494
+      },
+      "path": "/d/WB4XPp_lIC"
+    },
+    {
+      "kind": "outcome",
+      "file": "04.webp",
+      "caption": "From now on, other people's changes arrive as suggestions.",
+      "cursor": {
+        "x": 426,
+        "y": 494
+      },
+      "path": "/d/WB4XPp_lIC",
+      "highlights": [
+        {
+          "label": "Suggestions",
+          "x": 408,
+          "y": 452,
+          "w": 464,
+          "h": 184
+        }
+      ]
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Your reviewer suggests changes"
+    },
+    {
+      "kind": "narration",
+      "text": "Sam opens the same link. The switch in the top bar says Suggesting and stays there: whatever he types is shown as a proposal, underlined in his colour, and whatever he deletes is struck through. The text itself does not change.",
+      "file": "05.webp",
+      "cursor": {
+        "x": 426,
+        "y": 494
+      },
+      "path": "/d/WB4XPp_lIC"
+    },
+    {
+      "kind": "outcome",
+      "file": "06.webp",
+      "caption": "Sam rewrites a sentence: the old one is struck through, the new one underlined",
+      "cursor": {
+        "x": 19,
+        "y": 383
+      },
+      "path": "/d/WB4XPp_lIC",
+      "actor": "sam"
+    },
+    {
+      "kind": "outcome",
+      "file": "07.webp",
+      "caption": "Sam suggests deleting a sentence: it is struck through until you decide",
+      "cursor": {
+        "x": 19,
+        "y": 383
+      },
+      "path": "/d/WB4XPp_lIC",
+      "actor": "sam"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Accept or reject"
+    },
+    {
+      "kind": "narration",
+      "text": "On your screen the suggestions appear as Sam types. Open the Suggestions panel: each suggestion has a card with who proposed it, when, and buttons to accept or reject. On a phone, tap a suggestion in the text to open its card.",
+      "file": "08.webp",
+      "cursor": {
+        "x": 426,
+        "y": 494
+      },
+      "path": "/d/WB4XPp_lIC"
+    },
+    {
+      "kind": "approach",
+      "file": "09.webp",
+      "caption": "Open the Suggestions panel",
+      "cursor": {
+        "x": 1173,
+        "y": 98
+      },
+      "path": "/d/WB4XPp_lIC"
+    },
+    {
+      "kind": "outcome",
+      "file": "10.webp",
+      "caption": "Every open suggestion has a card, in the order of the text.",
+      "cursor": {
+        "x": 1173,
+        "y": 98
+      },
+      "path": "/d/WB4XPp_lIC"
+    },
+    {
+      "kind": "approach",
+      "file": "11.webp",
+      "caption": "Accept the rewritten sentence",
+      "cursor": {
+        "x": 1215,
+        "y": 237
+      },
+      "path": "/d/WB4XPp_lIC"
+    },
+    {
+      "kind": "outcome",
+      "file": "12.webp",
+      "caption": "The new sentence is now part of the text, recorded as Sam's edit.",
+      "cursor": {
+        "x": 1215,
+        "y": 237
+      },
+      "path": "/d/WB4XPp_lIC"
+    },
+    {
+      "kind": "approach",
+      "file": "13.webp",
+      "caption": "Reject the deletion",
+      "cursor": {
+        "x": 1245,
+        "y": 237
+      },
+      "path": "/d/WB4XPp_lIC"
+    },
+    {
+      "kind": "outcome",
+      "file": "14.webp",
+      "caption": "The sentence stays as it was, and the suggestion is gone.",
+      "cursor": {
+        "x": 1245,
+        "y": 237
+      },
+      "path": "/d/WB4XPp_lIC",
+      "hero": true
+    }
+  ],
+  "next": {
+    "slug": "have-a-discussion",
+    "why": "Discuss a passage in a comment thread"
+  }
+}

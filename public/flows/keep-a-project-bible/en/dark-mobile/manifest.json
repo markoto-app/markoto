@@ -1,0 +1,226 @@
+{
+  "version": 2,
+  "title": "Keep a project bible",
+  "slug": "keep-a-project-bible",
+  "locale": "en",
+  "variant": "dark-mobile",
+  "viewport": {
+    "w": 390,
+    "h": 720
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Mark the bible as AI context"
+    },
+    {
+      "kind": "narration",
+      "text": "Keep the facts of your project in an ordinary document: characters, places, a glossary, a style guide. Mark it as AI context and markoto reads it whenever you ask the AI for help in this workspace.",
+      "file": "01.webp",
+      "cursor": null,
+      "path": "/w/g5GlrM_NJW"
+    },
+    {
+      "kind": "outcome",
+      "file": "02.webp",
+      "caption": "Press and hold \"Story bible\"",
+      "cursor": {
+        "x": 92,
+        "y": 474
+      },
+      "path": "/w/g5GlrM_NJW",
+      "highlights": [
+        {
+          "label": "Actions",
+          "x": 0,
+          "y": 0,
+          "w": 390,
+          "h": 720
+        }
+      ]
+    },
+    {
+      "kind": "approach",
+      "file": "03.webp",
+      "caption": "Tap \"Use as AI context\"",
+      "cursor": {
+        "x": 195,
+        "y": 636
+      },
+      "path": "/w/g5GlrM_NJW"
+    },
+    {
+      "kind": "outcome",
+      "file": "04.webp",
+      "caption": "The bible now applies to every document in the workspace.",
+      "cursor": {
+        "x": 195,
+        "y": 636
+      },
+      "path": "/w/g5GlrM_NJW"
+    },
+    {
+      "kind": "outcome",
+      "file": "04.webp",
+      "caption": "The bible is marked as AI context for the workspace.",
+      "cursor": {
+        "x": 195,
+        "y": 636
+      },
+      "path": "/w/g5GlrM_NJW",
+      "highlights": [
+        {
+          "label": "AI context",
+          "x": 129.25,
+          "y": 464,
+          "w": 59.40625,
+          "h": 20
+        }
+      ]
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "See which context a document uses"
+    },
+    {
+      "kind": "approach",
+      "file": "05.webp",
+      "caption": "Tap the Info tab on the bottom bar",
+      "cursor": {
+        "x": 139,
+        "y": 695
+      },
+      "path": "/d/rQwJ1LnIYY"
+    },
+    {
+      "kind": "outcome",
+      "file": "06.webp",
+      "caption": "Under \"AI context\", the panel lists the documents the AI reads here.",
+      "cursor": {
+        "x": 139,
+        "y": 695
+      },
+      "path": "/d/rQwJ1LnIYY"
+    },
+    {
+      "kind": "outcome",
+      "file": "07.webp",
+      "caption": "\"Story bible\" applies to this chapter because it is context for the whole workspace.",
+      "cursor": {
+        "x": 139,
+        "y": 695
+      },
+      "path": "/d/rQwJ1LnIYY",
+      "highlights": [
+        {
+          "label": "AI context",
+          "x": 12,
+          "y": 376.75,
+          "w": 366,
+          "h": 332.25
+        }
+      ]
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Write with the bible in mind"
+    },
+    {
+      "kind": "narration",
+      "text": "Ask for a scene without repeating the facts. The prompt names neither the town nor the ferry; the AI takes both from the bible.",
+      "file": "08.webp",
+      "cursor": {
+        "x": 364,
+        "y": 339
+      },
+      "path": "/d/rQwJ1LnIYY"
+    },
+    {
+      "kind": "approach",
+      "file": "08.webp",
+      "caption": "Click into the AI prompt bar",
+      "cursor": {
+        "x": 159,
+        "y": 602
+      },
+      "path": "/d/rQwJ1LnIYY"
+    },
+    {
+      "kind": "outcome",
+      "file": "09.webp",
+      "caption": "The prompt bar is ready.",
+      "cursor": {
+        "x": 159,
+        "y": 602
+      },
+      "path": "/d/rQwJ1LnIYY"
+    },
+    {
+      "kind": "approach",
+      "file": "09.webp",
+      "caption": "Ask for the opening scene",
+      "cursor": {
+        "x": 76,
+        "y": 603
+      },
+      "path": "/d/rQwJ1LnIYY"
+    },
+    {
+      "kind": "outcome",
+      "file": "10.webp",
+      "caption": "A short ask; the facts come from the bible.",
+      "cursor": {
+        "x": 76,
+        "y": 603
+      },
+      "path": "/d/rQwJ1LnIYY"
+    },
+    {
+      "kind": "approach",
+      "file": "10.webp",
+      "caption": "Send it",
+      "cursor": {
+        "x": 350,
+        "y": 602
+      },
+      "path": "/d/rQwJ1LnIYY"
+    },
+    {
+      "kind": "outcome",
+      "file": "11.webp",
+      "caption": "markoto is writing.",
+      "cursor": {
+        "x": 350,
+        "y": 602
+      },
+      "path": "/d/rQwJ1LnIYY"
+    },
+    {
+      "kind": "outcome",
+      "file": "12.webp",
+      "caption": "The opening names Vellmar and the Heron, facts only the bible holds.",
+      "cursor": {
+        "x": 350,
+        "y": 602
+      },
+      "path": "/d/rQwJ1LnIYY",
+      "highlights": [
+        {
+          "label": "AI's paragraph",
+          "x": 0,
+          "y": 42,
+          "w": 390,
+          "h": 529.25
+        }
+      ],
+      "hero": true
+    }
+  ],
+  "next": {
+    "slug": "tell-the-ai-who-you-re-writing-for",
+    "why": "Set the audience and language of each document too"
+  }
+}

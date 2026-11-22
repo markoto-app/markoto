@@ -22,7 +22,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/0-FovUEo02"
+      "path": "/d/jVs2BJzLmR"
     },
     {
       "kind": "approach",
@@ -32,7 +32,7 @@
         "x": 915,
         "y": 26
       },
-      "path": "/d/0-FovUEo02"
+      "path": "/d/jVs2BJzLmR"
     },
     {
       "kind": "approach",
@@ -40,15 +40,15 @@
       "caption": "Publish",
       "cursor": {
         "x": 454,
-        "y": 636
+        "y": 752
       },
-      "path": "/d/0-FovUEo02",
+      "path": "/d/jVs2BJzLmR",
       "annotations": [
         {
           "label": "Publish as a web page",
           "kind": "box",
           "x": 408,
-          "y": 483.5,
+          "y": 599,
           "w": 464,
           "h": 169
         }
@@ -60,9 +60,9 @@
       "caption": "Copy the address",
       "cursor": {
         "x": 816,
-        "y": 553
+        "y": 700
       },
-      "path": "/d/0-FovUEo02"
+      "path": "/d/jVs2BJzLmR"
     },
     {
       "kind": "outcome",
@@ -70,14 +70,14 @@
       "caption": "The page is published at its own address",
       "cursor": {
         "x": 816,
-        "y": 553
+        "y": 700
       },
-      "path": "/d/0-FovUEo02",
+      "path": "/d/jVs2BJzLmR",
       "highlights": [
         {
           "label": "Public address",
           "x": 408,
-          "y": 537,
+          "y": 684,
           "w": 384,
           "h": 32
         }
@@ -93,7 +93,7 @@
       "file": "06.webp",
       "caption": "Anyone with the address reads the page, no account, no editor",
       "cursor": null,
-      "path": "/p/harbourline-depot-guide-6ugtvq",
+      "path": "/p/harbourline-depot-guide-2upkju",
       "hero": true,
       "actor": "reader"
     }

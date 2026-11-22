@@ -22,17 +22,17 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/s5pg8Y51Gx"
+      "path": "/d/z2WbLCSfD5"
     },
     {
       "kind": "approach",
       "file": "02.webp",
       "caption": "Click into the AI prompt bar",
       "cursor": {
-        "x": 618,
+        "x": 604,
         "y": 722
       },
-      "path": "/d/s5pg8Y51Gx"
+      "path": "/d/z2WbLCSfD5"
     },
     {
       "kind": "approach",
@@ -42,7 +42,7 @@
         "x": 316,
         "y": 723
       },
-      "path": "/d/s5pg8Y51Gx"
+      "path": "/d/z2WbLCSfD5"
     },
     {
       "kind": "outcome",
@@ -52,7 +52,7 @@
         "x": 316,
         "y": 723
       },
-      "path": "/d/s5pg8Y51Gx"
+      "path": "/d/z2WbLCSfD5"
     },
     {
       "kind": "approach",
@@ -62,7 +62,7 @@
         "x": 1000,
         "y": 722
       },
-      "path": "/d/s5pg8Y51Gx"
+      "path": "/d/z2WbLCSfD5"
     },
     {
       "kind": "outcome",
@@ -72,7 +72,7 @@
         "x": 1000,
         "y": 722
       },
-      "path": "/d/s5pg8Y51Gx"
+      "path": "/d/z2WbLCSfD5"
     },
     {
       "kind": "chapter",
@@ -87,7 +87,7 @@
         "x": 1000,
         "y": 722
       },
-      "path": "/d/s5pg8Y51Gx",
+      "path": "/d/z2WbLCSfD5",
       "hero": true
     }
   ],

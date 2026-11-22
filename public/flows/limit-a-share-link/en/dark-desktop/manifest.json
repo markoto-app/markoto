@@ -22,7 +22,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/ZHNAM5Us4j"
+      "path": "/d/FkYDlfUfBb"
     },
     {
       "kind": "approach",
@@ -32,7 +32,7 @@
         "x": 915,
         "y": 26
       },
-      "path": "/d/ZHNAM5Us4j"
+      "path": "/d/FkYDlfUfBb"
     },
     {
       "kind": "approach",
@@ -40,9 +40,9 @@
       "caption": "Let anyone with the link view it",
       "cursor": {
         "x": 640,
-        "y": 406
+        "y": 375
       },
-      "path": "/d/ZHNAM5Us4j"
+      "path": "/d/FkYDlfUfBb"
     },
     {
       "kind": "outcome",
@@ -52,7 +52,7 @@
         "x": 426,
         "y": 610
       },
-      "path": "/d/ZHNAM5Us4j",
+      "path": "/d/FkYDlfUfBb",
       "highlights": [
         {
           "label": "Link settings",
@@ -77,7 +77,7 @@
         "x": 28,
         "y": 67
       },
-      "path": "/d/ZHNAM5Us4j",
+      "path": "/d/FkYDlfUfBb",
       "actor": "visitor"
     },
     {
@@ -88,7 +88,7 @@
         "x": 28,
         "y": 67
       },
-      "path": "/d/ZHNAM5Us4j",
+      "path": "/d/FkYDlfUfBb",
       "actor": "visitor"
     },
     {
@@ -96,7 +96,7 @@
       "file": "07.webp",
       "caption": "After the end date the link says it expired",
       "cursor": null,
-      "path": "/d/ZHNAM5Us4j",
+      "path": "/d/FkYDlfUfBb",
       "actor": "visitor"
     }
   ],

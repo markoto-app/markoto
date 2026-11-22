@@ -22,22 +22,22 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/HaJqxEB8KP"
+      "path": "/d/u38IBXZI54"
     },
     {
       "kind": "approach",
       "file": "02.webp",
       "caption": "Open the theme panel",
       "cursor": {
-        "x": 1260,
+        "x": 1234,
         "y": 98
       },
-      "path": "/d/HaJqxEB8KP",
+      "path": "/d/u38IBXZI54",
       "annotations": [
         {
           "label": "theme tab",
           "kind": "arrow",
-          "x": 1248,
+          "x": 1222,
           "y": 86,
           "w": 24,
           "h": 24
@@ -49,10 +49,10 @@
       "file": "03.webp",
       "caption": "The theme panel opens to the preset cards + section accordions.",
       "cursor": {
-        "x": 1260,
+        "x": 1234,
         "y": 98
       },
-      "path": "/d/HaJqxEB8KP"
+      "path": "/d/u38IBXZI54"
     },
     {
       "kind": "approach",
@@ -62,7 +62,7 @@
         "x": 1120,
         "y": 438
       },
-      "path": "/d/HaJqxEB8KP",
+      "path": "/d/u38IBXZI54",
       "annotations": [
         {
           "label": "Cover page accordion",
@@ -82,7 +82,7 @@
         "x": 1120,
         "y": 438
       },
-      "path": "/d/HaJqxEB8KP"
+      "path": "/d/u38IBXZI54"
     },
     {
       "kind": "chapter",
@@ -97,7 +97,7 @@
         "x": 1120,
         "y": 438
       },
-      "path": "/d/HaJqxEB8KP"
+      "path": "/d/u38IBXZI54"
     },
     {
       "kind": "approach",
@@ -107,7 +107,7 @@
         "x": 1120,
         "y": 618
       },
-      "path": "/d/HaJqxEB8KP"
+      "path": "/d/u38IBXZI54"
     },
     {
       "kind": "outcome",
@@ -117,7 +117,7 @@
         "x": 1120,
         "y": 618
       },
-      "path": "/d/HaJqxEB8KP"
+      "path": "/d/u38IBXZI54"
     },
     {
       "kind": "approach",
@@ -127,7 +127,7 @@
         "x": 1120,
         "y": 511
       },
-      "path": "/d/HaJqxEB8KP"
+      "path": "/d/u38IBXZI54"
     },
     {
       "kind": "outcome",
@@ -137,7 +137,7 @@
         "x": 1120,
         "y": 511
       },
-      "path": "/d/HaJqxEB8KP"
+      "path": "/d/u38IBXZI54"
     },
     {
       "kind": "chapter",
@@ -152,7 +152,7 @@
         "x": 1120,
         "y": 511
       },
-      "path": "/d/HaJqxEB8KP"
+      "path": "/d/u38IBXZI54"
     },
     {
       "kind": "approach",
@@ -162,7 +162,7 @@
         "x": 991,
         "y": 438
       },
-      "path": "/d/HaJqxEB8KP"
+      "path": "/d/u38IBXZI54"
     },
     {
       "kind": "outcome",
@@ -172,7 +172,7 @@
         "x": 991,
         "y": 438
       },
-      "path": "/d/HaJqxEB8KP"
+      "path": "/d/u38IBXZI54"
     },
     {
       "kind": "approach",
@@ -182,7 +182,7 @@
         "x": 987,
         "y": 581
       },
-      "path": "/d/HaJqxEB8KP"
+      "path": "/d/u38IBXZI54"
     },
     {
       "kind": "outcome",
@@ -192,7 +192,7 @@
         "x": 987,
         "y": 581
       },
-      "path": "/d/HaJqxEB8KP",
+      "path": "/d/u38IBXZI54",
       "highlights": [
         {
           "label": "Your cover page",

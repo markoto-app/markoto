@@ -22,7 +22,7 @@
         "x": 195,
         "y": 306
       },
-      "path": "/d/dkAy_frtkL"
+      "path": "/d/f7huie4NoS"
     },
     {
       "kind": "approach",
@@ -32,7 +32,7 @@
         "x": 330,
         "y": 20
       },
-      "path": "/d/dkAy_frtkL"
+      "path": "/d/f7huie4NoS"
     },
     {
       "kind": "outcome",
@@ -42,7 +42,7 @@
         "x": 330,
         "y": 20
       },
-      "path": "/d/dkAy_frtkL"
+      "path": "/d/f7huie4NoS"
     },
     {
       "kind": "outcome",
@@ -50,15 +50,15 @@
       "caption": "Pick \"Anyone can view\", anyone with the link can read the doc but not change it.",
       "cursor": {
         "x": 46,
-        "y": 164
+        "y": 158
       },
-      "path": "/d/dkAy_frtkL",
+      "path": "/d/f7huie4NoS",
       "annotations": [
         {
           "label": "view-only",
           "kind": "arrow",
           "x": 32,
-          "y": 333.5,
+          "y": 328,
           "w": 326,
           "h": 46
         }
@@ -77,14 +77,14 @@
         "x": 330,
         "y": 20
       },
-      "path": "/d/dkAy_frtkL"
+      "path": "/d/f7huie4NoS"
     },
     {
       "kind": "outcome",
       "file": "04.webp",
       "caption": "The visitor lands in the doc, but the editor is read-only. No caret blink, no formatting toolbar, no AI prompt bar. The lock icon in the topbar reflects the view-only mode.",
       "cursor": null,
-      "path": "/d/dkAy_frtkL",
+      "path": "/d/f7huie4NoS",
       "highlights": [
         {
           "label": "Read-only preview",

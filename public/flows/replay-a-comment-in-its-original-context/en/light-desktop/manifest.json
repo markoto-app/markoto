@@ -17,7 +17,7 @@
         "x": 19,
         "y": 383
       },
-      "path": "/d/3VB94XBrB3"
+      "path": "/d/V7U2FgK0Jz"
     },
     {
       "kind": "chapter",
@@ -32,22 +32,22 @@
         "x": 1067,
         "y": 313
       },
-      "path": "/d/3VB94XBrB3"
+      "path": "/d/V7U2FgK0Jz"
     },
     {
       "kind": "approach",
       "file": "03.webp",
       "caption": "Open the Activity tab",
       "cursor": {
-        "x": 1234,
+        "x": 1208,
         "y": 98
       },
-      "path": "/d/3VB94XBrB3",
+      "path": "/d/V7U2FgK0Jz",
       "annotations": [
         {
           "label": "Activity tab",
           "kind": "arrow",
-          "x": 1222,
+          "x": 1196,
           "y": 86,
           "w": 24,
           "h": 24
@@ -59,10 +59,10 @@
       "file": "04.webp",
       "caption": "The Activity feed opens, one row per edit, comment, restore.",
       "cursor": {
-        "x": 1234,
+        "x": 1208,
         "y": 98
       },
-      "path": "/d/3VB94XBrB3"
+      "path": "/d/V7U2FgK0Jz"
     },
     {
       "kind": "chapter",
@@ -74,10 +74,10 @@
       "text": "Comment rows in the feed carry a chevron, click to expand. The thread appears inline, exactly as it was at that moment. No modal, no navigation; the editor stays in place.",
       "file": "04.webp",
       "cursor": {
-        "x": 1234,
+        "x": 1208,
         "y": 98
       },
-      "path": "/d/3VB94XBrB3"
+      "path": "/d/V7U2FgK0Jz"
     },
     {
       "kind": "approach",
@@ -87,7 +87,7 @@
         "x": 1120,
         "y": 290
       },
-      "path": "/d/3VB94XBrB3"
+      "path": "/d/V7U2FgK0Jz"
     },
     {
       "kind": "outcome",
@@ -97,7 +97,7 @@
         "x": 1120,
         "y": 290
       },
-      "path": "/d/3VB94XBrB3",
+      "path": "/d/V7U2FgK0Jz",
       "hero": true
     }
   ],

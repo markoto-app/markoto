@@ -22,7 +22,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/8pgRWD5ebL"
+      "path": "/d/xqMV4UStqD"
     },
     {
       "kind": "chapter",
@@ -37,7 +37,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/8pgRWD5ebL"
+      "path": "/d/xqMV4UStqD"
     },
     {
       "kind": "outcome",
@@ -47,7 +47,7 @@
         "x": 19,
         "y": 383
       },
-      "path": "/d/8pgRWD5ebL"
+      "path": "/d/xqMV4UStqD"
     },
     {
       "kind": "outcome",
@@ -57,7 +57,7 @@
         "x": 19,
         "y": 383
       },
-      "path": "/d/8pgRWD5ebL"
+      "path": "/d/xqMV4UStqD"
     },
     {
       "kind": "chapter",
@@ -69,20 +69,20 @@
       "file": "04.webp",
       "caption": "Click the Activity tab",
       "cursor": {
-        "x": 1234,
+        "x": 1208,
         "y": 98
       },
-      "path": "/d/8pgRWD5ebL"
+      "path": "/d/xqMV4UStqD"
     },
     {
       "kind": "outcome",
       "file": "05.webp",
       "caption": "The newest change is at the top: the edit that replaced the announcement.",
       "cursor": {
-        "x": 1234,
+        "x": 1208,
         "y": 98
       },
-      "path": "/d/8pgRWD5ebL"
+      "path": "/d/xqMV4UStqD"
     },
     {
       "kind": "chapter",
@@ -94,10 +94,10 @@
       "text": "Restore on an entry brings the document back to how it was just before that change. To undo the mistake, use Restore on the mistake itself: the newest entry, at the top.",
       "file": "05.webp",
       "cursor": {
-        "x": 1234,
+        "x": 1208,
         "y": 98
       },
-      "path": "/d/8pgRWD5ebL"
+      "path": "/d/xqMV4UStqD"
     },
     {
       "kind": "approach",
@@ -107,7 +107,7 @@
         "x": 1225,
         "y": 295
       },
-      "path": "/d/8pgRWD5ebL"
+      "path": "/d/xqMV4UStqD"
     },
     {
       "kind": "outcome",
@@ -117,7 +117,7 @@
         "x": 1225,
         "y": 295
       },
-      "path": "/d/8pgRWD5ebL"
+      "path": "/d/xqMV4UStqD"
     },
     {
       "kind": "approach",
@@ -127,7 +127,7 @@
         "x": 824,
         "y": 485
       },
-      "path": "/d/8pgRWD5ebL"
+      "path": "/d/xqMV4UStqD"
     },
     {
       "kind": "outcome",
@@ -137,7 +137,7 @@
         "x": 824,
         "y": 485
       },
-      "path": "/d/8pgRWD5ebL",
+      "path": "/d/xqMV4UStqD",
       "hero": true
     }
   ],

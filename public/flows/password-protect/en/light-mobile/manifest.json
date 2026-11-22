@@ -19,14 +19,14 @@
       "text": "Documents share by URL. To gate one, its owner switches the access mode to password-protected and chooses a passphrase. Visitors hit a blocking dialog before they see anything; only the right passphrase gets them past it. Only the owner sees the access-mode picker: sign in first, because a document created without an account has no owner and can't be locked.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/VRUWdN6n3K"
+      "path": "/d/9199Qn56O4"
     },
     {
       "kind": "narration",
       "text": "Open the share dialog from the lock icon in the topbar.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/VRUWdN6n3K"
+      "path": "/d/9199Qn56O4"
     },
     {
       "kind": "approach",
@@ -36,7 +36,7 @@
         "x": 330,
         "y": 20
       },
-      "path": "/d/VRUWdN6n3K",
+      "path": "/d/9199Qn56O4",
       "annotations": [
         {
           "label": "lock icon",
@@ -56,7 +56,7 @@
         "x": 330,
         "y": 20
       },
-      "path": "/d/VRUWdN6n3K"
+      "path": "/d/9199Qn56O4"
     },
     {
       "kind": "chapter",
@@ -71,7 +71,7 @@
         "x": 330,
         "y": 20
       },
-      "path": "/d/VRUWdN6n3K"
+      "path": "/d/9199Qn56O4"
     },
     {
       "kind": "approach",
@@ -79,15 +79,15 @@
       "caption": "Pick \"Password protected\"",
       "cursor": {
         "x": 195,
-        "y": 410
+        "y": 405
       },
-      "path": "/d/VRUWdN6n3K",
+      "path": "/d/9199Qn56O4",
       "annotations": [
         {
           "label": "password mode",
           "kind": "arrow",
           "x": 32,
-          "y": 387.5,
+          "y": 382,
           "w": 326,
           "h": 46
         }
@@ -99,9 +99,9 @@
       "caption": "The password input appears, type a passphrase to lock the doc.",
       "cursor": {
         "x": 195,
-        "y": 410
+        "y": 405
       },
-      "path": "/d/VRUWdN6n3K"
+      "path": "/d/9199Qn56O4"
     },
     {
       "kind": "approach",
@@ -111,7 +111,7 @@
         "x": 59,
         "y": 495
       },
-      "path": "/d/VRUWdN6n3K"
+      "path": "/d/9199Qn56O4"
     },
     {
       "kind": "outcome",
@@ -121,27 +121,27 @@
         "x": 59,
         "y": 495
       },
-      "path": "/d/VRUWdN6n3K"
+      "path": "/d/9199Qn56O4"
     },
     {
       "kind": "approach",
-      "file": "05.webp",
+      "file": "06.webp",
       "caption": "Click Save to commit the password",
       "cursor": {
         "x": 321,
         "y": 495
       },
-      "path": "/d/VRUWdN6n3K"
+      "path": "/d/9199Qn56O4"
     },
     {
       "kind": "outcome",
-      "file": "06.webp",
+      "file": "07.webp",
       "caption": "The document is now password protected; the lock icon in the top bar shows it.",
       "cursor": {
         "x": 321,
         "y": 495
       },
-      "path": "/d/VRUWdN6n3K",
+      "path": "/d/9199Qn56O4",
       "highlights": [
         {
           "label": "Password protected",
@@ -160,22 +160,22 @@
     {
       "kind": "narration",
       "text": "A first-time visitor: say, in their own browser, opens the link and gets the password dialog first. Until the passphrase checks out, markoto sends them nothing of the document: not the text, not even its title.",
-      "file": "06.webp",
+      "file": "07.webp",
       "cursor": {
         "x": 321,
         "y": 495
       },
-      "path": "/d/VRUWdN6n3K"
+      "path": "/d/9199Qn56O4"
     },
     {
       "kind": "outcome",
-      "file": "07.webp",
+      "file": "08.webp",
       "caption": "A blocking dialog asks for the password, the editor is hidden until you enter it.",
       "cursor": {
         "x": 54,
         "y": 414
       },
-      "path": "/d/VRUWdN6n3K",
+      "path": "/d/9199Qn56O4",
       "annotations": [
         {
           "label": "password input",
@@ -196,53 +196,53 @@
     {
       "kind": "narration",
       "text": "Type the passphrase and the gate lifts. Too many wrong guesses and markoto pauses password checks on the document for a while, so a passphrase can't be brute-forced.",
-      "file": "08.webp",
+      "file": "09.webp",
       "cursor": null,
-      "path": "/d/VRUWdN6n3K",
+      "path": "/d/9199Qn56O4",
       "actor": "visitor"
     },
     {
       "kind": "approach",
-      "file": "09.webp",
+      "file": "10.webp",
       "caption": "Type the passphrase",
       "cursor": {
         "x": 54,
         "y": 414
       },
-      "path": "/d/VRUWdN6n3K",
+      "path": "/d/9199Qn56O4",
       "actor": "visitor"
     },
     {
       "kind": "outcome",
-      "file": "10.webp",
+      "file": "11.webp",
       "caption": "The passphrase is ready, Unlock submits it for verification.",
       "cursor": {
         "x": 54,
         "y": 414
       },
-      "path": "/d/VRUWdN6n3K",
+      "path": "/d/9199Qn56O4",
       "actor": "visitor"
     },
     {
       "kind": "approach",
-      "file": "11.webp",
+      "file": "12.webp",
       "caption": "Click \"Unlock\" to enter the doc",
       "cursor": {
         "x": 274,
         "y": 460
       },
-      "path": "/d/VRUWdN6n3K",
+      "path": "/d/9199Qn56O4",
       "actor": "visitor"
     },
     {
       "kind": "outcome",
-      "file": "12.webp",
+      "file": "13.webp",
       "caption": "The password dialog closes and the document opens.",
       "cursor": {
         "x": 274,
         "y": 460
       },
-      "path": "/d/VRUWdN6n3K",
+      "path": "/d/9199Qn56O4",
       "hero": true,
       "actor": "visitor"
     }

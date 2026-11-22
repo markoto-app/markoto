@@ -19,27 +19,27 @@
       "text": "The AI prompt bar can do more than write. Ask it for an image and it draws one with your image provider, stores it with the document and places it in the text. It renders in the preview like any image you uploaded yourself, and it is deleted together with the document.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/t_MXoPIasT"
+      "path": "/d/KQu9ZO0wBd"
     },
     {
       "kind": "approach",
       "file": "01.webp",
       "caption": "Click into the AI prompt bar",
       "cursor": {
-        "x": 173,
+        "x": 159,
         "y": 602
       },
-      "path": "/d/t_MXoPIasT"
+      "path": "/d/KQu9ZO0wBd"
     },
     {
       "kind": "outcome",
       "file": "02.webp",
       "caption": "The prompt bar lifts and glows, ready for your prompt.",
       "cursor": {
-        "x": 173,
+        "x": 159,
         "y": 602
       },
-      "path": "/d/t_MXoPIasT"
+      "path": "/d/KQu9ZO0wBd"
     },
     {
       "kind": "approach",
@@ -49,7 +49,7 @@
         "x": 76,
         "y": 603
       },
-      "path": "/d/t_MXoPIasT"
+      "path": "/d/KQu9ZO0wBd"
     },
     {
       "kind": "outcome",
@@ -59,7 +59,7 @@
         "x": 76,
         "y": 603
       },
-      "path": "/d/t_MXoPIasT"
+      "path": "/d/KQu9ZO0wBd"
     },
     {
       "kind": "approach",
@@ -69,7 +69,7 @@
         "x": 350,
         "y": 602
       },
-      "path": "/d/t_MXoPIasT"
+      "path": "/d/KQu9ZO0wBd"
     },
     {
       "kind": "outcome",
@@ -79,7 +79,7 @@
         "x": 350,
         "y": 602
       },
-      "path": "/d/t_MXoPIasT"
+      "path": "/d/KQu9ZO0wBd"
     },
     {
       "kind": "approach",
@@ -89,7 +89,7 @@
         "x": 359,
         "y": 73
       },
-      "path": "/d/t_MXoPIasT"
+      "path": "/d/KQu9ZO0wBd"
     },
     {
       "kind": "outcome",
@@ -99,7 +99,7 @@
         "x": 318,
         "y": 73
       },
-      "path": "/d/t_MXoPIasT",
+      "path": "/d/KQu9ZO0wBd",
       "highlights": [
         {
           "label": "The generated image",

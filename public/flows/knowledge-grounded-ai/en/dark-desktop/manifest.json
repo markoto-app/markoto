@@ -19,7 +19,7 @@
       "text": "Workspaces have a Knowledge tab, drop in PDFs, Word docs, HTML exports, the team's RFCs, customer FAQs. markoto reads each file and indexes it, so the AI can look things up in it whenever you write inside the workspace, and answer from your files instead of from general knowledge.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/w/ECvhixMFEA"
+      "path": "/w/8GcaMj3gqB"
     },
     {
       "kind": "chapter",
@@ -34,7 +34,7 @@
         "x": 252,
         "y": 231
       },
-      "path": "/w/ECvhixMFEA",
+      "path": "/w/8GcaMj3gqB",
       "annotations": [
         {
           "label": "knowledge tab",
@@ -54,7 +54,7 @@
         "x": 252,
         "y": 231
       },
-      "path": "/w/ECvhixMFEA"
+      "path": "/w/8GcaMj3gqB"
     },
     {
       "kind": "approach",
@@ -64,7 +64,7 @@
         "x": 1163,
         "y": 313
       },
-      "path": "/w/ECvhixMFEA",
+      "path": "/w/8GcaMj3gqB",
       "annotations": [
         {
           "label": "upload",
@@ -84,7 +84,7 @@
         "x": 1163,
         "y": 313
       },
-      "path": "/w/ECvhixMFEA"
+      "path": "/w/8GcaMj3gqB"
     },
     {
       "kind": "chapter",
@@ -99,7 +99,7 @@
         "x": 1163,
         "y": 313
       },
-      "path": "/w/ECvhixMFEA"
+      "path": "/w/8GcaMj3gqB"
     },
     {
       "kind": "outcome",
@@ -109,7 +109,7 @@
         "x": 1163,
         "y": 313
       },
-      "path": "/w/ECvhixMFEA"
+      "path": "/w/8GcaMj3gqB"
     },
     {
       "kind": "chapter",
@@ -124,7 +124,7 @@
         "x": 1163,
         "y": 313
       },
-      "path": "/w/ECvhixMFEA"
+      "path": "/w/8GcaMj3gqB"
     },
     {
       "kind": "approach",
@@ -134,7 +134,7 @@
         "x": 121,
         "y": 231
       },
-      "path": "/w/ECvhixMFEA"
+      "path": "/w/8GcaMj3gqB"
     },
     {
       "kind": "outcome",
@@ -144,7 +144,7 @@
         "x": 121,
         "y": 231
       },
-      "path": "/w/ECvhixMFEA"
+      "path": "/w/8GcaMj3gqB"
     },
     {
       "kind": "approach",
@@ -154,7 +154,7 @@
         "x": 1182,
         "y": 343
       },
-      "path": "/w/ECvhixMFEA"
+      "path": "/w/8GcaMj3gqB"
     },
     {
       "kind": "outcome",
@@ -164,7 +164,7 @@
         "x": 1182,
         "y": 343
       },
-      "path": "/w/ECvhixMFEA"
+      "path": "/w/8GcaMj3gqB"
     },
     {
       "kind": "approach",
@@ -174,7 +174,7 @@
         "x": 1182,
         "y": 385
       },
-      "path": "/w/ECvhixMFEA"
+      "path": "/w/8GcaMj3gqB"
     },
     {
       "kind": "outcome",
@@ -184,7 +184,7 @@
         "x": 1182,
         "y": 385
       },
-      "path": "/w/ECvhixMFEA"
+      "path": "/w/8GcaMj3gqB"
     },
     {
       "kind": "approach",
@@ -194,7 +194,7 @@
         "x": 839,
         "y": 544
       },
-      "path": "/w/ECvhixMFEA"
+      "path": "/w/8GcaMj3gqB"
     },
     {
       "kind": "outcome",
@@ -204,7 +204,7 @@
         "x": 839,
         "y": 544
       },
-      "path": "/d/QARqlTI1lz"
+      "path": "/d/GW0LWKNCB6"
     },
     {
       "kind": "chapter",
@@ -219,27 +219,27 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/QARqlTI1lz"
+      "path": "/d/GW0LWKNCB6"
     },
     {
       "kind": "approach",
       "file": "16.webp",
       "caption": "Click into the AI prompt bar",
       "cursor": {
-        "x": 618,
+        "x": 604,
         "y": 722
       },
-      "path": "/d/QARqlTI1lz"
+      "path": "/d/GW0LWKNCB6"
     },
     {
       "kind": "outcome",
       "file": "17.webp",
       "caption": "The prompt bar lifts and glows, ready for your question.",
       "cursor": {
-        "x": 618,
+        "x": 604,
         "y": 722
       },
-      "path": "/d/QARqlTI1lz"
+      "path": "/d/GW0LWKNCB6"
     },
     {
       "kind": "approach",
@@ -249,7 +249,7 @@
         "x": 316,
         "y": 723
       },
-      "path": "/d/QARqlTI1lz"
+      "path": "/d/GW0LWKNCB6"
     },
     {
       "kind": "outcome",
@@ -259,7 +259,7 @@
         "x": 316,
         "y": 723
       },
-      "path": "/d/QARqlTI1lz"
+      "path": "/d/GW0LWKNCB6"
     },
     {
       "kind": "approach",
@@ -269,7 +269,7 @@
         "x": 1000,
         "y": 722
       },
-      "path": "/d/QARqlTI1lz"
+      "path": "/d/GW0LWKNCB6"
     },
     {
       "kind": "outcome",
@@ -279,7 +279,7 @@
         "x": 1000,
         "y": 722
       },
-      "path": "/d/QARqlTI1lz"
+      "path": "/d/GW0LWKNCB6"
     },
     {
       "kind": "outcome",
@@ -289,7 +289,7 @@
         "x": 1000,
         "y": 722
       },
-      "path": "/d/QARqlTI1lz",
+      "path": "/d/GW0LWKNCB6",
       "highlights": [
         {
           "label": "AI's grounded answer",
