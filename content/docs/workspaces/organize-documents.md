@@ -39,7 +39,7 @@ sort order and a search are part of the address too.
   folder. A bar below the list shows the count; **Actions** in
   it works on all of them at once.
 - **Search:** the search box finds documents by title and by any word in
-  their text, in the open folder. Tick **All folders** to search the whole
+  their text, in the open folder and its subfolders. Tick **All folders** to search the whole
   workspace (or all of My documents). To search everything you can open
   (your documents, every workspace and documents shared with you), press
   **Ctrl+K** (Cmd+K) or click **Search documents**.
