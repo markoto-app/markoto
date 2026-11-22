@@ -26,6 +26,8 @@ At render time every consumer also checks the theme: `isValidTheme` (an invalid 
 
 The server path exists because AI tools (`view_pages`) and PDF downloads need one deterministic render, independent of the viewer's fonts, zoom and browser.
 
+The PDF is tagged (structure tree, language, title, bookmarks): [accessible-pdf.md](accessible-pdf.md).
+
 ## Preview isolation
 
 The preview and print iframes are sandboxed `allow-scripts` (print adds `allow-modals`) **without `allow-same-origin`** (`PREVIEW_SANDBOX` / `PRINT_SANDBOX` in `app/utils/preview/previewFrame.ts`). They run in an opaque origin, so script in rendered content cannot reach the app's cookies, storage, DOM or same-origin APIs.

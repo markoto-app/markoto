@@ -13,6 +13,7 @@ import type { ImageUrlProvenance } from '../imageProvenance'
 import type { StreamStatusPhase } from '../streamStatus'
 import type { SessionBudget } from './sessionBudget'
 import type { SessionOutcome, SessionTelemetry } from './sessionTelemetry'
+import type { TurnSteering } from './turnSteering'
 
 // The state one agentic-loop session threads through its modules (turn
 // loop, provider stream, tool dispatch, salvage) and the outcomes they hand
@@ -124,6 +125,8 @@ export interface LoopContext {
   outputLimitedTurns: number
   /** Tool calls refused for invalid arguments, by name + argument hash, with how often they were sent. */
   invalidCalls: Map<string, number>
+  /** Reading streaks, the step reserve and the delegated job this session settled (`turnSteering.ts`). */
+  steering: TurnSteering
 }
 
 export type ResponseParts = NonNullable<Content['parts']>
@@ -149,8 +152,12 @@ export type TurnResult
     | { kind: 'budget-exhausted' }
     | { kind: 'wrap-up', reason: WrapUpReason }
 
-/** Why the loop stops early and runs its closing turn (`wrapUp.ts`); also the session outcome. */
-export type WrapUpReason = 'turn-limit' | 'time-limit' | 'output-limit'
+/**
+ * Why the loop stops and runs its closing turn (`wrapUp.ts`); also the
+ * session outcome, except `job-settled`: the session's delegated job did
+ * the work, so that close is a normal finish.
+ */
+export type WrapUpReason = 'turn-limit' | 'time-limit' | 'output-limit' | 'job-settled'
 
 /** Build a tool-error functionResponse part for the given call. */
 export function toolErrorResponse(call: FunctionCall, output: string): ResponseParts[number] {

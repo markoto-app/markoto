@@ -99,13 +99,14 @@ describe('docs reading order (prev / next pager)', () => {
 
   it('does not follow the file-path order', () => {
     const collaborate = docsReadingOrder(sections).map(p => p.path).filter(p => p.startsWith('/docs/collaborate/'))
-    expect(collaborate).toEqual(['/docs/collaborate/live-collab', '/docs/collaborate/comments', '/docs/collaborate/comment-replay'])
+    expect(collaborate).toEqual(['/docs/collaborate/live-collab', '/docs/collaborate/comments', '/docs/collaborate/comment-replay', '/docs/collaborate/suggestions'])
   })
 
   it('gives every page its neighbours, across section borders', () => {
     const paths = (at: string) => docsPagerNeighbours(sections, at).map(page => page?.path ?? null)
     expect(paths('/docs/collaborate/comments')).toEqual(['/docs/collaborate/live-collab', '/docs/collaborate/comment-replay'])
-    expect(paths('/docs/collaborate/comment-replay')).toEqual(['/docs/collaborate/comments', '/docs/sharing'])
+    expect(paths('/docs/collaborate/comment-replay')).toEqual(['/docs/collaborate/comments', '/docs/collaborate/suggestions'])
+    expect(paths('/docs/collaborate/suggestions')).toEqual(['/docs/collaborate/comment-replay', '/docs/sharing'])
     expect(paths('/docs/getting-started')).toEqual([null, '/docs/getting-started/quick-share'])
     expect(paths('/docs/self-hosting')).toEqual(['/docs/account/delete-account', null])
     expect(paths('/docs/nowhere')).toEqual([null, null])

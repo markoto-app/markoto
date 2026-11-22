@@ -11,12 +11,13 @@ import { initialUserParts } from './promptAssembly'
 import { useLogger } from '../platform/logger'
 import { SessionBudget, sessionCapStatus } from './loop/sessionBudget'
 import { SessionTelemetry } from './loop/sessionTelemetry'
-import { readDocText, throwIfAborted, toolErrorResponse, type LoopContext, type ResponseParts, type RunLoopOptions, type TurnResult, type WrapUpReason } from './loop/loopContext'
+import { isCommentTriggerSession, readDocText, throwIfAborted, toolErrorResponse, type LoopContext, type ResponseParts, type RunLoopOptions, type TurnResult, type WrapUpReason } from './loop/loopContext'
 import { streamTurn } from './loop/providerStream'
 import { salvageProseTurn } from './loop/salvage'
 import { dispatchToolCall } from './loop/toolDispatch'
 import { pruneReadResults } from './loop/historyPruning'
 import { nearDeadline, wrapUpSession } from './loop/wrapUp'
+import { TurnSteering } from './loop/turnSteering'
 
 const loopLog = useLogger('ai-loop')
 
@@ -32,7 +33,9 @@ const loopLog = useLogger('ai-loop')
  * At the turn limit, close to the session deadline, or after
  * `OUTPUT_LIMIT_TURNS` turns cut off by the output token limit, one
  * closing turn tells the user what is done and what is not
- * (`loop/wrapUp.ts`).
+ * (`loop/wrapUp.ts`). Turns that only read get steering notes, and a
+ * session whose delegated job is settled closes after a short look at
+ * the flagged parts (`loop/turnSteering.ts`).
  *
  * Returns normally on STOP; throws on abort. Status transitions are
  * reported via setStatus(...) at every state change.
@@ -205,8 +208,26 @@ async function dispatchToolCallsForTurn(
     return { kind: 'done', outcome: 'success' }
   }
 
-  ctx.contents.push({ role: 'user', parts: responseParts })
-  return { kind: 'continue' }
+  return continueWithSteering(ctx, functionCalls, turnCount, responseParts)
+}
+
+/**
+ * Hand the turn's results back to the model, with a steering note when the
+ * session keeps reading or is close to its turn limit; or close it when
+ * its delegated job is settled and it only reads on (`loop/turnSteering.ts`).
+ */
+function continueWithSteering(ctx: LoopContext, functionCalls: FunctionCall[], turnCount: number, responseParts: ResponseParts): TurnResult {
+  const steer = ctx.steering.endTurn({
+    calls: functionCalls.map(c => c.name ?? ''),
+    turn: turnCount,
+    maxTurns: MAX_TURNS,
+    canDelegate: ctx.toolDeclarations.some(d => d.name === 'delegate_rewrite'),
+    answerTool: isCommentTriggerSession(ctx) ? 'reply_to_comment' : 'message_to_user'
+  })
+  ctx.contents.push({ role: 'user', parts: steer.note ? [...responseParts, { text: steer.note }] : responseParts })
+  if (!steer.closeForJob) return { kind: 'continue' }
+  ctx.log(`turn ${turnCount}: the session's job is settled and the model keeps reading, closing`)
+  return { kind: 'wrap-up', reason: 'job-settled' }
 }
 
 export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
@@ -232,7 +253,8 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
     editedDocument: false,
     answeredUser: false,
     outputLimitedTurns: 0,
-    invalidCalls: new Map()
+    invalidCalls: new Map(),
+    steering: new TurnSteering()
   }
 
   log(`[billing] session resolved: ${opts.billingContext.attributedTo} plan=${opts.billingContext.plan}`)

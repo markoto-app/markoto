@@ -109,7 +109,9 @@ const actionIcons: Record<ActivityEntry['action'], string> = {
   // Same "go back" meaning as comment.reopened's rotate-ccw, told apart by the clock glyph.
   'restore': 'i-lucide-history',
   'ai.job': 'i-lucide-layers',
-  'ai.job.reverted': 'i-lucide-undo-2'
+  'ai.job.reverted': 'i-lucide-undo-2',
+  'suggestion.accepted': 'i-lucide-check',
+  'suggestion.rejected': 'i-lucide-x'
 }
 
 const aiToolIcons: Record<ActivityMetadataAiTool['tool'], string> = {
@@ -153,6 +155,9 @@ function detailFor(entry: ActivityEntry): string | null {
       return m.phase === 'finished' ? t('activity.detail.jobProgress', { done: m.done, total: m.unitsTotal }) : null
     case 'ai.job.reverted':
       return t('activity.detail.jobReverted', { reverted: m.reverted, skipped: m.skipped })
+    case 'suggestion.accepted':
+    case 'suggestion.rejected':
+      return t('activity.detail.suggestions', { count: m.count, authors: truncate(m.authors.join(', '), 80), preview: truncate(m.preview, 120) }, m.count)
     case 'theme.changed':
     default:
       return null
@@ -188,6 +193,10 @@ function actionLabel(entry: ActivityEntry): string {
     return t(entry.metadata?.kind === 'ai.job' && entry.metadata.phase === 'finished' ? 'activity.action.ai.job.finished' : 'activity.action.ai.job.started')
   }
   if (entry.action === 'ai.job.reverted') return t('activity.action.ai.job.reverted')
+  if (entry.action === 'suggestion.accepted' || entry.action === 'suggestion.rejected') {
+    const n = entry.metadata?.kind === entry.action ? entry.metadata.count : 1
+    return t(entry.action === 'suggestion.accepted' ? 'activity.action.suggestion.accepted' : 'activity.action.suggestion.rejected', { n }, n)
+  }
   // comment.deleted has a thread/reply variant (metadata.isReply)
   if (entry.action === 'comment.deleted' && entry.metadata?.kind === 'comment.deleted' && entry.metadata.isReply) {
     return t('activity.action.comment.deletedReply')
@@ -309,7 +318,7 @@ function expansionFor(entry: ActivityEntry): { is: unknown, props: Record<string
   }
   // Restore rows carry yjsDocIdBefore/After, so the /diff endpoint yields a
   // meaningful diff and ActivityRowDiff is reused.
-  if (entry.action === 'restore') {
+  if (entry.action === 'restore' || entry.action === 'suggestion.accepted') {
     return { is: ActivityRowDiff, props: { docId: props.docId, activityId: entry.id } }
   }
   return null

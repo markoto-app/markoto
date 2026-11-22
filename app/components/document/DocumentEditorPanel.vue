@@ -18,6 +18,7 @@ import { LANGUAGE_PRESETS, LANGUAGE_MAX_LENGTH } from '~~/shared/languages'
  * "Schwiizerdütsch") with one Enter. One field, two affordances.
  */
 const props = defineProps<{
+  docId: string
   description: string
   audience: string
   language: string
@@ -232,6 +233,8 @@ const audienceItems = AUDIENCE_KINDS.map((kind): { label: string, description: s
           {{ audienceItems.find(i => i.value === audienceDraft)?.description }}
         </p>
       </section>
+
+      <DocumentContextSection :doc-id="docId" />
     </div>
   </div>
 </template>

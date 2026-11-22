@@ -3,6 +3,7 @@ import type { DocTheme } from '~~/shared/types/theme'
 import type { BrandFont } from '~~/shared/config/brandKit'
 import { defaultTheme } from '~~/shared/utils/theme/defaultTheme'
 import { isMacPlatform, zoomShortcutAction } from '~/utils/preview/previewZoom'
+import type { CitationInputs, ReferenceProblem } from '~/utils/markdown/citationResolve'
 
 const props = defineProps<{
   source: string
@@ -18,12 +19,14 @@ const props = defineProps<{
   brandFonts?: readonly BrandFont[] | null
   /** Show the zoom pill in the pane (desktop; mobile has it in the view-mode bar). */
   zoomControl?: boolean
+  /** The document's bibliography and citation style. */
+  citations?: CitationInputs | null
 }>()
 
 // Bubbled when the user presses Cmd/Ctrl+P inside the preview iframe.
 // Caller wires this to the same export-PDF flow the menu item triggers,
 // so the shortcut works whether focus is in the editor or the preview.
-const emit = defineEmits<{ printShortcut: [] }>()
+const emit = defineEmits<{ printShortcut: [], referenceProblems: [problems: ReferenceProblem[]] }>()
 
 const pageCount = defineModel<number>('pageCount', { default: 0 })
 
@@ -48,6 +51,8 @@ const { pageCount: pgCount, isReady, error } = usePagedPreview({
   docId: computed(() => props.docId),
   container: iframeHost,
   brandFonts: computed(() => props.brandFonts ?? null),
+  citations: computed(() => props.citations ?? null),
+  onReferenceProblems: problems => emit('referenceProblems', problems),
   onPrintShortcut: () => emit('printShortcut'),
   getDocJwt: props.getDocJwt,
   zoom: {

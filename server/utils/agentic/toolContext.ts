@@ -7,6 +7,7 @@ import type { ResolvedAiProviders } from '../aiProviders/resolve'
 import type { DocAccess, UserScope, WorkspaceAccess } from '../../repos/proofs'
 import type { JobConfirmationDetails } from '~~/shared/ai/jobConfirmation'
 import type { ReplaceConfirmationDetails } from '~~/shared/ai/replaceConfirmation'
+import type { SuggestSink } from '../ai/tools/textWrite'
 
 // Two-tiered tool context. The split exists to make a class of bug
 // IMPOSSIBLE: a META-typed handler (one that doesn't need Y.js state)
@@ -63,6 +64,10 @@ export interface MetaToolContext {
   /** The initiator's membership of `workspaceId`, proven at session start
    *  (null outside a workspace or without a role). */
   workspaceAccess: WorkspaceAccess<'member'> | null
+
+  /** Suggesting mode: text edits become suggestions (`ai/tools/textWrite.ts`); null / absent = edit directly.
+   *  On the meta context too: a meta tool that writes another document's text follows it. */
+  suggestSink?: SuggestSink | null
 
   /** Per-invocation correlation id. The in-app loop uses the AI
    *  session id; MCP uses the MCP session id. Tools tag Y.js

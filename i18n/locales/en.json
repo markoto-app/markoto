@@ -49,7 +49,8 @@
       "updateTooLarge": "That change is too large to sync in one go. Reload, then add the content in smaller parts.",
       "documentTooLarge": "This document has reached its maximum size. Reload, then remove content or split it into several documents.",
       "invalidMeta": "A document setting (title, theme or details) had a value the server could not accept. Reload to continue.",
-      "invalidUpdate": "The server could not process a change from this tab. Reload to continue."
+      "invalidUpdate": "The server could not process a change from this tab. Reload to continue.",
+      "invalidSuggestion": "This tab tried to change something you can only suggest changes to (for example after the owner turned on suggestion mode). Reload to continue in suggesting mode."
     },
     "bold": "Bold",
     "italic": "Italic",
@@ -203,6 +204,10 @@
         "search_knowledge": "searched the knowledge base",
         "get_knowledge_file": "read a knowledge file",
         "replace_all": "replaced text throughout the document"
+      },
+      "suggestion": {
+        "accepted": "accepted a suggestion | accepted a suggestion | accepted {n} suggestions",
+        "rejected": "rejected a suggestion | rejected a suggestion | rejected {n} suggestions"
       }
     },
     "detail": {
@@ -210,7 +215,8 @@
       "replacedAll": "{count}× “{from}” → “{to}”",
       "restoredFrom": "From {ago}",
       "jobProgress": "{done} of {total} parts changed",
-      "jobReverted": "{reverted} parts restored, {skipped} left as edited"
+      "jobReverted": "{reverted} parts restored, {skipped} left as edited",
+      "suggestions": "{preview} ({authors}) | {preview} ({authors}) | {count} from {authors}, e.g. {preview}"
     },
     "restore": {
       "button": {
@@ -478,7 +484,67 @@
     "audience": {
       "label": "Audience",
       "help": "Tells markoto who this is written for. Affects tone, structure, and word choice."
+    },
+    "context": {
+      "label": "AI context",
+      "help": "Documents the AI reads with every request here, such as characters, a glossary, a style guide or product facts.",
+      "scope": {
+        "label": "This document as context",
+        "help": "The AI then also reads this document when it works in other documents.",
+        "off": "Not used as context",
+        "folder": "For its folder and subfolders",
+        "workspace": "For the whole workspace",
+        "personal": "For all my documents"
+      },
+      "appliedLabel": "Context the AI reads here",
+      "sourceWorkspace": "Whole workspace",
+      "sourcePersonal": "All your documents",
+      "sourceFolder": "From the folder",
+      "sourceAttached": "Attached to this document",
+      "notIncluded": "Attached, not included (limit reached)",
+      "none": "No context documents apply here yet.",
+      "omitted": "{n} more context document is not included. | {n} more context documents are not included.",
+      "detach": "Remove from this document",
+      "attachLabel": "Attach a document",
+      "attachHelp": "Search for a document to use as extra context in this one.",
+      "attachLimit": "At most {max} documents can be attached.",
+      "attachPlaceholder": "Search documents…",
+      "saveFailed": "Couldn't change the AI context",
+      "untitled": "Untitled"
     }
+  },
+  "references": {
+    "title": "References",
+    "style": {
+      "label": "Citation style",
+      "help": "How citations and the bibliography are written. Applies to the whole document."
+    },
+    "problemsTitle": "One problem in the document | {n} problems in the document",
+    "problem": {
+      "missing-citation": "{key} is not in the bibliography.",
+      "missing-label": "No figure, table, equation or section has the label {key}.",
+      "duplicate-label": "The label {key} is used more than once."
+    },
+    "addDoi": "Add by DOI",
+    "addPaste": "Paste BibTeX",
+    "addFile": "Import file",
+    "doiSignIn": "Sign in to add references by DOI.",
+    "doiPlaceholder": "10.1000/xyz123 or a doi.org link",
+    "pastePlaceholder": "Paste BibTeX, CSL JSON or CSL YAML entries, for example from Zotero or Google Scholar",
+    "add": "Add",
+    "addedCount": "No references added. | Added 1 reference. | Added {n} references.",
+    "replacedCount": "Updated 1 existing entry. | Updated {n} existing entries.",
+    "skippedCount": "Skipped 1 unreadable entry. | Skipped {n} unreadable entries.",
+    "nothingFound": "No references found. Paste BibTeX (from Zotero, Google Scholar or a publisher page) or CSL JSON.",
+    "fileTooLarge": "This file is too large (4 MB at most).",
+    "doiFailed": "Could not add the DOI",
+    "entries": "No entries | 1 entry | {n} entries",
+    "search": "Search references",
+    "empty": "No references yet. Add one by DOI, paste BibTeX or import a .bib file from Zotero.",
+    "cite": "Insert citation",
+    "remove": "Remove from bibliography",
+    "syntaxHelp": "Cite with [{'@'}key] or [{'@'}key, p. 12]. The bibliography appears at [[bibliography]], under an empty References heading, or at the end of the document.",
+    "unknownKey": "{key} is not in the bibliography and is not a label in this document."
   },
   "audiences": {
     "technical": {
@@ -577,6 +643,11 @@
       "diagramPie": "Pie chart",
       "diagramMindmap": "Mind map",
       "toc": "Table of contents",
+      "references": "References",
+      "citation": "Citation",
+      "bibliography": "Bibliography",
+      "listOfFigures": "List of figures",
+      "listOfTables": "List of tables",
       "definitionList": "Definition list"
     },
     "format": {
@@ -625,7 +696,8 @@
         "web_search": "markoto wants to search the web for “{target}”.",
         "fetch_url": "markoto wants to open {target}",
         "view_image": "markoto wants to load the image {target}",
-        "generic": "markoto wants to use {tool}."
+        "generic": "markoto wants to use {tool}.",
+        "edit_project_context": "markoto wants to update the context document “{target}”."
       },
       "job": {
         "question": "{what}, {minutes}.",
@@ -765,6 +837,10 @@
       "fetchUrl": "Fetching {url}",
       "fetchUrlAny": "Fetching URL…",
       "readDocument": "Reading the document…",
+      "readReferences": "Reading the bibliography…",
+      "addReference": "Looking up DOI {doi}",
+      "addReferenceAny": "Looking up a DOI…",
+      "checkCitations": "Checking citations…",
       "editPassage": "Editing \"{passage}\"",
       "editDocument": "Editing the document…",
       "insertText": "Inserting text…",
@@ -814,7 +890,9 @@
       "previewJob": "Trying the change on sample sections…",
       "startJob": "Starting the background edit…",
       "jobWaiting": "Background edit running; its progress shows above.",
-      "jobStatus": "Checking the background edit…"
+      "jobStatus": "Checking the background edit…",
+      "readProjectContext": "Reading the project context…",
+      "editProjectContext": "Updating the project context…"
     },
     "job": {
       "label": "Background edit",
@@ -858,7 +936,8 @@
     "commentsShort": "Comments",
     "activityShort": "Activity",
     "themeShort": "Theme",
-    "knowledgeShort": "Knowledge"
+    "knowledgeShort": "Knowledge",
+    "suggestionsShort": "Suggest"
   },
   "editorCommands": {
     "formatting": "Formatting",
@@ -3016,11 +3095,11 @@
     "loading": "Loading…",
     "updated": "Numbers are at most a minute old. Days are in UTC.",
     "range": {
-      "label": "Period",
       "7": "7 days",
       "30": "30 days",
       "90": "90 days",
       "365": "12 months",
+      "label": "Period",
       "all": "All time"
     },
     "tabs": {
@@ -3391,14 +3470,17 @@
       "movedWorkspace": "{n} document moved to another workspace | {n} documents moved to another workspace",
       "deleted": "{n} item deleted | {n} items deleted",
       "undone": "Move undone",
-      "cut": "{n} item cut. Paste it into a folder with Ctrl+V. | {n} items cut. Paste them into a folder with Ctrl+V."
+      "cut": "{n} item cut. Paste it into a folder with Ctrl+V. | {n} items cut. Paste them into a folder with Ctrl+V.",
+      "contextOn": "{name} is now AI context",
+      "contextOff": "{name} is no longer AI context"
     },
     "error": {
       "createFolder": "Couldn't create the folder",
       "rename": "Couldn't rename",
       "move": "Couldn't move",
       "delete": "Couldn't delete",
-      "deleteBlocked": "Folder not deleted"
+      "deleteBlocked": "Folder not deleted",
+      "context": "Couldn't change the AI context"
     },
     "action": {
       "open": "Open",
@@ -3415,7 +3497,8 @@
       "newDocument": "New document",
       "newFolder": "New folder",
       "import": "Import files...",
-      "paste": "Paste"
+      "paste": "Paste",
+      "aiContext": "Use as AI context"
     },
     "sortBy": "Sort by",
     "sort": {
@@ -3529,6 +3612,82 @@
       "personal": "My documents",
       "hint": "Searches titles and text of your documents, your workspaces and documents shared with you."
     },
-    "subfolders": "{n} folder | {n} folders"
+    "subfolders": "{n} folder | {n} folders",
+    "context": {
+      "off": "Not used as context",
+      "folder": "For this folder",
+      "all": "For the whole workspace",
+      "allPersonal": "For all my documents",
+      "stop": "Stop using as AI context"
+    },
+    "contextBadge": "AI context",
+    "contextBadgeAll": "The AI reads this document in every document here.",
+    "contextBadgeFolder": "The AI reads this document in the documents of its folder."
+  },
+  "suggestions": {
+    "title": "Suggestions",
+    "aiAuthor": "markoto AI",
+    "kind": {
+      "insert": "Add",
+      "delete": "Delete",
+      "replace": "Replace",
+      "obsolete": "Nothing left to change"
+    },
+    "accept": "Accept",
+    "reject": "Reject",
+    "withdraw": "Withdraw your suggestion",
+    "obsoleteHint": "Someone removed this text in the meantime. Reject the suggestion to clear it.",
+    "changedHint": "The text changed since this suggestion was made. Accepting applies it to the text as it is now.",
+    "replyPlaceholder": "Reply to this suggestion…",
+    "allAuthors": "Everyone",
+    "filterAuthor": "Show suggestions from",
+    "acceptAll": "Accept all",
+    "rejectAll": "Reject all",
+    "acceptShown": "Accept these",
+    "rejectShown": "Reject these",
+    "acceptedN": "No suggestions accepted | {n} suggestion accepted | {n} suggestions accepted",
+    "rejectedN": "No suggestions rejected | {n} suggestion rejected | {n} suggestions rejected",
+    "failed": "The suggestions could not be updated. Please try again.",
+    "empty": "No suggestions yet. Switch to Suggesting to propose changes that others can accept or reject.",
+    "emptyReadOnly": "No suggestions in this document.",
+    "mode": {
+      "editing": "Editing",
+      "suggesting": "Suggesting",
+      "editingHint": "You edit the text directly. Switch to Suggesting to propose changes instead.",
+      "suggestingHint": "Your changes become suggestions that others can accept or reject.",
+      "requiredHint": "The owner of this document asks for suggestions: your changes become suggestions that others accept or reject.",
+      "viewerHint": "You can suggest changes to this document. The people who edit it accept or reject them.",
+      "suggestingFooter": "suggesting"
+    },
+    "ai": {
+      "toggle": "AI suggests changes",
+      "on": "The AI proposes its changes as suggestions you accept or reject. Click to let it edit directly.",
+      "off": "The AI edits the text directly. Click to have it propose suggestions instead.",
+      "forced": "This document asks for suggestions, so the AI proposes its changes as suggestions too.",
+      "settingTitle": "Suggestions",
+      "settingLabel": "The AI suggests instead of editing",
+      "settingDescription": "Changes the AI makes to a document, also in large edits that run in the background, arrive as suggestions that you or your team accept or reject. You can switch it per prompt in the AI bar.",
+      "saveFailed": "The setting could not be saved. Please try again."
+    },
+    "settings": {
+      "title": "Suggestions",
+      "required": "Everyone suggests changes",
+      "requiredHelp": "Changes by others become suggestions that you accept or reject, like a supervisor reviewing a draft. You always edit directly.",
+      "exemptTitle": "These workspace roles keep editing directly:",
+      "exemptAdmins": "Workspace admins",
+      "exemptEditors": "Workspace editors",
+      "viewers": "Viewers can suggest",
+      "viewersHelp": "Signed-in people who can only view this document may suggest changes and reply to suggestions.",
+      "saveFailed": "The suggestion settings could not be saved"
+    },
+    "exportCritic": "Download Markdown with suggestions (CriticMarkup)"
+  },
+  "a11yCheck": {
+    "issues": "{n} accessibility issue | {n} accessibility issues",
+    "intro": "Fix these so screen readers and the tagged PDF can present your document well.",
+    "imageAlt": "Image without alternative text",
+    "emptyLink": "Link without text",
+    "headingSkip": "Heading level {level} follows level {previous}: a level is skipped",
+    "line": "Line {line}"
   }
 }

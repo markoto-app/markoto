@@ -41,6 +41,7 @@ describe('createAuth / onAuthenticate', () => {
       const { exp } = jwt.decode(token) as { exp: number }
       expect(ctx).toEqual({
         readOnly: false,
+        suggestOnly: false,
         userId: 42,
         userName: 'Alice',
         // The connection is closed at this moment unless renewed.
@@ -158,6 +159,13 @@ describe('createAuth / onAuthenticate', () => {
       const token = sign({ docId: 'doc-1', userId: 1 }) // readOnly omitted
       const ctx = await auth({ documentName: 'doc-1', token })
       expect(ctx.readOnly).toBe(true)
+    })
+
+    it('carries suggestOnly only on a writable connection', async () => {
+      const suggesting = await auth({ documentName: 'doc-1', token: sign({ docId: 'doc-1', userId: 1, readOnly: false, suggestOnly: true }) })
+      expect(suggesting).toMatchObject({ readOnly: false, suggestOnly: true })
+      const viewer = await auth({ documentName: 'doc-1', token: sign({ docId: 'doc-1', userId: 1, readOnly: true, suggestOnly: true }) })
+      expect(viewer).toMatchObject({ readOnly: true, suggestOnly: false })
     })
 
     it('returns readOnly=true when claim is explicitly true', async () => {

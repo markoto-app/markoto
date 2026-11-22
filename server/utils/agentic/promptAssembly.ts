@@ -13,7 +13,8 @@
 //                              request field, the model's chat template places it)
 //   ── shared by every user and document ──
 //   3. FIRST USER MESSAGE, opened by the document context (title, audience,
-//      language): stable per document
+//      language) and the project context (`projectContextPrompt.ts`): stable
+//      per document until a context document changes
 //   4. knowledge + members: stable per workspace
 //   5. preselected skills (`skills/`): per prompt, chosen from the request
 //      and the document size
@@ -113,17 +114,19 @@ ${MARKDOWN_REFERENCE}`
 
 export interface PromptContextBlocks {
   documentContextBlock: string
+  /** `<project_context>` (`projectContextPrompt.ts`); '' when none applies. */
+  projectContextBlock: string
   knowledgeBlock: string
   membersBlock: string
 }
 
 /**
- * The per-document / per-workspace blocks (document context, knowledge
- * files, members) as one text that opens the first user message. Empty when
- * there is no document row and no workspace.
+ * The per-document / per-workspace blocks (document context, project
+ * context, knowledge files, members) as one text that opens the first user
+ * message. Empty when there is no document row and no workspace.
  */
 export function assemblePromptContext(blocks: PromptContextBlocks): string {
-  return (blocks.documentContextBlock + blocks.knowledgeBlock + blocks.membersBlock).trim()
+  return (blocks.documentContextBlock + blocks.projectContextBlock + blocks.knowledgeBlock + blocks.membersBlock).trim()
 }
 
 /** What opens the first user message, ahead of the prompt, most stable first. */

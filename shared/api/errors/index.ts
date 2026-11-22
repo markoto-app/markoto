@@ -14,7 +14,9 @@ import { auditErrors } from './audit'
 import { authErrors } from './auth'
 import { billingErrors } from './billing'
 import { brandErrors } from './brand'
+import { citationsErrors } from './citations'
 import { consentErrors } from './consent'
+import { contextErrors } from './context'
 import { csrfErrors } from './csrf'
 import { customDomainErrors } from './customDomain'
 import { designImportErrors } from './designImport'
@@ -35,6 +37,7 @@ import { publishErrors } from './publish'
 import { publishedErrors } from './published'
 import { shareErrors } from './share'
 import { ssoErrors } from './sso'
+import { suggestionErrors } from './suggestion'
 import { templateErrors } from './template'
 import { themeErrors } from './theme'
 import { uploadErrors } from './upload'
@@ -54,7 +57,9 @@ export const API_ERRORS = {
   ...authErrors,
   ...billingErrors,
   ...brandErrors,
+  ...citationsErrors,
   ...consentErrors,
+  ...contextErrors,
   ...csrfErrors,
   ...customDomainErrors,
   ...designImportErrors,
@@ -75,6 +80,7 @@ export const API_ERRORS = {
   ...publishedErrors,
   ...shareErrors,
   ...ssoErrors,
+  ...suggestionErrors,
   ...templateErrors,
   ...themeErrors,
   ...uploadErrors,

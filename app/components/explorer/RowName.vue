@@ -157,6 +157,9 @@ function cancel() {
   emit('rename-cancel')
 }
 
+/** Marked as project context: the AI reads it in the documents of its folder or workspace. */
+const contextScope = computed(() => props.item.kind === 'doc' ? props.item.doc.contextScope ?? null : null)
+
 const snippet = computed(() => props.item.kind === 'doc' && props.item.doc.snippet ? splitSnippet(props.item.doc.snippet) : [])
 </script>
 
@@ -166,7 +169,7 @@ const snippet = computed(() => props.item.kind === 'doc' && props.item.doc.snipp
     class="flex items-start gap-2.5 min-w-0 py-0.5"
   >
     <UIcon
-      :name="item.kind === 'folder' ? 'i-lucide-folder' : 'i-lucide-file-text'"
+      :name="item.kind === 'folder' ? 'i-lucide-folder' : contextScope ? 'i-lucide-book-marked' : 'i-lucide-file-text'"
       class="size-4 shrink-0 mt-0.5"
       :class="item.kind === 'folder' ? 'text-default' : 'text-muted'"
       aria-hidden="true"
@@ -210,12 +213,24 @@ const snippet = computed(() => props.item.kind === 'doc' && props.item.doc.snipp
              a long snippet or name is cut off inside the name column
              instead of widening it (columns pushed right, horizontal
              scrolling). -->
-        <span
-          class="block w-0 min-w-full truncate"
-          :class="item.kind === 'folder' ? 'font-medium' : ''"
-          :title="item.label"
-          data-testid="explorer-item-name"
-        >{{ item.label }}</span>
+        <span class="flex w-0 min-w-full items-center gap-1.5">
+          <span
+            class="block min-w-0 truncate"
+            :class="item.kind === 'folder' ? 'font-medium' : ''"
+            :title="item.label"
+            data-testid="explorer-item-name"
+          >{{ item.label }}</span>
+          <UBadge
+            v-if="contextScope"
+            :label="t('explorer.contextBadge')"
+            :title="t(contextScope === 'all' ? 'explorer.contextBadgeAll' : 'explorer.contextBadgeFolder')"
+            color="neutral"
+            variant="soft"
+            size="sm"
+            class="shrink-0"
+            data-testid="explorer-context-badge"
+          />
+        </span>
         <span
           v-if="snippet.length > 0"
           class="block w-0 min-w-full text-xs text-muted truncate"

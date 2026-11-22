@@ -205,6 +205,7 @@ async function noteToolResult(ctx: LoopContext, name: string, validatedArgs: unk
   await ctx.opts.crossBoundary.afterTool(name, validatedArgs, result)
   if (!result.isError && name === 'message_to_user') ctx.answeredUser = true
   if (!result.isError && result.countsAsEdit) ctx.editedDocument = true
+  if (!result.isError && result.settlesJob) ctx.steering.noteJob(result.settlesJob, ctx.telemetry.turnCount)
 }
 
 /**

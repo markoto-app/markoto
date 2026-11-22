@@ -12,15 +12,15 @@
 
 # Forschungsstand
 
-<!-- Zwei bis vier Themen, je ein Absatz: was es gibt, was fehlt, wo deine Arbeit ansetzt. Fasse zusammen, statt aufzuzählen („X machte A. Y machte B.“). Zitiere nach Autor und Jahr, z. B. Autorin und Autor [Jahr]. -->
+<!-- Zwei bis vier Themen, je ein Absatz: was es gibt, was fehlt, wo deine Arbeit ansetzt. Fasse zusammen, statt aufzuzählen („X machte A. Y machte B.“). Zitiere mit [@schluessel], [@schluessel, S. 12] oder [@a; @b], mit den Schlüsseln der Quellen, die du im Bereich Literatur hinzugefügt hast. -->
 
 # Methode
 
-<!-- So genau, dass andere die Arbeit wiederholen können: Daten, Modell oder Verfahren, Annahmen und verwendete Werkzeuge. Gleichungen, auf die du später verweist, nummeriere mit \tag{1}. -->
+<!-- So genau, dass andere die Arbeit wiederholen können: Daten, Modell oder Verfahren, Annahmen und verwendete Werkzeuge. Gib einer Gleichung, auf die du später verweist, nach dem schliessenden $$ eine Marke wie {#eq:modell}; sie wird automatisch nummeriert, und @eq:modell im Text setzt ihre Nummer. -->
 
 $$
-y = f(x; \theta) \tag{1}
-$$
+y = f(x; \theta)
+$$ {#eq:modell}
 
 ## Daten
 
@@ -34,7 +34,7 @@ Erster Schritt.[^1]
 
 # Experimente
 
-<!-- Berichte, was du gefunden hast, nicht, was es bedeutet. Tabellen und Abbildungen tragen die Ergebnisse; der Text verweist auf sie („Tabelle 1 zeigt …“). Die Beschriftung einer Tabelle steht auf einer Zeile „Table:“ direkt darüber; das Design nummeriert sie. Eine Abbildung ist ein Bild allein in seinem Absatz; sein Alternativtext wird zur Bildunterschrift. -->
+<!-- Berichte, was du gefunden hast, nicht, was es bedeutet. Tabellen und Abbildungen tragen die Ergebnisse; der Text verweist auf sie. Die Beschriftung einer Tabelle steht auf einer Zeile „Table:“ direkt darüber; mit einer Marke an ihrem Ende ({#tbl:name}) schreibst du im Text @tbl:name, das ergibt „Tabelle 1“. Eine Abbildung ist ein Bild allein in seinem Absatz; sein Alternativtext wird zur Bildunterschrift. -->
 
 ## Versuchsaufbau
 
@@ -42,7 +42,9 @@ Erster Schritt.[^1]
 
 ## Ergebnisse
 
-Table: Hauptergebnisse.
+@tbl:ergebnisse vergleicht unser Verfahren mit dem Vergleichsverfahren.
+
+Table: Hauptergebnisse. {#tbl:ergebnisse}
 
 | Verfahren | Messgrösse A | Messgrösse B |
 |---|--:|--:|
@@ -59,10 +61,8 @@ Table: Hauptergebnisse.
 
 # Literatur {.unnumbered}
 
-<!-- Ein Absatz pro Eintrag, alphabetisch nach dem Nachnamen der Erstautorin oder des Erstautors; das Design setzt sie mit hängendem Einzug. Es gibt kein BibTeX: Schreibe die Einträge von Hand in einem einheitlichen Stil. -->
+<!-- Entsteht aus den Quellen, die du zitierst. Füge sie im Bereich Literatur hinzu (Buchsymbol über der Seitenleiste): per DOI, als eingefügtes BibTeX oder als .bib- oder CSL-JSON-Export aus Zotero. Wähle dort den Stil der Zeitschrift oder Konferenz (APA, Chicago, Harvard, IEEE, Vancouver, DIN 1505-2). -->
 
-Nachname, A. und Nachname, B. Titel des Artikels. In *Tagungsband der Konferenz*, Seiten 1–10. Verlag, Jahr.
-
-Nachname, C. *Titel des Buches*. Verlag, Ort, Jahr.
+[[bibliography]]
 
 [^1]: Text der Fussnote.

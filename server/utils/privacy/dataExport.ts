@@ -24,6 +24,7 @@ import { reconstructTextAtYjsId } from '../documents/historyReplay'
 import { latestYjsId } from '../../repos/yjsLog'
 import { listAiSessionProvenanceForUser } from '../../repos/aiSessionProvenance'
 import { listAiJobsForUser } from '../../repos/aiJobs'
+import { listContextLinks } from '../../repos/projectContext'
 import { ZIP_README } from './dataExportReadme'
 import {
   addAdConversionsEntry,
@@ -234,6 +235,7 @@ async function addOwnedDocumentsEntries(entries: Entries, by: SystemActor, user:
   const ownedDocs = await listOwnedDocumentsForExport(user)
   for (const doc of ownedDocs) {
     const markdown = await reconstructDocMarkdown(by.doc(doc.docId))
+    const contextLinks = await listContextLinks(by.doc(doc.docId))
     entries[`documents/${doc.docId}.md`] = strToU8(markdown)
     entries[`documents/${doc.docId}.meta.json`] = strToU8(JSON.stringify({
       docId: doc.docId,
@@ -247,6 +249,10 @@ async function addOwnedDocumentsEntries(entries: Entries, by: SystemActor, user:
       sizeBytes: doc.sizeBytes,
       wordCount: doc.wordCount,
       theme: doc.theme,
+      // Project context: marked as AI context for its folder / scope, and
+      // the documents attached to it as extra context.
+      contextScope: doc.contextScope,
+      contextDocIds: contextLinks,
       createdAt: doc.createdAt.toISOString(),
       lastActive: doc.lastActive.toISOString()
     }, null, 2))

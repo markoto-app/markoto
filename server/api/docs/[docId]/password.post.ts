@@ -5,7 +5,7 @@ import { getDocPasswordForVerify, type DocAuthzRow } from '../../../utils/access
 import type { DocAccess } from '../../../repos/proofs'
 import { appendAuditEvent } from '../../../repos/audit'
 import { admitPasswordAttempt, recordPasswordFailure } from '../../../utils/documents/docPasswordLimits'
-import { decideTokenAccess, type ActorState, type DocState } from '../../../../shared/utils/documents/docPermissions'
+import { decideSuggestionAccess, decideTokenAccess, type ActorState, type DocState } from '../../../../shared/utils/documents/docPermissions'
 import { docJwtLifetimeSeconds } from '../../../utils/documents/docJwt'
 import { DOC_PASSWORD_MIN_LENGTH } from '../../../../shared/config/docPassword'
 import { assertNotModerationRestricted } from '../../../utils/privacy/moderationRestriction'
@@ -124,7 +124,7 @@ async function handleVerify(
   }
 
   const grant = passwordGrant(row, state, actor)
-  return { action: 'verify', success: true, token: mintPasswordToken(user, docId, grant.readOnly, grant.shareExpiresAt), readOnly: grant.readOnly }
+  return { action: 'verify', success: true, token: mintPasswordToken(user, docId, grant, grant.shareExpiresAt), readOnly: grant.readOnly }
 }
 
 /**
@@ -135,15 +135,18 @@ async function handleVerify(
  * visitor once the share link has expired, when the doc counts as
  * private: is refused: the password no longer opens it.
  */
-function passwordGrant(row: DocAuthzRow, state: DocState, actor: ActorState): { readOnly: boolean, shareExpiresAt: Date | null } {
+function passwordGrant(row: DocAuthzRow, state: DocState, actor: ActorState): { readOnly: boolean, suggestOnly: boolean, shareExpiresAt: Date | null } {
   const decision = decideTokenAccess(state, actor)
-  if (decision.outcome === 'allow') return { readOnly: decision.readOnly, shareExpiresAt: row.shareExpiresAt }
-  if (decision.outcome === 'password-required') return { readOnly: false, shareExpiresAt: row.shareExpiresAt }
-  throw apiError(state.shareExpired ? 'share/expired' : 'auth/forbidden')
+  if (decision.outcome === 'forbidden') throw apiError(state.shareExpired ? 'share/expired' : 'auth/forbidden')
+  // The password opens the document like an edit link; the document's
+  // suggestion settings then apply as on `/token`.
+  const granted = { outcome: 'allow' as const, readOnly: decision.outcome === 'allow' ? decision.readOnly : false }
+  const write = decideSuggestionAccess(state, actor, row.suggestionPolicy, granted)
+  return { ...write, shareExpiresAt: row.shareExpiresAt }
 }
 
 /** Mint a doc JWT (≤ 2h, never past the share link's expiry) for a verified caller. Carries name for sync-server attribution, matches token.get.ts. */
-function mintPasswordToken(user: ValidatedUser | null, docId: string, readOnly: boolean, shareExpiresAt: Date | null): string {
+function mintPasswordToken(user: ValidatedUser | null, docId: string, write: { readOnly: boolean, suggestOnly: boolean }, shareExpiresAt: Date | null): string {
   const env = useEnv()
   if (!env.auth.jwtSecret) {
     throw apiError('internal')
@@ -153,7 +156,8 @@ function mintPasswordToken(user: ValidatedUser | null, docId: string, readOnly: 
       docId,
       userId: user?.id || 'anonymous',
       userName: user?.name ?? null,
-      readOnly
+      readOnly: write.readOnly,
+      ...(write.suggestOnly ? { suggestOnly: true } : {})
     },
     env.auth.jwtSecret,
     { expiresIn: docJwtLifetimeSeconds(shareExpiresAt) }

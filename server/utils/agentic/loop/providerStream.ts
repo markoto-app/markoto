@@ -59,9 +59,13 @@ function emitBudgetBreadcrumb(ctx: LoopContext, plan: string): void {
   // doesn't exist on this deployment.
   const msg = budgetExhaustedBreadcrumb(plan)
   try {
-    ctx.opts.aiSession.ydoc.transact(() => {
-      ctx.opts.aiSession.ytext.insert(ctx.opts.aiSession.ytext.length, msg)
-    }, `ai:assistant:${ctx.opts.sessionId}`)
+    // Suggesting mode: the note would itself become a suggestion; the
+    // status below tells the user instead.
+    if (!ctx.opts.aiSession.suggestSink) {
+      ctx.opts.aiSession.ydoc.transact(() => {
+        ctx.opts.aiSession.ytext.insert(ctx.opts.aiSession.ytext.length, msg)
+      }, `ai:assistant:${ctx.opts.sessionId}`)
+    }
   } catch (e) {
     ctx.log(`failed to write budget-exhausted breadcrumb: ${e instanceof Error ? e.message : e}`)
   }
@@ -384,7 +388,7 @@ export async function streamTurn(ctx: LoopContext, request: TurnRequestOptions =
     }
     if (opened.kind === 'budget-exhausted') return opened
     const stats: CallStats = { firstChunkAt: null, usage: undefined, providerModel: null }
-    const record = (finishReason: string | null): void => {
+    const record = (finishReason: string | null, tools?: readonly string[]): void => {
       noteCallUsage(ctx, buildCallUsageRecord({
         sessionId: ctx.opts.sessionId,
         docId: ctx.opts.aiSession.docId ?? null,
@@ -397,12 +401,13 @@ export async function streamTurn(ctx: LoopContext, request: TurnRequestOptions =
         firstChunkAt: stats.firstChunkAt,
         endedAt: Date.now(),
         finishReason,
-        retry: attempt > 1
+        retry: attempt > 1,
+        tools
       }))
     }
     try {
       const turn = await consumeStreamTurn(opened.stream, ctx, stats)
-      record(turn.finishReason ?? null)
+      record(turn.finishReason ?? null, turn.functionCalls.map(c => (c.name ?? '').slice(0, 64)))
       return { kind: 'turn', turn }
     } catch (e) {
       record('error')

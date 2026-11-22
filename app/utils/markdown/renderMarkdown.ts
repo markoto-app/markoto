@@ -20,6 +20,7 @@ import { tableAttrsRowPlugin } from './markdownTableAttrs'
 import { unnumberedShorthandPlugin } from './markdownUnnumbered'
 import { tablePlugin } from './markdownTables'
 import { markersPlugin } from './markdownMarkers'
+import { citationsPlugin } from './markdownCitations'
 import { headingSlugBase, selectorSafeId } from '~~/shared/utils/markdown/headingSlug'
 
 interface MarkdownPipeline {
@@ -348,6 +349,11 @@ const useMarkdownPipeline = createGlobalState(async (): Promise<MarkdownPipeline
   // Marker classes for template CSS: bold run-in labels, `METHOD /path`
   // endpoint lines. See markdownMarkers.ts.
     .use(markersPlugin)
+  // `[@key]` / `@fig:x` citations and cross-references, `[[bibliography]]`,
+  // `[[lof]]` / `[[lot]]`, labelled equations. After katex (it extends the
+  // math block rule) and tablePlugin (table caption labels). Resolved by
+  // composeFinalHtml (citationResolve.ts).
+    .use(citationsPlugin)
 
   // Bare domains (`example.com`, `www.example.com`) stay links: markdown-it
   // 15's linkify-it 6 only links URLs with a scheme unless asked to.

@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, test, vi } from 'vitest'
 import { z, type ZodRawShape } from 'zod'
-import { ALL_TOOL_DECLARATIONS, KNOWLEDGE_TOOL_DECLARATIONS, filterToolsForProviders, isToolName, toolSchema } from '../../../server/utils/ai/tools/registry'
+import { ALL_TOOL_DECLARATIONS, KNOWLEDGE_TOOL_DECLARATIONS, CONTEXT_TOOL_DECLARATIONS, filterToolsForProviders, isToolName, toolSchema } from '../../../server/utils/ai/tools/registry'
 import { internalToOpenAITools } from '../../../server/utils/agentic/messageTranslation'
 
 // What the model and MCP clients read about our tools: names, order,
@@ -52,7 +52,7 @@ async function mcpCatalog(): Promise<unknown[]> {
 }
 
 async function computeAll(): Promise<Record<string, string>> {
-  const all = [...ALL_TOOL_DECLARATIONS, ...KNOWLEDGE_TOOL_DECLARATIONS]
+  const all = [...ALL_TOOL_DECLARATIONS, ...KNOWLEDGE_TOOL_DECLARATIONS, ...CONTEXT_TOOL_DECLARATIONS]
   const schemaNames = all.map(d => d.name ?? '').filter(isToolName).sort((a, b) => a.localeCompare(b))
   const filtered = filterToolsForProviders(ALL_TOOL_DECLARATIONS, { chat: { supportsVision: false }, image: null }, { search: false, fetch: true })
   return {
@@ -60,6 +60,8 @@ async function computeAll(): Promise<Record<string, string>> {
     'order:knowledge': KNOWLEDGE_TOOL_DECLARATIONS.map(d => d.name).join(','),
     'declarations:main': sha(ALL_TOOL_DECLARATIONS),
     'declarations:knowledge': sha(KNOWLEDGE_TOOL_DECLARATIONS),
+    'order:context': CONTEXT_TOOL_DECLARATIONS.map(d => d.name).join(','),
+    'declarations:context': sha(CONTEXT_TOOL_DECLARATIONS),
     'openai:tools': sha(internalToOpenAITools(all)),
     'filtered:noVisionNoImageNoSearch': filtered.map(d => d.name).join(','),
     'validators:names': schemaNames.join(','),

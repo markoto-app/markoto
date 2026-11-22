@@ -2,7 +2,7 @@
 title: Ask the AI about another doc
 description: Reference another document by URL or title - the AI reads it, within the access you already have, and uses it in its reply.
 category: ai
-order: 10
+order: 11
 updated: '2026-10-29'
 ---
 

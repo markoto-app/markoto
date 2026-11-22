@@ -9,6 +9,7 @@ export type ActivityAction
     | 'theme.changed' | 'title.changed' | 'ai.tool'
     | 'restore'
     | 'ai.job' | 'ai.job.reverted'
+    | 'suggestion.accepted' | 'suggestion.rejected'
 
 export interface ActivityLike {
   action: ActivityAction
@@ -36,6 +37,8 @@ export function categoryOf(entry: ActivityLike): FilterKey {
   if (entry.action === 'edit') return 'edits'
   if (entry.action.startsWith('comment.')) return 'comments'
   if (entry.action === 'title.changed' || entry.action === 'theme.changed') return 'meta'
+  // Deciding suggestions changes the text: with the edits.
+  if (entry.action === 'suggestion.accepted' || entry.action === 'suggestion.rejected') return 'edits'
   // Restores are rare document-level changes, like title/theme.
   if (entry.action === 'restore') return 'meta'
   return 'all'
@@ -62,6 +65,8 @@ export function isExpandable(entry: ActivityLike): boolean {
   // Restore rows carry boundary ids (set by the endpoint), so the diff
   // drawer shows what the restore added back / removed.
   if (entry.action === 'restore') return true
+  // Accepted suggestions: the diff drawer shows the accepted change.
+  if (entry.action === 'suggestion.accepted') return true
   return false
 }
 
@@ -77,7 +82,7 @@ export function expansionToggleLabelKey(entry: ActivityLike, expanded: boolean):
     return expanded ? 'activity.aiTool.hide' : 'activity.aiTool.view'
   }
   // Expanding a restore shows the diff between live and restored text.
-  if (entry.action === 'restore') {
+  if (entry.action === 'restore' || entry.action === 'suggestion.accepted') {
     return expanded ? 'activity.diff.hideChange' : 'activity.diff.viewChange'
   }
   return null

@@ -3,6 +3,7 @@
 import { pgTable, serial, integer, bigint, text, timestamp, primaryKey, index, jsonb, boolean, date } from 'drizzle-orm/pg-core'
 import { sql, type SQL } from 'drizzle-orm'
 import type { DocTheme } from '~~/shared/types/theme'
+import type { SuggestionPolicy } from '~~/shared/utils/suggestions/record'
 import { tsvector } from './columns'
 import { users } from './users'
 import { workspaces } from './workspaces'
@@ -40,6 +41,10 @@ export const documents = pgTable('documents', {
   // no print. NULL / false = off.
   shareExpiresAt: timestamp('share_expires_at', { withTimezone: true }),
   shareNoDownload: boolean('share_no_download').notNull().default(false),
+  // Suggestion mode (`shared/utils/suggestions/record.ts` SuggestionPolicy):
+  // whether everyone but the owner and exempt roles must suggest, and
+  // whether signed-in viewers may. NULL = the default (off).
+  suggestionPolicy: jsonb('suggestion_policy').$type<SuggestionPolicy>(),
   // Set when a moderator restricts the document on an abuse report: it
   // stays private and unpublished, no access mode but `private`, no
   // password, no guest share, no web page, no move into a workspace,
@@ -71,6 +76,13 @@ export const documents = pgTable('documents', {
   // title/description/audience/language fields carry the AI context) and
   // not editable afterwards. `blank` = no skeleton.
   templateId: text('template_id').notNull().default('blank'),
+  // Project context ("bible"): a document the AI reads with every request
+  // in the documents it applies to (server/utils/ai/projectContext/).
+  // NULL = an ordinary document. `folder` = its own folder and every
+  // folder below it (at the scope's root: the whole scope); `all` = every
+  // document of its scope (the workspace, or its owner's personal
+  // documents), wherever it is filed.
+  contextScope: text('context_scope', { enum: ['folder', 'all'] }),
   // Anonymous docs only: SHA-256 of the creating browser's random
   // creator key (the httpOnly `markoto-anon-creator` cookie). Deleting
   // an ownerless doc requires presenting the matching key, so only the
@@ -100,7 +112,10 @@ export const documents = pgTable('documents', {
   index('idx_documents_last_active').on(table.lastActive),
   // Admin product stats: documents created per day.
   index('idx_documents_created').on(table.createdAt),
-  index('idx_documents_workspace').on(table.workspaceId)
+  index('idx_documents_workspace').on(table.workspaceId),
+  // The project-context lookup of every AI session: the few marked
+  // documents of one scope.
+  index('idx_documents_context').on(table.workspaceId, table.ownerId).where(sql`${table.contextScope} IS NOT NULL`)
 ])
 
 // Plain-text copy of each document for search: title + Markdown body,
@@ -138,6 +153,20 @@ export const documentShares = pgTable('document_shares', {
 }, table => [
   primaryKey({ columns: [table.docId, table.userId] }),
   index('idx_document_shares_user').on(table.userId)
+])
+
+// Extra project-context documents attached to one document (the document
+// panel's "Also use as context"), on top of those that apply through its
+// folder or scope. Who may read a linked document is decided again at
+// every use: a link never grants access. `added_by` is provenance only.
+export const documentContextLinks = pgTable('document_context_links', {
+  docId: text('doc_id').notNull().references(() => documents.docId, { onDelete: 'cascade' }),
+  contextDocId: text('context_doc_id').notNull().references(() => documents.docId, { onDelete: 'cascade' }),
+  addedBy: integer('added_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+}, table => [
+  primaryKey({ columns: [table.docId, table.contextDocId] }),
+  index('idx_document_context_links_context').on(table.contextDocId)
 ])
 
 // Opens of a shared document per day: pages opened by

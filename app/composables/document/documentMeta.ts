@@ -14,6 +14,9 @@ import type { DocAccessState } from './docAccessState'
  * row. Part of `useDocument`; Y.js stays the live source of truth.
  */
 export function useDocumentMeta(docId: string, ymeta: Y.Map<unknown>, access: DocAccessState) {
+  // Document settings are not suggestions: a suggest-only connection
+  // can't write them (the sync server would close it).
+  const metaLocked = () => access.isReadOnly.value || access.suggestOnly.value
   // The live title is empty until a client sets one: a doc created via the
   // new-document dialog carries it only on the DB row (from /token), which
   // the computed `title` falls back to.
@@ -51,7 +54,7 @@ export function useDocumentMeta(docId: string, ymeta: Y.Map<unknown>, access: Do
     get: () => ymetaTitle.value || access.initialTitle.value || 'Untitled',
     set: (v: string) => {
       // Clamped to the sync server's ymeta bounds; an over-long value would close the connection.
-      if (!access.isReadOnly.value) ymeta.set('title', clampMetaString('title', v))
+      if (!metaLocked()) ymeta.set('title', clampMetaString('title', v))
     }
   })
 
@@ -61,7 +64,7 @@ export function useDocumentMeta(docId: string, ymeta: Y.Map<unknown>, access: Do
    * ownerless docs skip persisting and rely on Y.js sync alone.
    */
   const canEditTheme = computed(() => computeCanEditTheme({
-    isReadOnly: access.isReadOnly.value,
+    isReadOnly: metaLocked(),
     isOwner: access.isOwner.value,
     hasOwner: access.hasOwner.value
   }))
@@ -129,7 +132,7 @@ export function useDocumentMeta(docId: string, ymeta: Y.Map<unknown>, access: Do
   const description = computed({
     get: () => descriptionRef.value,
     set: (v: string) => {
-      if (access.isReadOnly.value) return
+      if (metaLocked()) return
       const next = clampMetaString('description', v)
       ymeta.set('description', next)
       if (access.isOwner.value) persistDocContext({ description: next })
@@ -138,7 +141,7 @@ export function useDocumentMeta(docId: string, ymeta: Y.Map<unknown>, access: Do
   const audience = computed({
     get: () => audienceRef.value,
     set: (v: string) => {
-      if (access.isReadOnly.value) return
+      if (metaLocked()) return
       ymeta.set('audience', v)
       // The route accepts only the known audiences; anything else would be a 400 it swallows.
       if (access.isOwner.value && isAudienceKind(v)) persistDocContext({ audience: v })
@@ -147,7 +150,7 @@ export function useDocumentMeta(docId: string, ymeta: Y.Map<unknown>, access: Do
   const language = computed({
     get: () => languageRef.value,
     set: (v: string) => {
-      if (access.isReadOnly.value) return
+      if (metaLocked()) return
       const next = clampMetaString('language', v)
       ymeta.set('language', next)
       if (access.isOwner.value) persistDocContext({ language: next })
@@ -160,7 +163,7 @@ export function useDocumentMeta(docId: string, ymeta: Y.Map<unknown>, access: Do
    * persisted for owners like the other context fields.
    */
   function setTemplateId(next: string) {
-    if (access.isReadOnly.value) return
+    if (metaLocked()) return
     access.templateId.value = next
     if (access.isOwner.value) persistDocContext({ templateId: next })
   }

@@ -133,6 +133,12 @@
       "too-many-fonts": "A workspace can have up to {limit} font files.",
       "too-many-images": "A workspace can have up to {limit} brand images."
     },
+    "citations": {
+      "doi-invalid": "That is not a DOI. A DOI looks like 10.1000/xyz123.",
+      "doi-not-found": "Crossref has no record for this DOI. Check the DOI, or add the reference as BibTeX.",
+      "doi-lookup-failed": "The DOI lookup at Crossref failed. Try again in a moment.",
+      "rate-limited": "Too many DOI lookups. Wait a few minutes and try again."
+    },
     "common": {
       "internal": "Something went wrong on our side. Please try again. We've been notified."
     },
@@ -424,6 +430,21 @@
       "cycle": "A folder can't be moved into itself or one of its subfolders.",
       "forbidden": "You can't change folders here.",
       "delete-blocked": "{blocked} documents in this folder can't be deleted by you, so nothing was deleted."
+    },
+    "suggestion": {
+      "invalid": "This suggestion is not valid.",
+      "not-allowed": "You can't make suggestions in this document.",
+      "review-not-allowed": "Only people who can edit this document can accept or reject suggestions.",
+      "not-found": "This suggestion no longer exists. Someone else may have accepted or rejected it.",
+      "too-many": "This document has too many open suggestions ({max}). Accept or reject some first.",
+      "too-many-authors": "Accept the suggestions of at most {max} people at once.",
+      "rate-limited": "Too many requests. Please wait a moment and try again."
+    },
+    "context": {
+      "not-found": "That document doesn't exist, or you can't open it.",
+      "self": "A document can't be its own context.",
+      "too-many": "A document can have at most {max} extra context documents.",
+      "not-attached": "This document isn't attached as context."
     }
   }
 }

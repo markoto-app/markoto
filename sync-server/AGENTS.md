@@ -14,6 +14,7 @@ How it works (persistence and its durability argument, snapshots and pruning, au
 - **Never close the app's own server-side clients** (`ai:`, `mcp:`, `restore:` …, `SYNTHETIC_USER_ID_PREFIXES` in `shared/contracts/jwt.ts`) on a document re-auth: it would fail an AI edit or a restore halfway.
 - **Hooks that verify tokens must not throw** (`onTokenSync` → `renew`): a throwing hook makes Hocuspocus close with a reason the client doesn't treat as re-auth.
 - **Internal routes stay internal.** New `/internal/*` routes go through `handleInternalRequest` (secret check + 404 for requests that came through the edge proxy) and must not be routed by Traefik.
+- **A suggest-only connection writes only its own `suggestions` records and `comments`** (`update-guard.ts`); the token renewal compares `suggestOnly` like `readOnly`. Never let it through on the text or `meta`, also not via the delete set.
 - **Guard work in `beforeHandleMessage` stays synchronous** so message order is preserved, and unexpected errors fail closed as `invalid-update`.
 - **Attribution comes from the JWT context only.** Never use the awareness `user.name` for activity rows, it is client-controlled.
 - **Valkey is best-effort for sync state.** A Valkey error may skip an activity row; it must never abort sync or a store. Don't wrap the `prev-text` baseline in `WATCH`/`MULTI` to fix the multi-instance line-count race, that is accepted.

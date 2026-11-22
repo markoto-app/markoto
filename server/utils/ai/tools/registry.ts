@@ -19,6 +19,8 @@ import { deleteSectionTool, editLinesTool, insertMarkdownTool, moveSectionTool, 
 import { renumberHeadingsTool, replaceAllTool } from './replaceAllTools'
 import { loadSkillTool } from './skillTools'
 import { delegateRewriteTool, delegateScanTool } from './delegateTools'
+import { addReferenceByDoiTool, checkCitationsTool, listReferencesTool } from './citationTools'
+import { editProjectContextTool, readProjectContextTool } from './projectContextTools'
 
 // The AI tool registry: every tool the in-app loop, the MCP server and the
 // test-only exec route can run, in the order the model is shown them. The
@@ -71,6 +73,9 @@ const CORE_TOOLS = [
   renumberHeadingsTool,
   replaceAllTool,
   editLinesTool,
+  listReferencesTool,
+  addReferenceByDoiTool,
+  checkCitationsTool,
   loadSkillTool,
   delegateScanTool,
   delegateRewriteTool
@@ -84,7 +89,15 @@ const CORE_TOOLS = [
  */
 const KNOWLEDGE_TOOLS = [searchKnowledgeTool, getKnowledgeFileTool] as const
 
-const ALL_TOOLS = [...CORE_TOOLS, ...KNOWLEDGE_TOOLS] as const
+/**
+ * Project-context tools, offered per session when at least one project
+ * context document applies to the document and the initiator may open it
+ * (`agentic/sessions/sessionSetup.ts`). Without context they would only
+ * invite the model to look for a bible that isn't there.
+ */
+const CONTEXT_TOOLS = [readProjectContextTool, editProjectContextTool] as const
+
+const ALL_TOOLS = [...CORE_TOOLS, ...KNOWLEDGE_TOOLS, ...CONTEXT_TOOLS] as const
 
 type RegisteredTool = typeof ALL_TOOLS[number]
 export type ToolName = RegisteredTool['name']
@@ -110,6 +123,7 @@ export function toolSchema(name: string): ZodType<unknown> | undefined {
 
 export const ALL_TOOL_DECLARATIONS: FunctionDeclaration[] = CORE_TOOLS.map(toFunctionDeclaration)
 export const KNOWLEDGE_TOOL_DECLARATIONS: FunctionDeclaration[] = KNOWLEDGE_TOOLS.map(toFunctionDeclaration)
+export const CONTEXT_TOOL_DECLARATIONS: FunctionDeclaration[] = CONTEXT_TOOLS.map(toFunctionDeclaration)
 
 /** Sorted list of every tool name, for the "Supported: ..." error on unknown names. */
 const KNOWN_TOOL_NAMES: readonly string[] = Object.freeze(

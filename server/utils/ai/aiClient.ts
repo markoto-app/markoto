@@ -62,6 +62,8 @@ export interface SessionMeta {
   commentThreadId?: string | null
   /** When the session is aborted (epoch ms), for tools that wait (`sessionDeadlineAt`). */
   deadlineAt?: number
+  /** Suggestion mode: text edits become suggestions of this session. */
+  suggest?: { forced: boolean } | null
 }
 
 /**
@@ -231,6 +233,7 @@ export async function createAiSession(
     confirmReplace,
     sessionDeadlineAt: meta.deadlineAt,
     sessionSignal: signal,
+    suggestSink: meta.suggest ? { principal: aiClientUserId(meta.sessionId), name: 'markoto', forced: meta.suggest.forced, written: 0 } : null,
     channel: meta.channel,
     provider: entry.provider,
     destroy

@@ -13,6 +13,7 @@ import { katexBlock, mermaidBlock } from '../../themeCss/mathDiagramCss'
 import { tocBlock } from '../../themeCss/tocCss'
 import { numberingBlock } from '../../themeCss/numberingCss'
 import { captionBlock, referencesBlock } from '../../themeCss/captionCss'
+import { citationBlock } from '../../themeCss/citationCss'
 import { sectionStringBlock } from '../../themeCss/sectionCss'
 import { coverBlock, repeatTitleBlock } from '../../themeCss/coverCss'
 
@@ -48,6 +49,7 @@ export function themeToCss(theme: DocTheme, runtime: ThemeRuntime): string {
     numberingBlock(theme, runtime),
     captionBlock(theme, runtime),
     referencesBlock(theme),
+    citationBlock(theme),
     sectionStringBlock(theme),
     runningRuleBlock(theme),
     pageBreakBlock(),

@@ -10,6 +10,7 @@ import { planHasFeature, resolveDocPlanFor } from '../../utils/billing/entitleme
 import { DESIGN_SAMPLE_ID_RE, loadDesignSample } from '../../utils/designImport/sampleRender'
 import { customCssForPlan } from '~~/shared/utils/theme/themePresets'
 import { renderBootstrapQuery } from '~~/shared/api/platform'
+import { readDocCitations } from '../../utils/citations/docCitations'
 
 // Called from the internal print page (`app/pages/_internal/render/[docId].vue`)
 // during SSR. Validates the render-token, replays the doc's Y.js history to
@@ -45,6 +46,8 @@ export default defineApiHandler({
         description: '',
         audience: 'business',
         language: sample.language,
+        bibliography: [],
+        citationStyle: 'apa',
         fileAccessToken: '',
         fileIds: [],
         brandFonts: [],
@@ -70,9 +73,11 @@ export default defineApiHandler({
     const ydoc = await reconstructDocAtYjsId(docAccess, snapshotId)
     let markdown: string
     let properties: ReturnType<typeof resolveDocProperties>
+    let citations: ReturnType<typeof readDocCitations>
     try {
       markdown = ydoc.getText('content').toJSON()
       properties = resolveDocProperties(ydoc.getMap('meta'), doc)
+      citations = readDocCitations(ydoc)
     } finally {
       ydoc.destroy()
     }
@@ -105,6 +110,9 @@ export default defineApiHandler({
       description: properties.description,
       audience: properties.audience,
       language: properties.language,
+      // Bibliography (validated entries) and citation style, from Y.js.
+      bibliography: citations.items,
+      citationStyle: citations.style,
       fileAccessToken,
       // The document's confirmed uploads. The print page gives the token
       // ONLY to `/api/files/<docId>/<fileId>` URLs naming one of these

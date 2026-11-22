@@ -21,6 +21,9 @@ export const createMcpTokenBody = z.object({
 
 export const mcpTokenParams = z.object({ tokenId: z.string().min(1) })
 
+/** PUT /api/user/ai-suggest: whether the AI suggests instead of editing (default for new prompts). */
+export const setAiSuggestBody = z.object({ suggest: z.boolean() })
+
 /** PUT /api/user/ai-model: the platform chat model the user wants. */
 export const setAiModelBody = z.object({ tier: z.enum(['fast', 'strong']) })
 

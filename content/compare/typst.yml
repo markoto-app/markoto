@@ -62,9 +62,9 @@ rows:
       checked: '2026-11-04'
   - feature: Bibliography and citations
     markoto:
-      value: false
-      source: /docs/writing/markdown-reference
-      checked: '2026-11-04'
+      value: BibTeX, CSL JSON or a DOI; APA, Chicago, Harvard, IEEE, Vancouver, DIN 1505-2
+      source: /docs/writing/citations
+      checked: '2026-11-19'
     competitor:
       value: BibLaTeX .bib or Hayagriva files, CSL styles
       source: https://typst.app/docs/reference/model/bibliography/

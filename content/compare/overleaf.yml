@@ -71,20 +71,20 @@ rows:
       source: https://www.overleaf.com/plans
       checked: '2026-11-04'
   - feature: Citations and bibliography
-    note: markoto has footnotes, but no BibTeX.
+    note: Six built-in styles; no custom CSL style files.
     markoto:
-      value: false
-      source: /docs/writing/markdown-reference
-      checked: '2026-11-04'
+      value: BibTeX, CSL JSON or a DOI; APA, Chicago, Harvard, IEEE, Vancouver, DIN 1505-2
+      source: /docs/writing/citations
+      checked: '2026-11-19'
     competitor:
       value: BibTeX, natbib, biblatex
       source: https://docs.overleaf.com/citing-and-references/creating-a-bibliography.md
       checked: '2026-11-04'
   - feature: Reference managers
     markoto:
-      value: false
-      source: /docs/import-export
-      checked: '2026-11-04'
+      value: Import of a Zotero (or other) BibTeX / CSL JSON export, no live sync
+      source: /docs/writing/citations
+      checked: '2026-11-19'
     competitor:
       value: Zotero, Mendeley, ReadCube on paid plans
       source: https://www.overleaf.com/plans

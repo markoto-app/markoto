@@ -2,7 +2,7 @@
 title: Ask the AI for current information
 description: The AI can search the web and answer from live results, with sources - names, prices, news, anything time-sensitive.
 category: ai
-order: 8
+order: 9
 updated: '2026-11-15'
 ---
 

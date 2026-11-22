@@ -37,7 +37,9 @@ export const dictateTokenBody = z.object({ docId: z.string().min(1) })
 export const aiPromptBody = z.object({
   docId: z.string().min(1),
   prompt: z.string().trim().min(1).max(4000),
-  editorSelection: z.unknown().optional()
+  editorSelection: z.unknown().optional(),
+  /** The AI proposes its edits as suggestions; absent = the user's setting. Forced on where the document requires suggestions of the user. */
+  suggest: z.boolean().optional()
 })
 
 /** `:sessionId` of /api/ai/sessions/:sessionId/**. */

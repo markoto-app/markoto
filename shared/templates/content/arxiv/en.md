@@ -12,15 +12,15 @@
 
 # Related work
 
-<!-- Two to four themes, one paragraph each: what has been done, what is missing, where your work fits. Synthesise rather than list ("X did A. Y did B."). Cite author–year, e.g. Author and Author [Year]. -->
+<!-- Two to four themes, one paragraph each: what has been done, what is missing, where your work fits. Synthesise rather than list ("X did A. Y did B."). Cite with [@key], [@key, p. 12] or [@a; @b], using the keys of the sources you added in the References panel. -->
 
 # Method
 
-<!-- Enough detail that someone else could reproduce the work: data, model or procedure, assumptions, and the tools you used. Number the equations you refer to later with \tag{1}. -->
+<!-- Enough detail that someone else could reproduce the work: data, model or procedure, assumptions, and the tools you used. Give an equation you refer to later a label such as {#eq:model} after its closing $$; it is numbered for you, and @eq:model in the text prints its number. -->
 
 $$
-y = f(x; \theta) \tag{1}
-$$
+y = f(x; \theta)
+$$ {#eq:model}
 
 ## Data
 
@@ -34,7 +34,7 @@ Step one.[^1]
 
 # Experiments
 
-<!-- Report what you found, not what it means. Tables and figures carry the results; the prose points the reader to them ("Table 1 shows …"). A table's caption goes on a "Table:" line directly above it; the theme numbers it. A figure is an image alone in its paragraph; its alt text becomes the caption. -->
+<!-- Report what you found, not what it means. Tables and figures carry the results; the prose points the reader to them. A table's caption goes on a "Table:" line directly above it; a label at its end ({#tbl:name}) lets you write @tbl:name, which prints "Table 1". A figure is an image alone in its paragraph; its alt text becomes the caption. -->
 
 ## Setup
 
@@ -42,7 +42,9 @@ Step one.[^1]
 
 ## Results
 
-Table: Main results.
+@tbl:results compares our method with the baseline.
+
+Table: Main results. {#tbl:results}
 
 | Method | Metric A | Metric B |
 |---|--:|--:|
@@ -59,10 +61,8 @@ Table: Main results.
 
 # References {.unnumbered}
 
-<!-- One paragraph per entry, sorted by first author's surname; the theme sets them with a hanging indent. There is no BibTeX: type the entries by hand in one style and keep it consistent. -->
+<!-- Generated from the sources you cite. Add them in the References panel (book icon above the sidebar): by DOI, by pasting BibTeX, or by importing a .bib or CSL JSON export from Zotero. Pick the venue's style there (APA, Chicago, Harvard, IEEE, Vancouver, DIN 1505-2). -->
 
-Author, A. and Author, B. Title of the paper. In *Proceedings of the Conference*, pages 1–10. Publisher, Year.
-
-Author, C. *Title of the Book*. Publisher, City, Year.
+[[bibliography]]
 
 [^1]: Footnote text.

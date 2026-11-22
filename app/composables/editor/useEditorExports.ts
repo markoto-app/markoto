@@ -2,6 +2,7 @@ import type { DeepReadonly } from 'vue'
 import type * as Y from 'yjs'
 import type { BrandFont } from '~~/shared/config/brandKit'
 import type { DocTheme } from '~~/shared/types/theme'
+import type { CitationInputs } from '~/utils/markdown/citationResolve'
 
 /**
  * The editor's ways out of the document: browser print (the hidden-iframe
@@ -24,6 +25,8 @@ export function useEditorExports(opts: {
   templateId: Readonly<Ref<string>>
   noDownload: Readonly<Ref<boolean>>
   brandFonts: Readonly<Ref<readonly BrandFont[]>>
+  /** The document's bibliography and citation style. */
+  citations: Readonly<Ref<CitationInputs>>
   getDocJwt: () => Promise<string | null>
 }) {
   const { t } = useI18n()
@@ -50,7 +53,8 @@ export function useEditorExports(opts: {
         docId: opts.docId,
         language: opts.language.value,
         getDocJwt: opts.getDocJwt,
-        brandFonts: opts.brandFonts.value
+        brandFonts: opts.brandFonts.value,
+        citations: opts.citations.value
       })
     } catch (e) {
       showError('error.pdfExportFailedTitle', e)
@@ -59,21 +63,41 @@ export function useEditorExports(opts: {
     }
   }
 
-  // The file carries theme + document properties as YAML frontmatter
-  // (shared/utils/markdown/markdownFrontmatter.ts) so importing restores them.
-  async function exportMarkdown() {
-    if (refuseDownload()) return
-    const { buildMarkdownExport } = await import('~~/shared/utils/markdown/markdownFrontmatter')
-    const content = buildMarkdownExport(opts.textContent.value, {
+  // The file carries theme, document properties and the bibliography as YAML
+  // frontmatter (shared/utils/markdown/markdownFrontmatter.ts) so importing restores them.
+  function exportProperties() {
+    return {
       title: opts.title.value,
       description: opts.description.value,
       audience: opts.audience.value,
       language: opts.language.value,
       templateId: opts.templateId.value,
       // Plain copy: the theme ref is a readonly proxy.
-      theme: structuredClone(toRaw(opts.theme.value)) as DocTheme
-    })
-    downloadMarkdown(content, opts.title.value)
+      theme: structuredClone(toRaw(opts.theme.value)) as DocTheme,
+      references: opts.citations.value.items,
+      citationStyle: opts.citations.value.style
+    }
+  }
+
+  async function exportMarkdown() {
+    if (refuseDownload()) return
+    const { buildMarkdownExport } = await import('~~/shared/utils/markdown/markdownFrontmatter')
+    downloadMarkdown(buildMarkdownExport(opts.textContent.value, exportProperties()), opts.title.value)
+  }
+
+  /**
+   * Markdown with the open suggestions in CriticMarkup ({++ ++}, {-- --},
+   * {~~ ~> ~~}). Same front matter as the plain export; the plain export,
+   * the preview, the PDF and published pages have the accepted text only.
+   */
+  async function exportMarkdownWithSuggestions(suggestions: ReadonlyArray<{ from: number, to: number, text: string }>) {
+    if (refuseDownload()) return
+    const [{ buildMarkdownExport }, { toCriticMarkup }] = await Promise.all([
+      import('~~/shared/utils/markdown/markdownFrontmatter'),
+      import('~~/shared/utils/suggestions/criticMarkup')
+    ])
+    const content = buildMarkdownExport(toCriticMarkup(opts.textContent.value, suggestions), exportProperties())
+    downloadMarkdown(content, `${opts.title.value} (suggestions)`)
   }
 
   // Server-rendered PDF from the Playwright renderer, served by /api/docs/:id/pdf
@@ -99,7 +123,7 @@ export function useEditorExports(opts: {
 
   usePrintShortcut(exportPdf)
 
-  return { exporting, exportPdf, exportMarkdown, openServerPdf }
+  return { exporting, exportPdf, exportMarkdown, exportMarkdownWithSuggestions, openServerPdf }
 }
 
 /**
