@@ -222,6 +222,7 @@ markoto verwendet **nur Speicher, der für die Erbringung des von dir gewünscht
 | `markoto:preview-zoom` (Local Storage) | Merkt sich die Zoomstufe der Dokumentvorschau. | Bis du ihn löschst |
 | `markoto-created-first-doc` (Local Storage) | Merkt sich, dass in diesem Browser bereits ein Dokument erstellt wurde, damit der Dialog für neue Dokumente die Auswahl für das erste Dokument nicht erneut anbietet. | Bis du ihn löschst |
 | `markoto:editor-tour` (Local Storage) | Merkt sich, dass du die kurze Einführungstour durch den Editor abgeschlossen oder übersprungen hast. | Bis du ihn löschst |
+| `markoto:editor-left-panel` (Local Storage) | Merkt sich, ob die Seitenleiste mit Gliederung und Dokumenten im Editor offen ist und welchen ihrer Tabs du zuletzt verwendet hast. | Bis du ihn löschst |
 | `markoto-pending-invite` (Session Storage) | Bewahrt einen Link zu einer Workspace-Einladung auf, während du dich anmeldest, um sie anzunehmen. | Bis du den Tab schliesst |
 | `markoto-anon-avatar` (Session Storage) | Ein zufälliges Token, das bestimmt, welches Gesicht deine Mitwirkenden sehen, während du ohne Konto an einem Dokument arbeitest. Es wird auch mit den Änderungen und Kommentaren gespeichert, die du ohne Konto machst, damit das Aktivitätsprotokoll dasselbe Gesicht zeigt. Darüber hinaus nicht mit dir oder deinem Browser verknüpft. | Im Browser: bis du den Tab schliesst. Mit deinen Änderungen und Kommentaren: so lange wie das Dokument (§5) |
 | Service-Worker-Cache | Lässt markoto schneller laden und offline funktionieren. | Bis du ihn löschst |

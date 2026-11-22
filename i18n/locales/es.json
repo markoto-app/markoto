@@ -1855,6 +1855,32 @@
     "uploadStorageFailed": "No se pudo subir el archivo al almacenamiento (estado {status}).",
     "uploadNetworkError": "Error de red durante la subida."
   },
+  "leftPanel": {
+    "label": "Esquema y documentos",
+    "show": "Mostrar esquema y documentos",
+    "hide": "Ocultar esquema y documentos",
+    "close": "Cerrar esquema y documentos",
+    "tabs": {
+      "outline": "Esquema",
+      "workspace": "Documentos"
+    },
+    "outline": {
+      "emptyTitle": "Aún no hay títulos",
+      "emptyHint": "Empieza una línea con # para un título y con ## para una sección debajo. Tus títulos aparecen aquí mientras escribes."
+    },
+    "workspace": {
+      "myDocuments": "Mis documentos",
+      "openWorkspace": "Abrir en el espacio de trabajo",
+      "openMyDocuments": "Abrir en Mis documentos",
+      "empty": "Todavía no hay documentos.",
+      "loadFailed": "No se pudieron cargar los documentos.",
+      "retry": "Reintentar",
+      "showMore": "Mostrar más",
+      "signedOut": "Inicia sesión para ver aquí tus otros documentos.",
+      "notMember": "Los documentos de este espacio de trabajo aparecen aquí en cuanto alguien los comparte contigo.",
+      "sharedWithYou": "Compartidos contigo"
+    }
+  },
   "designImport": {
     "button": "Crear un diseño a partir de un documento",
     "title": "Crear un diseño a partir de un documento",

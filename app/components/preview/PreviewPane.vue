@@ -43,7 +43,7 @@ const iframeHost = ref<HTMLElement | null>(null)
 const zoom = usePreviewZoom()
 onMounted(() => zoom.load())
 
-const { pageCount: pgCount, isReady, error } = usePagedPreview({
+const { pageCount: pgCount, isReady, error, scrollToHeading } = usePagedPreview({
   html: rendered,
   theme: themeRef,
   title: titleRef,
@@ -85,6 +85,9 @@ useEventListener(globalThis, 'keydown', (e: KeyboardEvent) => {
 watch(pgCount, (n) => {
   pageCount.value = n
 }, { immediate: true })
+
+// The editor's outline scrolls the pages to a heading.
+defineExpose({ scrollToHeading })
 </script>
 
 <template>

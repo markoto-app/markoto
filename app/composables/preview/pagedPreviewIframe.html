@@ -26,6 +26,7 @@
                        hljsSri, mermaidConfig, locale, print}
                       {type:'color-mode', dark}
                       {type:'zoom', mode, scale, animate, page}
+                      {type:'scroll-to-heading', id}
     iframe → parent   {type:'iframe-ready'} {type:'paginated', pageCount}
                       {type:'iframe-error', message} {type:'print-shortcut'}
                       {type:'print-done'}
@@ -258,6 +259,22 @@
     if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 
+  // The editor's outline: bring a heading of the shown pages to the top.
+  // Looked up inside #mount only (the pages being laid out in #pending
+  // carry the same ids), by comparing ids, so no selector is built from
+  // the message.
+  function scrollToHeading(id) {
+    var mount = document.getElementById('mount');
+    if (!mount) return;
+    var withId = mount.querySelectorAll('[id]');
+    for (var i = 0; i < withId.length; i++) {
+      if (withId[i].id === id) {
+        withId[i].scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+    }
+  }
+
   // Forward Cmd/Ctrl+P to the parent. Keydowns inside the iframe never
   // reach the parent's document-level listener, so the browser would open
   // its print dialog for the host page (the whole app chrome) instead of
@@ -477,6 +494,9 @@
       var scaleOk = typeof data.scale === 'number' && Number.isFinite(data.scale) && data.scale > 0 && data.scale <= 10;
       var pageOk = typeof data.page === 'number' && Math.floor(data.page) === data.page && data.page >= 0;
       return modeOk && scaleOk && pageOk && typeof data.animate === 'boolean' ? data : null;
+    }
+    if (data.type === 'scroll-to-heading') {
+      return typeof data.id === 'string' && data.id.length > 0 && data.id.length <= 512 ? data : null;
     }
     if (data.type === 'render') {
       var strings = ['html', 'themeCss', 'fontsImport', 'hljsUrl', 'hljsSri', 'mermaidConfig', 'locale'];
@@ -717,6 +737,7 @@
       if (msg.type === 'color-mode') applyColorMode(msg.dark);
       else if (msg.type === 'zoom') previewZoom.set(msg);
       else if (msg.type === 'render') renderDoc(msg);
+      else if (msg.type === 'scroll-to-heading') scrollToHeading(msg.id);
     });
 
     toParent({ type: 'iframe-ready' });

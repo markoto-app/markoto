@@ -1855,6 +1855,32 @@
     "uploadStorageFailed": "Le fichier n’a pas pu être téléversé vers le stockage (statut {status}).",
     "uploadNetworkError": "Erreur réseau pendant le téléversement."
   },
+  "leftPanel": {
+    "label": "Plan et documents",
+    "show": "Afficher le plan et les documents",
+    "hide": "Masquer le plan et les documents",
+    "close": "Fermer le plan et les documents",
+    "tabs": {
+      "outline": "Plan",
+      "workspace": "Espace de travail"
+    },
+    "outline": {
+      "emptyTitle": "Pas encore de titres",
+      "emptyHint": "Commencez une ligne par # pour un titre et par ## pour une section en dessous. Vos titres apparaissent ici au fil de l’écriture."
+    },
+    "workspace": {
+      "myDocuments": "Mes documents",
+      "openWorkspace": "Ouvrir dans l’espace de travail",
+      "openMyDocuments": "Ouvrir dans Mes documents",
+      "empty": "Aucun document pour l’instant.",
+      "loadFailed": "Impossible de charger les documents.",
+      "retry": "Réessayer",
+      "showMore": "Afficher plus",
+      "signedOut": "Connectez-vous pour voir ici vos autres documents.",
+      "notMember": "Les documents de cet espace de travail apparaissent ici dès que quelqu’un les partage avec vous.",
+      "sharedWithYou": "Partagés avec vous"
+    }
+  },
   "designImport": {
     "button": "Créer un design à partir d’un document",
     "title": "Créer un design à partir d’un document",

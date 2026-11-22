@@ -34,6 +34,8 @@ const props = defineProps<{
   dictationState?: 'idle' | 'requesting-permission' | 'connecting' | 'recording' | 'finishing' | 'error'
   /** Share-link controls: the owner made this a view-only link, so no export or print. */
   noDownload?: boolean
+  /** The left panel (outline, workspace documents) is open: its check mark in the View menu. */
+  leftPanelOpen?: boolean
 }>()
 
 const dictationMenuLabel = computed(() => {
@@ -58,6 +60,7 @@ const emit = defineEmits<{
   'delete-document': []
   'set-view-mode': ['edit' | 'split' | 'preview']
   'toggle-sidebar': ['document' | 'activity' | 'theme' | 'knowledge' | 'comments' | 'references']
+  'toggle-left-panel': []
   'undo': []
   'redo': []
   'open-image-picker': []
@@ -188,6 +191,15 @@ const viewItems = computed(() => [
   ],
   // Independent toggles, though the parent keeps them mutually exclusive; the check marks the active one.
   [
+    // The left panel, on its own beside the right-hand ones.
+    {
+      label: t('leftPanel.label'),
+      icon: 'i-lucide-panel-left',
+      type: 'checkbox' as const,
+      checked: props.leftPanelOpen === true,
+      kbds: ['meta', 'shift', 'e'],
+      onSelect: () => emit('toggle-left-panel')
+    },
     {
       label: t('documentPanel.title'),
       icon: 'i-lucide-info',

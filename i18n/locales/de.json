@@ -1855,6 +1855,32 @@
     "uploadStorageFailed": "Die Datei konnte nicht in den Speicher hochgeladen werden (Status {status}).",
     "uploadNetworkError": "Netzwerkfehler beim Hochladen."
   },
+  "leftPanel": {
+    "label": "Gliederung und Dokumente",
+    "show": "Gliederung und Dokumente einblenden",
+    "hide": "Gliederung und Dokumente ausblenden",
+    "close": "Gliederung und Dokumente schliessen",
+    "tabs": {
+      "outline": "Gliederung",
+      "workspace": "Workspace"
+    },
+    "outline": {
+      "emptyTitle": "Noch keine Überschriften",
+      "emptyHint": "Beginne eine Zeile mit # für eine Überschrift und mit ## für einen Abschnitt darunter. Deine Überschriften erscheinen hier, während du schreibst."
+    },
+    "workspace": {
+      "myDocuments": "Meine Dokumente",
+      "openWorkspace": "Im Workspace öffnen",
+      "openMyDocuments": "In Meine Dokumente öffnen",
+      "empty": "Hier gibt es noch keine Dokumente.",
+      "loadFailed": "Die Dokumente konnten nicht geladen werden.",
+      "retry": "Erneut versuchen",
+      "showMore": "Mehr anzeigen",
+      "signedOut": "Melde dich an, um hier deine anderen Dokumente zu sehen.",
+      "notMember": "Dokumente dieses Workspace erscheinen hier, sobald jemand sie mit dir teilt.",
+      "sharedWithYou": "Mit dir geteilt"
+    }
+  },
   "designImport": {
     "button": "Design aus einem Dokument erstellen",
     "title": "Design aus einem Dokument erstellen",

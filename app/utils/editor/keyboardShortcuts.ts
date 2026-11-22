@@ -8,6 +8,7 @@ import { insertNewlineContinueMarkup } from '@codemirror/lang-markdown'
 import { formattingKeymap } from '~/utils/editor/editorCommands'
 import { collabRedo, collabUndo, editorKeymap } from '~/utils/editor/collabHistory'
 import { isMacPlatform } from '~/utils/preview/previewZoom'
+import { LEFT_PANEL_SHORTCUT } from '~/utils/editor/leftPanel'
 
 /**
  * The list behind Help → Keyboard shortcuts. Editor rows are looked up in
@@ -82,7 +83,9 @@ export function shortcutGroups(platform: ShortcutPlatform): ShortcutGroup[] {
         // EditorLayout.vue's capture-phase Cmd/Ctrl+P handler.
         { labelKey: 'menubar.file.print', combos: ['Mod-p'] },
         // CommentComposer.vue: Cmd/Ctrl+Enter posts.
-        { labelKey: 'shortcuts.postComment', combos: ['Mod-Enter'] }
+        { labelKey: 'shortcuts.postComment', combos: ['Mod-Enter'] },
+        // useEditorLeftPanel.ts: the outline and workspace documents.
+        { labelKey: 'leftPanel.label', combos: [LEFT_PANEL_SHORTCUT] }
       ]
     },
     {

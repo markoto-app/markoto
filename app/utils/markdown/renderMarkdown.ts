@@ -13,7 +13,7 @@
  * when output=htmlAndMathml).
  */
 
-import type { MarkdownIt, RendererRule, StateBlock, StateInline } from 'markdown-it'
+import type { MarkdownIt, RendererRule, StateBlock, StateInline, Token } from 'markdown-it'
 import { createGlobalState } from '@vueuse/core'
 import { sanitizeRenderedHtml } from './sanitizeHtml'
 import { tableAttrsRowPlugin } from './markdownTableAttrs'
@@ -402,6 +402,16 @@ export async function renderMarkdown(source: string): Promise<string> {
   const { md } = await useMarkdownPipeline()
   const html = sanitizeRenderedHtml(md.render(source))
   return transformFootnotesForPagedMedia(html)
+}
+
+/**
+ * The token stream of `source` as the preview parses it, with the heading
+ * ids it renders (the editor's outline, `documentOutline.ts`). Parse only,
+ * no render or sanitising. Browser-only, like `renderMarkdown`.
+ */
+export async function parseMarkdownTokens(source: string): Promise<Token[]> {
+  const { md } = await useMarkdownPipeline()
+  return md.parse(source, {})
 }
 
 /**

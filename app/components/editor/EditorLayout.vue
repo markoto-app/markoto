@@ -2,7 +2,6 @@
 import RightPanelHost from './RightPanelHost.vue'
 import MobileTabBar from './MobileTabBar.vue'
 import EditorCommandsPanel from './EditorCommandsPanel.vue'
-import type { TabName } from './tabBarTypes'
 import { customCssForPlan } from '~~/shared/utils/theme/themePresets'
 import { applyBrandLock } from '~~/shared/utils/theme/brandLock'
 import type { DocTheme } from '~~/shared/types/theme'
@@ -110,25 +109,9 @@ const { showShareModal, showDeleteModal, showDuplicateModal, showMoveModal, show
 const canManageDoc = computed(() =>
   isOwner.value || docWorkspaceRole.value === 'admin'
 )
-// Right-sidebar slot, mutually exclusive between activity, theme, knowledge,
-// document, comments and the mobile-only "editor" drawer (command palette), so
-// the layout shift is predictable. Knowledge only appears for workspace docs
-// (`hasKnowledgeAccess`).
-const rightSidebar = ref<TabName | null>(null)
-function toggleSidebar(panel: TabName) {
-  rightSidebar.value = rightSidebar.value === panel ? null : panel
-}
-function closeSidebar() {
-  rightSidebar.value = null
-}
-
-// Global Escape closes the open sidebar panel, except while a modal-like layer
-// (delete/duplicate/move/import/share) is up: Nuxt UI modals own Escape in
-// their stack, and it must not also reach the sidebar after dismissing the modal.
-onKeyStroke('Escape', () => {
-  if (anyModalOpen.value) return
-  if (rightSidebar.value) closeSidebar()
-})
+// Right-sidebar slot: one panel at a time, Escape closes it. Knowledge only
+// appears for workspace docs (`hasKnowledgeAccess`).
+const { rightSidebar, toggleSidebar, closeSidebar } = useEditorRightSidebar(anyModalOpen)
 
 const { commentRanges, commentsPanelRef, onCommentClickInEditor, triggerCreateComment, onCommentPanelFocus } = useEditorComments({
   ydoc,
@@ -199,25 +182,15 @@ const showUserContentBar = computed(() =>
   && !docWorkspaceId.value
 )
 
-// Dispatched on the local UndoManager, same as the keyboard shortcut, so menu and keyboard agree.
-function undo() {
-  undoManager.undo()
-}
-function redo() {
-  undoManager.redo()
-}
-
-// Sharing → Password opens the share modal (no scroll to the password section).
-function openShareAtPassword() {
-  showShareModal.value = true
-}
-
 // The access level picks the layout; a deletion keeps the one on screen.
 const { viewMode, isMobile } = useEditorViewMode(tokenReadOnly)
 
 const { syncRejectionMessage } = useSyncProblemToasts(syncAuthFailed, syncRejection)
 
 const { editorPaneRef, editorView, editorEverFocused } = useEditorViewRef()
+
+// Left panel: the outline and the documents around this one (a bottom sheet on a phone).
+const leftPanel = useEditorLeftPanel({ editorView, isMobile, rightSidebar, docId: props.docId, source: textContent, workspaceId: docWorkspaceId, workspaceRole: docWorkspaceRole })
 
 const { newDocument, handleLogout, openDocs } = useEditorActions(awareness)
 
@@ -309,6 +282,7 @@ useHead({
           @open-docs="openDocs"
           @start-tour="editorTour?.start()"
           @logout="handleLogout"
+          @open-navigator="rightSidebar = 'navigator'"
         />
       </div>
     </header>
@@ -331,9 +305,11 @@ useHead({
           :has-knowledge-access="hasKnowledgeAccess"
           :view-mode="viewMode"
           :dictation-state="dictation.state.value"
+          :left-panel-open="leftPanel.open.value"
+          @toggle-left-panel="leftPanel.toggle()"
           @open-import="showImportModal = true"
           @open-share="showShareModal = true"
-          @open-share-password="openShareAtPassword"
+          @open-share-password="showShareModal = true"
           @export-markdown="exportMarkdown"
           @export-pdf="exportPdf"
           @open-server-pdf="openServerPdf"
@@ -343,8 +319,8 @@ useHead({
           @delete-document="showDeleteModal = true"
           @set-view-mode="(m) => viewMode = m"
           @toggle-sidebar="toggleSidebar"
-          @undo="undo"
-          @redo="redo"
+          @undo="undoManager.undo()"
+          @redo="undoManager.redo()"
           @open-image-picker="openImagePicker"
           @open-table-picker="tableModalOpen = true"
           @toggle-dictation="dictation.toggle()"
@@ -374,6 +350,10 @@ useHead({
            Right: panel toggles (Activity, Theme), right-aligned above the
                   sidebar column they open. -->
       <div class="border-b border-default shrink-0 flex items-center justify-between">
+        <EditorLayoutLeftPanelToggle
+          :open="leftPanel.open.value"
+          @toggle="leftPanel.toggle()"
+        />
         <!-- Hidden below `sm`; mobile reaches the same commands through the
              "Editor" tab (EditorCommandsPanel drawer). -->
         <div class="hidden sm:block flex-1 min-w-0">
@@ -411,6 +391,15 @@ useHead({
            sidebar replaces the preview. `relative` anchors the floating AI
            prompt bar to the bottom of this zone, not the page. -->
       <main class="flex-1 flex min-h-0 relative">
+        <EditorLayoutLeftPanelHost
+          v-if="!isMobile"
+          ref="leftPanelContent"
+          :open="leftPanel.open.value"
+          :inline="leftPanel.inline.value"
+          :panel="leftPanel.panelProps.value"
+          @close="leftPanel.setOpen(false)"
+        />
+
         <!-- ImageDropZone handles drag-drop and paste uploads -->
         <EditorImageDropZone
           v-if="viewMode !== 'preview'"
@@ -454,6 +443,7 @@ useHead({
           ]"
         >
           <PreviewPane
+            ref="previewPane"
             v-model:page-count="pageCount"
             :source="textContent"
             :title="title"
@@ -550,6 +540,11 @@ useHead({
             v-else-if="rightSidebar === 'knowledge' && docWorkspaceId && docWorkspaceRole"
             :workspace-id="docWorkspaceId"
             :role="docWorkspaceRole"
+            @close="closeSidebar"
+          />
+          <EditorLayoutLeftPanel
+            v-else-if="rightSidebar === 'navigator'"
+            v-bind="leftPanel.panelProps.value"
             @close="closeSidebar"
           />
           <!-- Mobile only (the desktop toolbar covers `>=sm`). Actions run through

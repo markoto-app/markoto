@@ -1855,6 +1855,32 @@
     "uploadStorageFailed": "ファイルをストレージにアップロードできませんでした（ステータス {status}）。",
     "uploadNetworkError": "アップロード中にネットワークエラーが発生しました。"
   },
+  "leftPanel": {
+    "label": "アウトラインとドキュメント",
+    "show": "アウトラインとドキュメントを表示",
+    "hide": "アウトラインとドキュメントを隠す",
+    "close": "アウトラインとドキュメントを閉じる",
+    "tabs": {
+      "outline": "アウトライン",
+      "workspace": "ドキュメント"
+    },
+    "outline": {
+      "emptyTitle": "まだ見出しがありません",
+      "emptyHint": "行を # で始めると見出し、## で始めるとその下のセクションになります。書くにつれて見出しがここに表示されます。"
+    },
+    "workspace": {
+      "myDocuments": "マイドキュメント",
+      "openWorkspace": "ワークスペースで開く",
+      "openMyDocuments": "マイドキュメントで開く",
+      "empty": "まだドキュメントはありません。",
+      "loadFailed": "ドキュメントを読み込めませんでした。",
+      "retry": "再試行",
+      "showMore": "さらに表示",
+      "signedOut": "サインインすると、ほかのドキュメントがここに表示されます。",
+      "notMember": "このワークスペースのドキュメントは、共有されるとここに表示されます。",
+      "sharedWithYou": "あなたと共有"
+    }
+  },
   "designImport": {
     "button": "文書からデザインを作成",
     "title": "文書からデザインを作成",

@@ -48,7 +48,7 @@ import { MINUTE_MS } from '~~/shared/config/units'
  *     page's CSP nonce (`currentCspNonce`).
  */
 
-export type ParentToFrameMessage = RenderMessage | ColorModeMessage | ZoomMessage
+export type ParentToFrameMessage = RenderMessage | ColorModeMessage | ZoomMessage | ScrollToHeadingMessage
 
 export interface RenderMessage {
   type: 'render'
@@ -82,6 +82,23 @@ export interface ZoomMessage {
   animate: boolean
   /** 1-based page to scroll to the top (overview click); 0 = keep position. */
   page: number
+}
+
+/**
+ * Scroll the rendered pages to the element with this id (a heading's
+ * anchor, from the editor's outline). Presentation only, like zoom.
+ */
+export interface ScrollToHeadingMessage {
+  type: 'scroll-to-heading'
+  id: string
+}
+
+/** Longest heading id the frame accepts (ids are slugs of a heading line). */
+const MAX_HEADING_ID_LENGTH = 512
+
+/** The scroll message for a heading id, or null for an id the frame would refuse. */
+export function buildScrollToHeadingMessage(id: string): ScrollToHeadingMessage | null {
+  return id.length > 0 && id.length <= MAX_HEADING_ID_LENGTH ? { type: 'scroll-to-heading', id } : null
 }
 
 export type ZoomRequestAction = 'in' | 'out' | 'reset' | 'page'

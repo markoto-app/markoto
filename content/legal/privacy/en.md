@@ -222,6 +222,7 @@ markoto uses **only storage that is strictly necessary** to provide the service 
 | `markoto:preview-zoom` (local storage) | Remembers the zoom level of the document preview. | Until you clear it |
 | `markoto-created-first-doc` (local storage) | Remembers that this browser has already created a document, so the new-document dialog does not offer the first-document choices again. | Until you clear it |
 | `markoto:editor-tour` (local storage) | Remembers that you finished or skipped the short first-run tour of the editor. | Until you clear it |
+| `markoto:editor-left-panel` (local storage) | Remembers whether the editor's outline and documents panel is open and which of its tabs you used last. | Until you clear it |
 | `markoto-pending-invite` (session storage) | Keeps a workspace invitation link while you sign in to accept it. | Until you close the tab |
 | `markoto-anon-avatar` (session storage) | A random token that picks the face your collaborators see while you work on a document without an account. It is also saved with the edits and comments you make without an account, so the activity log shows the same face. Not linked to you or your browser beyond that. | In the browser: until you close the tab. With your edits and comments: as long as the document (§5) |
 | Service worker cache | Lets markoto load faster and work offline. | Until you clear it |
