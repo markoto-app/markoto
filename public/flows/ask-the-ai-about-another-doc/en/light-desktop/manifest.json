@@ -22,27 +22,27 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/ZBGkW50T2h"
+      "path": "/d/z25SY_OZ3y"
     },
     {
       "kind": "approach",
       "file": "02.webp",
       "caption": "Click into the AI prompt bar",
       "cursor": {
-        "x": 618,
+        "x": 604,
         "y": 722
       },
-      "path": "/d/ZBGkW50T2h"
+      "path": "/d/z25SY_OZ3y"
     },
     {
       "kind": "outcome",
       "file": "03.webp",
       "caption": "The bar lifts, ready for your question.",
       "cursor": {
-        "x": 618,
+        "x": 604,
         "y": 722
       },
-      "path": "/d/ZBGkW50T2h"
+      "path": "/d/z25SY_OZ3y"
     },
     {
       "kind": "approach",
@@ -52,7 +52,7 @@
         "x": 316,
         "y": 723
       },
-      "path": "/d/ZBGkW50T2h"
+      "path": "/d/z25SY_OZ3y"
     },
     {
       "kind": "outcome",
@@ -62,7 +62,7 @@
         "x": 316,
         "y": 723
       },
-      "path": "/d/ZBGkW50T2h"
+      "path": "/d/z25SY_OZ3y"
     },
     {
       "kind": "approach",
@@ -72,7 +72,7 @@
         "x": 1000,
         "y": 722
       },
-      "path": "/d/ZBGkW50T2h"
+      "path": "/d/z25SY_OZ3y"
     },
     {
       "kind": "outcome",
@@ -82,7 +82,7 @@
         "x": 1000,
         "y": 722
       },
-      "path": "/d/ZBGkW50T2h"
+      "path": "/d/z25SY_OZ3y"
     },
     {
       "kind": "outcome",
@@ -92,14 +92,14 @@
         "x": 1000,
         "y": 722
       },
-      "path": "/d/ZBGkW50T2h",
+      "path": "/d/z25SY_OZ3y",
       "highlights": [
         {
           "label": "Answer from the other doc",
           "x": 24.75,
           "y": 389,
           "w": 590,
-          "h": 99
+          "h": 123.75
         }
       ],
       "hero": true

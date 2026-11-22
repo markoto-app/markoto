@@ -19,17 +19,17 @@
       "text": "A new product name has to show up everywhere at once. Ask the AI in one sentence: it finds every mention, previews the change, and applies it as one edit. Code samples and link addresses stay as they are, so commands and links keep working.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/cE2cXPV_VN"
+      "path": "/d/Qa9zPOueG2"
     },
     {
       "kind": "approach",
       "file": "01.webp",
       "caption": "Click into the AI prompt bar",
       "cursor": {
-        "x": 173,
+        "x": 159,
         "y": 602
       },
-      "path": "/d/cE2cXPV_VN"
+      "path": "/d/Qa9zPOueG2"
     },
     {
       "kind": "approach",
@@ -39,7 +39,7 @@
         "x": 76,
         "y": 603
       },
-      "path": "/d/cE2cXPV_VN"
+      "path": "/d/Qa9zPOueG2"
     },
     {
       "kind": "outcome",
@@ -49,7 +49,7 @@
         "x": 76,
         "y": 603
       },
-      "path": "/d/cE2cXPV_VN"
+      "path": "/d/Qa9zPOueG2"
     },
     {
       "kind": "approach",
@@ -59,7 +59,7 @@
         "x": 350,
         "y": 602
       },
-      "path": "/d/cE2cXPV_VN"
+      "path": "/d/Qa9zPOueG2"
     },
     {
       "kind": "outcome",
@@ -69,7 +69,7 @@
         "x": 350,
         "y": 602
       },
-      "path": "/d/cE2cXPV_VN"
+      "path": "/d/Qa9zPOueG2"
     },
     {
       "kind": "chapter",
@@ -84,7 +84,7 @@
         "x": 350,
         "y": 602
       },
-      "path": "/d/cE2cXPV_VN",
+      "path": "/d/Qa9zPOueG2",
       "hero": true
     }
   ],

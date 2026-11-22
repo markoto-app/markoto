@@ -22,27 +22,27 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/r3ZwiInNEA"
+      "path": "/d/Amaohs0u0A"
     },
     {
       "kind": "approach",
       "file": "02.webp",
       "caption": "Click into the AI prompt bar",
       "cursor": {
-        "x": 618,
+        "x": 604,
         "y": 722
       },
-      "path": "/d/r3ZwiInNEA"
+      "path": "/d/Amaohs0u0A"
     },
     {
       "kind": "outcome",
       "file": "03.webp",
       "caption": "The prompt bar lifts and glows, ready for your prompt.",
       "cursor": {
-        "x": 618,
+        "x": 604,
         "y": 722
       },
-      "path": "/d/r3ZwiInNEA"
+      "path": "/d/Amaohs0u0A"
     },
     {
       "kind": "approach",
@@ -52,7 +52,7 @@
         "x": 316,
         "y": 723
       },
-      "path": "/d/r3ZwiInNEA"
+      "path": "/d/Amaohs0u0A"
     },
     {
       "kind": "outcome",
@@ -62,7 +62,7 @@
         "x": 316,
         "y": 723
       },
-      "path": "/d/r3ZwiInNEA"
+      "path": "/d/Amaohs0u0A"
     },
     {
       "kind": "approach",
@@ -72,7 +72,7 @@
         "x": 1000,
         "y": 722
       },
-      "path": "/d/r3ZwiInNEA"
+      "path": "/d/Amaohs0u0A"
     },
     {
       "kind": "outcome",
@@ -82,7 +82,7 @@
         "x": 1000,
         "y": 722
       },
-      "path": "/d/r3ZwiInNEA"
+      "path": "/d/Amaohs0u0A"
     },
     {
       "kind": "outcome",
@@ -92,7 +92,7 @@
         "x": 1000,
         "y": 722
       },
-      "path": "/d/r3ZwiInNEA",
+      "path": "/d/Amaohs0u0A",
       "highlights": [
         {
           "label": "The image in your text",

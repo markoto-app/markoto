@@ -19,7 +19,7 @@
       "text": "Workspaces have a Knowledge tab, drop in PDFs, Word docs, HTML exports, the team's RFCs, customer FAQs. markoto reads each file and indexes it, so the AI can look things up in it whenever you write inside the workspace, and answer from your files instead of from general knowledge.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/smiUJ600_u"
+      "path": "/d/5r3_aO-Cc3"
     },
     {
       "kind": "chapter",
@@ -34,7 +34,7 @@
         "x": 362,
         "y": 695
       },
-      "path": "/d/smiUJ600_u"
+      "path": "/d/5r3_aO-Cc3"
     },
     {
       "kind": "outcome",
@@ -44,7 +44,7 @@
         "x": 362,
         "y": 695
       },
-      "path": "/d/smiUJ600_u"
+      "path": "/d/5r3_aO-Cc3"
     },
     {
       "kind": "outcome",
@@ -54,7 +54,7 @@
         "x": 362,
         "y": 695
       },
-      "path": "/d/smiUJ600_u"
+      "path": "/d/5r3_aO-Cc3"
     },
     {
       "kind": "chapter",
@@ -69,7 +69,7 @@
         "x": 362,
         "y": 695
       },
-      "path": "/d/smiUJ600_u"
+      "path": "/d/5r3_aO-Cc3"
     },
     {
       "kind": "outcome",
@@ -79,7 +79,7 @@
         "x": 362,
         "y": 695
       },
-      "path": "/d/smiUJ600_u"
+      "path": "/d/5r3_aO-Cc3"
     },
     {
       "kind": "chapter",
@@ -94,7 +94,7 @@
         "x": 362,
         "y": 695
       },
-      "path": "/d/smiUJ600_u"
+      "path": "/d/5r3_aO-Cc3"
     },
     {
       "kind": "outcome",
@@ -104,7 +104,7 @@
         "x": 362,
         "y": 695
       },
-      "path": "/d/smiUJ600_u"
+      "path": "/d/5r3_aO-Cc3"
     },
     {
       "kind": "chapter",
@@ -119,27 +119,27 @@
         "x": 362,
         "y": 695
       },
-      "path": "/d/smiUJ600_u"
+      "path": "/d/5r3_aO-Cc3"
     },
     {
       "kind": "approach",
       "file": "06.webp",
       "caption": "Click into the AI prompt bar",
       "cursor": {
-        "x": 173,
+        "x": 159,
         "y": 602
       },
-      "path": "/d/smiUJ600_u"
+      "path": "/d/5r3_aO-Cc3"
     },
     {
       "kind": "outcome",
       "file": "07.webp",
       "caption": "The prompt bar lifts and glows, ready for your question.",
       "cursor": {
-        "x": 173,
+        "x": 159,
         "y": 602
       },
-      "path": "/d/smiUJ600_u"
+      "path": "/d/5r3_aO-Cc3"
     },
     {
       "kind": "approach",
@@ -149,7 +149,7 @@
         "x": 76,
         "y": 603
       },
-      "path": "/d/smiUJ600_u"
+      "path": "/d/5r3_aO-Cc3"
     },
     {
       "kind": "outcome",
@@ -159,7 +159,7 @@
         "x": 76,
         "y": 603
       },
-      "path": "/d/smiUJ600_u"
+      "path": "/d/5r3_aO-Cc3"
     },
     {
       "kind": "approach",
@@ -169,7 +169,7 @@
         "x": 350,
         "y": 602
       },
-      "path": "/d/smiUJ600_u"
+      "path": "/d/5r3_aO-Cc3"
     },
     {
       "kind": "outcome",
@@ -179,7 +179,7 @@
         "x": 350,
         "y": 602
       },
-      "path": "/d/smiUJ600_u"
+      "path": "/d/5r3_aO-Cc3"
     },
     {
       "kind": "outcome",
@@ -189,7 +189,7 @@
         "x": 350,
         "y": 602
       },
-      "path": "/d/smiUJ600_u",
+      "path": "/d/5r3_aO-Cc3",
       "highlights": [
         {
           "label": "AI's grounded answer",

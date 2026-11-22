@@ -22,7 +22,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/tuCRWu2Nyb"
+      "path": "/d/Ym3Tsc672l"
     },
     {
       "kind": "chapter",
@@ -37,22 +37,22 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/tuCRWu2Nyb"
+      "path": "/d/Ym3Tsc672l"
     },
     {
       "kind": "approach",
       "file": "03.webp",
       "caption": "Click the Theme tab in the right sidebar",
       "cursor": {
-        "x": 1260,
+        "x": 1234,
         "y": 98
       },
-      "path": "/d/tuCRWu2Nyb",
+      "path": "/d/Ym3Tsc672l",
       "annotations": [
         {
           "label": "theme tab",
           "kind": "arrow",
-          "x": 1248,
+          "x": 1222,
           "y": 86,
           "w": 24,
           "h": 24
@@ -64,10 +64,10 @@
       "file": "04.webp",
       "caption": "The theme panel opens: the built-in presets at the top, all settings below.",
       "cursor": {
-        "x": 1260,
+        "x": 1234,
         "y": 98
       },
-      "path": "/d/tuCRWu2Nyb",
+      "path": "/d/Ym3Tsc672l",
       "highlights": [
         {
           "label": "Built-in presets",
@@ -88,10 +88,10 @@
       "text": "Each preset is a complete theme. Click a card to apply it; the preview updates right away, and your text stays exactly as it is.",
       "file": "04.webp",
       "cursor": {
-        "x": 1260,
+        "x": 1234,
         "y": 98
       },
-      "path": "/d/tuCRWu2Nyb"
+      "path": "/d/Ym3Tsc672l"
     },
     {
       "kind": "approach",
@@ -101,7 +101,7 @@
         "x": 1044,
         "y": 595
       },
-      "path": "/d/tuCRWu2Nyb"
+      "path": "/d/Ym3Tsc672l"
     },
     {
       "kind": "outcome",
@@ -111,7 +111,7 @@
         "x": 1044,
         "y": 595
       },
-      "path": "/d/tuCRWu2Nyb"
+      "path": "/d/Ym3Tsc672l"
     },
     {
       "kind": "chapter",
@@ -126,7 +126,7 @@
         "x": 1044,
         "y": 595
       },
-      "path": "/d/tuCRWu2Nyb"
+      "path": "/d/Ym3Tsc672l"
     },
     {
       "kind": "approach",
@@ -136,7 +136,7 @@
         "x": 1044,
         "y": 348
       },
-      "path": "/d/tuCRWu2Nyb"
+      "path": "/d/Ym3Tsc672l"
     },
     {
       "kind": "outcome",
@@ -146,7 +146,7 @@
         "x": 1044,
         "y": 348
       },
-      "path": "/d/tuCRWu2Nyb",
+      "path": "/d/Ym3Tsc672l",
       "highlights": [
         {
           "label": "Asterism scene break",
@@ -170,7 +170,7 @@
         "x": 1044,
         "y": 348
       },
-      "path": "/d/tuCRWu2Nyb"
+      "path": "/d/Ym3Tsc672l"
     },
     {
       "kind": "approach",
@@ -180,7 +180,7 @@
         "x": 1120,
         "y": 438
       },
-      "path": "/d/tuCRWu2Nyb"
+      "path": "/d/Ym3Tsc672l"
     },
     {
       "kind": "outcome",
@@ -190,7 +190,7 @@
         "x": 1120,
         "y": 438
       },
-      "path": "/d/tuCRWu2Nyb"
+      "path": "/d/Ym3Tsc672l"
     },
     {
       "kind": "approach",
@@ -200,7 +200,7 @@
         "x": 991,
         "y": 504
       },
-      "path": "/d/tuCRWu2Nyb"
+      "path": "/d/Ym3Tsc672l"
     },
     {
       "kind": "outcome",
@@ -210,7 +210,7 @@
         "x": 991,
         "y": 504
       },
-      "path": "/d/tuCRWu2Nyb"
+      "path": "/d/Ym3Tsc672l"
     },
     {
       "kind": "approach",
@@ -220,7 +220,7 @@
         "x": 991,
         "y": 504
       },
-      "path": "/d/tuCRWu2Nyb"
+      "path": "/d/Ym3Tsc672l"
     },
     {
       "kind": "outcome",
@@ -230,7 +230,7 @@
         "x": 991,
         "y": 504
       },
-      "path": "/d/tuCRWu2Nyb",
+      "path": "/d/Ym3Tsc672l",
       "highlights": [
         {
           "label": "Cover page",

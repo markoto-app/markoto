@@ -22,22 +22,22 @@
         "x": 319,
         "y": 383
       },
-      "path": "/d/dR0CMQ-VMT"
+      "path": "/d/_tA4yUZNlt"
     },
     {
       "kind": "approach",
       "file": "02.webp",
       "caption": "Open the Activity tab",
       "cursor": {
-        "x": 1234,
+        "x": 1208,
         "y": 98
       },
-      "path": "/d/dR0CMQ-VMT",
+      "path": "/d/_tA4yUZNlt",
       "annotations": [
         {
           "label": "Activity tab",
           "kind": "arrow",
-          "x": 1222,
+          "x": 1196,
           "y": 86,
           "w": 24,
           "h": 24
@@ -49,10 +49,10 @@
       "file": "03.webp",
       "caption": "The Activity feed opens, one row per edit, comment, restore, theme/title change.",
       "cursor": {
-        "x": 1234,
+        "x": 1208,
         "y": 98
       },
-      "path": "/d/dR0CMQ-VMT"
+      "path": "/d/_tA4yUZNlt"
     },
     {
       "kind": "chapter",
@@ -64,10 +64,10 @@
       "text": "Edit rows are clickable, chevron + \"show details\" hint. The diff drawer expands inline; the editor stays where it is. No modal, no navigation. Click again to collapse.",
       "file": "03.webp",
       "cursor": {
-        "x": 1234,
+        "x": 1208,
         "y": 98
       },
-      "path": "/d/dR0CMQ-VMT"
+      "path": "/d/_tA4yUZNlt"
     },
     {
       "kind": "approach",
@@ -77,7 +77,7 @@
         "x": 1120,
         "y": 274
       },
-      "path": "/d/dR0CMQ-VMT"
+      "path": "/d/_tA4yUZNlt"
     },
     {
       "kind": "outcome",
@@ -87,7 +87,7 @@
         "x": 1120,
         "y": 274
       },
-      "path": "/d/dR0CMQ-VMT",
+      "path": "/d/_tA4yUZNlt",
       "hero": true
     }
   ],

@@ -19,17 +19,17 @@
       "text": "Chapters can trade places in one request. Ask for the renumbering in the same sentence: the AI moves both chapters with all their sections and then puts every number back in order.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/aAJNl_Tt1k"
+      "path": "/d/ZQzTGScpND"
     },
     {
       "kind": "approach",
       "file": "01.webp",
       "caption": "Click into the AI prompt bar",
       "cursor": {
-        "x": 173,
+        "x": 159,
         "y": 602
       },
-      "path": "/d/aAJNl_Tt1k"
+      "path": "/d/ZQzTGScpND"
     },
     {
       "kind": "approach",
@@ -39,7 +39,7 @@
         "x": 76,
         "y": 603
       },
-      "path": "/d/aAJNl_Tt1k"
+      "path": "/d/ZQzTGScpND"
     },
     {
       "kind": "outcome",
@@ -49,7 +49,7 @@
         "x": 76,
         "y": 603
       },
-      "path": "/d/aAJNl_Tt1k"
+      "path": "/d/ZQzTGScpND"
     },
     {
       "kind": "approach",
@@ -59,7 +59,7 @@
         "x": 350,
         "y": 602
       },
-      "path": "/d/aAJNl_Tt1k"
+      "path": "/d/ZQzTGScpND"
     },
     {
       "kind": "outcome",
@@ -69,7 +69,7 @@
         "x": 350,
         "y": 602
       },
-      "path": "/d/aAJNl_Tt1k"
+      "path": "/d/ZQzTGScpND"
     },
     {
       "kind": "chapter",
@@ -84,7 +84,7 @@
         "x": 350,
         "y": 602
       },
-      "path": "/d/aAJNl_Tt1k",
+      "path": "/d/ZQzTGScpND",
       "hero": true
     }
   ],

@@ -22,7 +22,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/g1CK1529Pp"
+      "path": "/d/Drnil0Gepg"
     },
     {
       "kind": "narration",
@@ -32,7 +32,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/g1CK1529Pp"
+      "path": "/d/Drnil0Gepg"
     },
     {
       "kind": "approach",
@@ -42,7 +42,7 @@
         "x": 915,
         "y": 26
       },
-      "path": "/d/g1CK1529Pp",
+      "path": "/d/Drnil0Gepg",
       "annotations": [
         {
           "label": "lock icon",
@@ -62,7 +62,7 @@
         "x": 915,
         "y": 26
       },
-      "path": "/d/g1CK1529Pp"
+      "path": "/d/Drnil0Gepg"
     },
     {
       "kind": "chapter",
@@ -77,7 +77,7 @@
         "x": 915,
         "y": 26
       },
-      "path": "/d/g1CK1529Pp"
+      "path": "/d/Drnil0Gepg"
     },
     {
       "kind": "approach",
@@ -85,15 +85,15 @@
       "caption": "Pick \"Password protected\"",
       "cursor": {
         "x": 640,
-        "y": 460
+        "y": 429
       },
-      "path": "/d/g1CK1529Pp",
+      "path": "/d/Drnil0Gepg",
       "annotations": [
         {
           "label": "password mode",
           "kind": "arrow",
           "x": 408,
-          "y": 437.5,
+          "y": 406,
           "w": 464,
           "h": 46
         }
@@ -105,9 +105,9 @@
       "caption": "The password input appears, type a passphrase to lock the doc.",
       "cursor": {
         "x": 640,
-        "y": 460
+        "y": 429
       },
-      "path": "/d/g1CK1529Pp"
+      "path": "/d/Drnil0Gepg"
     },
     {
       "kind": "approach",
@@ -117,7 +117,7 @@
         "x": 435,
         "y": 519
       },
-      "path": "/d/g1CK1529Pp"
+      "path": "/d/Drnil0Gepg"
     },
     {
       "kind": "outcome",
@@ -127,7 +127,7 @@
         "x": 435,
         "y": 519
       },
-      "path": "/d/g1CK1529Pp"
+      "path": "/d/Drnil0Gepg"
     },
     {
       "kind": "approach",
@@ -137,7 +137,7 @@
         "x": 835,
         "y": 519
       },
-      "path": "/d/g1CK1529Pp"
+      "path": "/d/Drnil0Gepg"
     },
     {
       "kind": "outcome",
@@ -147,7 +147,7 @@
         "x": 835,
         "y": 519
       },
-      "path": "/d/g1CK1529Pp",
+      "path": "/d/Drnil0Gepg",
       "highlights": [
         {
           "label": "Password protected",
@@ -171,7 +171,7 @@
         "x": 835,
         "y": 519
       },
-      "path": "/d/g1CK1529Pp"
+      "path": "/d/Drnil0Gepg"
     },
     {
       "kind": "outcome",
@@ -181,7 +181,7 @@
         "x": 422,
         "y": 444
       },
-      "path": "/d/g1CK1529Pp",
+      "path": "/d/Drnil0Gepg",
       "annotations": [
         {
           "label": "password input",
@@ -204,7 +204,7 @@
       "text": "Type the passphrase and the gate lifts. Too many wrong guesses and markoto pauses password checks on the document for a while, so a passphrase can't be brute-forced.",
       "file": "13.webp",
       "cursor": null,
-      "path": "/d/g1CK1529Pp",
+      "path": "/d/Drnil0Gepg",
       "actor": "visitor"
     },
     {
@@ -215,7 +215,7 @@
         "x": 422,
         "y": 444
       },
-      "path": "/d/g1CK1529Pp",
+      "path": "/d/Drnil0Gepg",
       "actor": "visitor"
     },
     {
@@ -226,7 +226,7 @@
         "x": 422,
         "y": 444
       },
-      "path": "/d/g1CK1529Pp",
+      "path": "/d/Drnil0Gepg",
       "actor": "visitor"
     },
     {
@@ -237,7 +237,7 @@
         "x": 758,
         "y": 490
       },
-      "path": "/d/g1CK1529Pp",
+      "path": "/d/Drnil0Gepg",
       "actor": "visitor"
     },
     {
@@ -248,7 +248,7 @@
         "x": 758,
         "y": 490
       },
-      "path": "/d/g1CK1529Pp",
+      "path": "/d/Drnil0Gepg",
       "hero": true,
       "actor": "visitor"
     }

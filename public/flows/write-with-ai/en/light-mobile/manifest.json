@@ -19,17 +19,17 @@
       "text": "The AI prompt bar floats at the bottom of every markoto document. Type what you want, hit send, and the AI joins the doc as another collaborator: you watch it type. It can draft new sections, rewrite passages, restructure outlines, even fetch sources from the web before it writes.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/RzAb9g9CiI"
+      "path": "/d/gqlj4rpTgm"
     },
     {
       "kind": "approach",
       "file": "01.webp",
       "caption": "Click into the AI prompt bar to focus it",
       "cursor": {
-        "x": 173,
+        "x": 159,
         "y": 602
       },
-      "path": "/d/RzAb9g9CiI",
+      "path": "/d/gqlj4rpTgm",
       "annotations": [
         {
           "label": "prompt bar",
@@ -46,10 +46,10 @@
       "file": "02.webp",
       "caption": "The bar lifts and glows, ready for your prompt.",
       "cursor": {
-        "x": 173,
+        "x": 159,
         "y": 602
       },
-      "path": "/d/RzAb9g9CiI"
+      "path": "/d/gqlj4rpTgm"
     },
     {
       "kind": "approach",
@@ -59,7 +59,7 @@
         "x": 76,
         "y": 603
       },
-      "path": "/d/RzAb9g9CiI"
+      "path": "/d/gqlj4rpTgm"
     },
     {
       "kind": "outcome",
@@ -69,7 +69,7 @@
         "x": 76,
         "y": 603
       },
-      "path": "/d/RzAb9g9CiI"
+      "path": "/d/gqlj4rpTgm"
     },
     {
       "kind": "chapter",
@@ -81,10 +81,10 @@
       "text": "The bar swaps to its active state and pulses while the AI runs. It uses tools to read your document, find the right place to insert, and apply edits. Other collaborators see the changes land live, just like a human collaborator.",
       "file": "03.webp",
       "cursor": {
-        "x": 173,
+        "x": 159,
         "y": 602
       },
-      "path": "/d/RzAb9g9CiI"
+      "path": "/d/gqlj4rpTgm"
     },
     {
       "kind": "approach",
@@ -94,7 +94,7 @@
         "x": 350,
         "y": 602
       },
-      "path": "/d/RzAb9g9CiI"
+      "path": "/d/gqlj4rpTgm"
     },
     {
       "kind": "outcome",
@@ -104,7 +104,7 @@
         "x": 350,
         "y": 602
       },
-      "path": "/d/RzAb9g9CiI"
+      "path": "/d/gqlj4rpTgm"
     },
     {
       "kind": "chapter",
@@ -119,7 +119,7 @@
         "x": 350,
         "y": 602
       },
-      "path": "/d/RzAb9g9CiI"
+      "path": "/d/gqlj4rpTgm"
     },
     {
       "kind": "approach",
@@ -129,7 +129,7 @@
         "x": 359,
         "y": 73
       },
-      "path": "/d/RzAb9g9CiI"
+      "path": "/d/gqlj4rpTgm"
     },
     {
       "kind": "outcome",
@@ -139,7 +139,7 @@
         "x": 318,
         "y": 73
       },
-      "path": "/d/RzAb9g9CiI",
+      "path": "/d/gqlj4rpTgm",
       "highlights": [
         {
           "label": "The new section",

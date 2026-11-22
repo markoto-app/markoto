@@ -22,27 +22,27 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/14RfuKJjDY"
+      "path": "/d/jezmQzs93x"
     },
     {
       "kind": "approach",
       "file": "02.webp",
       "caption": "Click into the AI prompt bar",
       "cursor": {
-        "x": 618,
+        "x": 604,
         "y": 722
       },
-      "path": "/d/14RfuKJjDY"
+      "path": "/d/jezmQzs93x"
     },
     {
       "kind": "outcome",
       "file": "03.webp",
       "caption": "The bar lifts, ready for your question.",
       "cursor": {
-        "x": 618,
+        "x": 604,
         "y": 722
       },
-      "path": "/d/14RfuKJjDY"
+      "path": "/d/jezmQzs93x"
     },
     {
       "kind": "approach",
@@ -52,7 +52,7 @@
         "x": 316,
         "y": 723
       },
-      "path": "/d/14RfuKJjDY"
+      "path": "/d/jezmQzs93x"
     },
     {
       "kind": "outcome",
@@ -62,7 +62,7 @@
         "x": 316,
         "y": 723
       },
-      "path": "/d/14RfuKJjDY"
+      "path": "/d/jezmQzs93x"
     },
     {
       "kind": "approach",
@@ -72,7 +72,7 @@
         "x": 1000,
         "y": 722
       },
-      "path": "/d/14RfuKJjDY"
+      "path": "/d/jezmQzs93x"
     },
     {
       "kind": "outcome",
@@ -82,7 +82,7 @@
         "x": 1000,
         "y": 722
       },
-      "path": "/d/14RfuKJjDY"
+      "path": "/d/jezmQzs93x"
     },
     {
       "kind": "outcome",
@@ -92,7 +92,7 @@
         "x": 1000,
         "y": 722
       },
-      "path": "/d/14RfuKJjDY",
+      "path": "/d/jezmQzs93x",
       "highlights": [
         {
           "label": "Answer from the other doc",

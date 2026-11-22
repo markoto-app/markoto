@@ -19,7 +19,7 @@
       "text": "Every doc carries four context fields beyond the title: a description, a target audience, a language, and the template it was created from. The AI sees them on every prompt, so a one-time minute setting them up saves you re-typing context on every \"rewrite this\" / \"extend this\" / \"draft a section\".",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/aLNEKaB4D6"
+      "path": "/d/pK1sYJKtuB"
     },
     {
       "kind": "approach",
@@ -29,7 +29,7 @@
         "x": 162,
         "y": 695
       },
-      "path": "/d/aLNEKaB4D6"
+      "path": "/d/pK1sYJKtuB"
     },
     {
       "kind": "outcome",
@@ -39,7 +39,7 @@
         "x": 162,
         "y": 695
       },
-      "path": "/d/aLNEKaB4D6"
+      "path": "/d/pK1sYJKtuB"
     },
     {
       "kind": "chapter",
@@ -54,21 +54,21 @@
         "x": 162,
         "y": 695
       },
-      "path": "/d/aLNEKaB4D6"
+      "path": "/d/pK1sYJKtuB"
     },
     {
       "kind": "approach",
       "file": "04.webp",
       "caption": "Type a one-line description",
       "cursor": null,
-      "path": "/d/aLNEKaB4D6"
+      "path": "/d/pK1sYJKtuB"
     },
     {
       "kind": "outcome",
       "file": "05.webp",
       "caption": "The description is captured, the AI will see this on every prompt.",
       "cursor": null,
-      "path": "/d/aLNEKaB4D6"
+      "path": "/d/pK1sYJKtuB"
     },
     {
       "kind": "outcome",
@@ -78,7 +78,7 @@
         "x": 195,
         "y": 703
       },
-      "path": "/d/aLNEKaB4D6"
+      "path": "/d/pK1sYJKtuB"
     },
     {
       "kind": "outcome",
@@ -88,7 +88,7 @@
         "x": 26,
         "y": 704
       },
-      "path": "/d/aLNEKaB4D6"
+      "path": "/d/pK1sYJKtuB"
     },
     {
       "kind": "outcome",
@@ -98,7 +98,7 @@
         "x": 26,
         "y": 591
       },
-      "path": "/d/aLNEKaB4D6"
+      "path": "/d/pK1sYJKtuB"
     },
     {
       "kind": "outcome",
@@ -108,7 +108,7 @@
         "x": 195,
         "y": 635
       },
-      "path": "/d/aLNEKaB4D6"
+      "path": "/d/pK1sYJKtuB"
     },
     {
       "kind": "chapter",
@@ -118,82 +118,82 @@
     {
       "kind": "narration",
       "text": "With audience + language + description set, ANY prompt the AI sees gets shaped by them, without you mentioning audience or language in your prompt. We ask for a one-line intro in plain English; the AI returns marketing-tone Deutsch.",
-      "file": "10.webp",
+      "file": "09.webp",
       "cursor": {
         "x": 195,
         "y": 635
       },
-      "path": "/d/aLNEKaB4D6"
+      "path": "/d/pK1sYJKtuB"
     },
     {
       "kind": "approach",
-      "file": "11.webp",
+      "file": "01.webp",
       "caption": "Click into the AI prompt bar",
       "cursor": {
-        "x": 173,
+        "x": 159,
         "y": 602
       },
-      "path": "/d/aLNEKaB4D6"
+      "path": "/d/pK1sYJKtuB"
     },
     {
       "kind": "outcome",
-      "file": "12.webp",
+      "file": "10.webp",
       "caption": "The prompt bar lifts and glows, ready for your prompt.",
       "cursor": {
-        "x": 173,
+        "x": 159,
         "y": 602
       },
-      "path": "/d/aLNEKaB4D6"
+      "path": "/d/pK1sYJKtuB"
     },
     {
       "kind": "approach",
-      "file": "12.webp",
+      "file": "10.webp",
       "caption": "Type a plain-English ask",
       "cursor": {
         "x": 76,
         "y": 603
       },
-      "path": "/d/aLNEKaB4D6"
+      "path": "/d/pK1sYJKtuB"
     },
     {
       "kind": "outcome",
-      "file": "13.webp",
+      "file": "11.webp",
       "caption": "The ask is short and English. The audience + language fields do the rest of the work.",
       "cursor": {
         "x": 76,
         "y": 603
       },
-      "path": "/d/aLNEKaB4D6"
+      "path": "/d/pK1sYJKtuB"
     },
     {
       "kind": "approach",
-      "file": "13.webp",
+      "file": "11.webp",
       "caption": "Send it",
       "cursor": {
         "x": 350,
         "y": 602
       },
-      "path": "/d/aLNEKaB4D6"
+      "path": "/d/pK1sYJKtuB"
     },
     {
       "kind": "outcome",
-      "file": "14.webp",
+      "file": "12.webp",
       "caption": "The AI is working, the bar pulses until it is done.",
       "cursor": {
         "x": 350,
         "y": 602
       },
-      "path": "/d/aLNEKaB4D6"
+      "path": "/d/pK1sYJKtuB"
     },
     {
       "kind": "outcome",
-      "file": "15.webp",
+      "file": "13.webp",
       "caption": "The AI added a one-line intro in German with a marketing tone, although the draft and the prompt are English: the document settings did that.",
       "cursor": {
         "x": 350,
         "y": 602
       },
-      "path": "/d/aLNEKaB4D6",
+      "path": "/d/pK1sYJKtuB",
       "highlights": [
         {
           "label": "AI's edits",

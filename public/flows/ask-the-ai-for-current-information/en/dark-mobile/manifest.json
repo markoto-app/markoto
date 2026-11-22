@@ -19,27 +19,27 @@
       "text": "The AI's training data has a cutoff. For anything more recent, current library versions, latest news, who shipped what last week: it can search the web and weave the result into your doc. The search runs on the instance's European search provider; your AI provider writes the answer. It links the sources it used, so you can verify before publishing.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/IwYlcQ9LJL"
+      "path": "/d/j461T5NVLU"
     },
     {
       "kind": "approach",
       "file": "01.webp",
       "caption": "Click into the AI prompt bar",
       "cursor": {
-        "x": 173,
+        "x": 159,
         "y": 602
       },
-      "path": "/d/IwYlcQ9LJL"
+      "path": "/d/j461T5NVLU"
     },
     {
       "kind": "outcome",
       "file": "02.webp",
       "caption": "The prompt bar lifts and glows, ready for your prompt.",
       "cursor": {
-        "x": 173,
+        "x": 159,
         "y": 602
       },
-      "path": "/d/IwYlcQ9LJL"
+      "path": "/d/j461T5NVLU"
     },
     {
       "kind": "approach",
@@ -49,7 +49,7 @@
         "x": 76,
         "y": 603
       },
-      "path": "/d/IwYlcQ9LJL"
+      "path": "/d/j461T5NVLU"
     },
     {
       "kind": "outcome",
@@ -59,7 +59,7 @@
         "x": 76,
         "y": 603
       },
-      "path": "/d/IwYlcQ9LJL"
+      "path": "/d/j461T5NVLU"
     },
     {
       "kind": "approach",
@@ -69,7 +69,7 @@
         "x": 350,
         "y": 602
       },
-      "path": "/d/IwYlcQ9LJL"
+      "path": "/d/j461T5NVLU"
     },
     {
       "kind": "outcome",
@@ -79,7 +79,7 @@
         "x": 350,
         "y": 602
       },
-      "path": "/d/IwYlcQ9LJL"
+      "path": "/d/j461T5NVLU"
     },
     {
       "kind": "outcome",
@@ -89,14 +89,14 @@
         "x": 350,
         "y": 602
       },
-      "path": "/d/IwYlcQ9LJL",
+      "path": "/d/j461T5NVLU",
       "highlights": [
         {
           "label": "Answer with its source",
           "x": 16,
           "y": 133.375,
           "w": 358,
-          "h": 81.5625
+          "h": 135.9375
         }
       ],
       "hero": true

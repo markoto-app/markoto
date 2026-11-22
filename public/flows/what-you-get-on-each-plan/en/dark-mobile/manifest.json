@@ -183,7 +183,7 @@
     },
     {
       "kind": "approach",
-      "file": "13.webp",
+      "file": "12.webp",
       "caption": "Click \"Join the waitlist\"",
       "cursor": {
         "x": 195,
@@ -193,7 +193,7 @@
     },
     {
       "kind": "outcome",
-      "file": "14.webp",
+      "file": "13.webp",
       "caption": "Check your inbox: the sign-up only counts once you click the confirmation link in the email.",
       "cursor": {
         "x": 195,

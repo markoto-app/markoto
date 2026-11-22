@@ -19,27 +19,27 @@
       "text": "Paste any public URL into the AI prompt bar with a question and the AI reads the page for you, then writes what you asked for into your doc with a link back to the page. Useful for articles, docs, RFC drafts, anything public on the open web. Private network addresses are refused.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/auIBQ6KiAD"
+      "path": "/d/C7CP5IuNY-"
     },
     {
       "kind": "approach",
       "file": "01.webp",
       "caption": "Click into the AI prompt bar",
       "cursor": {
-        "x": 173,
+        "x": 159,
         "y": 602
       },
-      "path": "/d/auIBQ6KiAD"
+      "path": "/d/C7CP5IuNY-"
     },
     {
       "kind": "outcome",
       "file": "02.webp",
       "caption": "The bar lifts and glows, ready for the URL + question.",
       "cursor": {
-        "x": 173,
+        "x": 159,
         "y": 602
       },
-      "path": "/d/auIBQ6KiAD"
+      "path": "/d/C7CP5IuNY-"
     },
     {
       "kind": "approach",
@@ -49,7 +49,7 @@
         "x": 76,
         "y": 603
       },
-      "path": "/d/auIBQ6KiAD"
+      "path": "/d/C7CP5IuNY-"
     },
     {
       "kind": "outcome",
@@ -59,7 +59,7 @@
         "x": 76,
         "y": 603
       },
-      "path": "/d/auIBQ6KiAD"
+      "path": "/d/C7CP5IuNY-"
     },
     {
       "kind": "approach",
@@ -69,7 +69,7 @@
         "x": 350,
         "y": 602
       },
-      "path": "/d/auIBQ6KiAD"
+      "path": "/d/C7CP5IuNY-"
     },
     {
       "kind": "outcome",
@@ -79,7 +79,7 @@
         "x": 350,
         "y": 602
       },
-      "path": "/d/auIBQ6KiAD"
+      "path": "/d/C7CP5IuNY-"
     },
     {
       "kind": "outcome",
@@ -89,7 +89,7 @@
         "x": 350,
         "y": 602
       },
-      "path": "/d/auIBQ6KiAD",
+      "path": "/d/C7CP5IuNY-",
       "highlights": [
         {
           "label": "AI-written summary",

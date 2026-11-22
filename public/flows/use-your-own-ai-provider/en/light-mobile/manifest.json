@@ -31,7 +31,7 @@
         {
           "label": "Writing assistant",
           "x": 16,
-          "y": 376.5,
+          "y": 594.5,
           "w": 358,
           "h": 222
         }
@@ -44,11 +44,11 @@
     },
     {
       "kind": "approach",
-      "file": "01.webp",
+      "file": "02.webp",
       "caption": "Click \"Add your provider\"",
       "cursor": {
         "x": 102,
-        "y": 567
+        "y": 359
       },
       "path": "/settings/ai",
       "annotations": [
@@ -56,7 +56,7 @@
           "label": "Add your provider",
           "kind": "box",
           "x": 33,
-          "y": 553.5,
+          "y": 345.5,
           "w": 139.90625,
           "h": 28
         }
@@ -64,21 +64,21 @@
     },
     {
       "kind": "outcome",
-      "file": "02.webp",
+      "file": "03.webp",
       "caption": "The form asks for the provider, its address, the model and your key",
       "cursor": {
         "x": 102,
-        "y": 567
+        "y": 359
       },
       "path": "/settings/ai"
     },
     {
       "kind": "outcome",
-      "file": "03.webp",
+      "file": "04.webp",
       "caption": "Pick your provider (here: Mistral), check the model and paste your API key",
       "cursor": {
         "x": 102,
-        "y": 567
+        "y": 359
       },
       "path": "/settings/ai"
     },
@@ -89,7 +89,7 @@
     },
     {
       "kind": "approach",
-      "file": "04.webp",
+      "file": "05.webp",
       "caption": "Click \"Save and verify\"",
       "cursor": {
         "x": 92,
@@ -99,7 +99,7 @@
     },
     {
       "kind": "outcome",
-      "file": "05.webp",
+      "file": "06.webp",
       "caption": "The connection works: the assistant now runs on your provider",
       "cursor": {
         "x": 92,
@@ -127,7 +127,7 @@
     {
       "kind": "narration",
       "text": "Before saving, markoto sent a small test request with a tool definition through the same path the assistant uses, so a wrong key or an unknown model is caught here, not in the middle of your writing. You can re-check it with Verify or remove it at any time.",
-      "file": "06.webp",
+      "file": "07.webp",
       "cursor": {
         "x": 92,
         "y": 359

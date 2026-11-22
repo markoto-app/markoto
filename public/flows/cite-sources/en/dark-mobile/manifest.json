@@ -1,0 +1,142 @@
+{
+  "version": 2,
+  "title": "Cite sources",
+  "slug": "cite-sources",
+  "locale": "en",
+  "variant": "dark-mobile",
+  "viewport": {
+    "w": 390,
+    "h": 720
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Cite a source"
+    },
+    {
+      "kind": "narration",
+      "text": "Keep your sources in the document's bibliography: paste a BibTeX entry from Zotero, Google Scholar or a publisher page, or add a DOI. Cite with [@key] and markoto writes the citation and the reference list in the style you pick, in the preview and in the PDF.",
+      "file": "01.webp",
+      "cursor": null,
+      "path": "/d/2ibcNCfyVj"
+    },
+    {
+      "kind": "approach",
+      "file": "01.webp",
+      "caption": "Open the Editor tab",
+      "cursor": {
+        "x": 32,
+        "y": 695
+      },
+      "path": "/d/2ibcNCfyVj"
+    },
+    {
+      "kind": "approach",
+      "file": "02.webp",
+      "caption": "Tap \"References\"",
+      "cursor": {
+        "x": 54,
+        "y": 657
+      },
+      "path": "/d/2ibcNCfyVj"
+    },
+    {
+      "kind": "outcome",
+      "file": "03.webp",
+      "caption": "The References panel opens: the citation style, ways to add sources and the list of entries.",
+      "cursor": {
+        "x": 54,
+        "y": 657
+      },
+      "path": "/d/2ibcNCfyVj"
+    },
+    {
+      "kind": "approach",
+      "file": "03.webp",
+      "caption": "Click \"Paste BibTeX\"",
+      "cursor": {
+        "x": 168,
+        "y": 503
+      },
+      "path": "/d/2ibcNCfyVj"
+    },
+    {
+      "kind": "approach",
+      "file": "04.webp",
+      "caption": "Paste the entry you copied from your reference manager",
+      "cursor": {
+        "x": 26,
+        "y": 589
+      },
+      "path": "/d/2ibcNCfyVj"
+    },
+    {
+      "kind": "outcome",
+      "file": "05.webp",
+      "caption": "The BibTeX entry is in the box: key, authors, title, journal, year.",
+      "cursor": {
+        "x": 26,
+        "y": 589
+      },
+      "path": "/d/2ibcNCfyVj"
+    },
+    {
+      "kind": "approach",
+      "file": "05.webp",
+      "caption": "Click \"Add\"",
+      "cursor": {
+        "x": 356,
+        "y": 675
+      },
+      "path": "/d/2ibcNCfyVj"
+    },
+    {
+      "kind": "outcome",
+      "file": "06.webp",
+      "caption": "The source is in the bibliography under its key, @lovelace1843, with a preview of how it will be printed.",
+      "cursor": {
+        "x": 356,
+        "y": 675
+      },
+      "path": "/d/2ibcNCfyVj"
+    },
+    {
+      "kind": "approach",
+      "file": "07.webp",
+      "caption": "Click the quote mark next to the entry to cite it where the cursor is",
+      "cursor": {
+        "x": 332,
+        "y": 578
+      },
+      "path": "/d/2ibcNCfyVj"
+    },
+    {
+      "kind": "outcome",
+      "file": "08.webp",
+      "caption": "The citation [@lovelace1843] is in the text.",
+      "cursor": {
+        "x": 332,
+        "y": 578
+      },
+      "path": "/d/2ibcNCfyVj"
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Download the PDF"
+    },
+    {
+      "kind": "outcome",
+      "file": "09.webp",
+      "caption": "The PDF has the citation in the text and the formatted entry under References.",
+      "cursor": null,
+      "path": "/api/docs/2ibcNCfyVj/pdf?inline=1",
+      "actor": "pdf"
+    }
+  ],
+  "next": {
+    "slug": "polished-pdf",
+    "why": "Give the paper its final look and download it"
+  }
+}
