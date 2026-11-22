@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { defineComponent, h, ref, shallowRef, type Ref } from 'vue'
 import { mountSuspended, mockNuxtImport, registerEndpoint } from '@nuxt/test-utils/runtime'
+import { getQuery } from 'h3'
 import { flushPromises, type VueWrapper } from '@vue/test-utils'
 import { EditorState } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
@@ -55,6 +56,25 @@ registerEndpoint('/api/user/shared-documents', () => [
   { docId: 'g1', title: 'Shared brief', access: 'edit', workspaceId: 'ws2', workspaceName: 'Agency', lastActive: null },
   { docId: 'g2', title: 'Elsewhere', access: 'view', workspaceId: 'ws9', workspaceName: 'Other', lastActive: null }
 ])
+
+// A big workspace: the current document is on the third page, in a nested folder.
+registerEndpoint('/api/workspaces/big/folders', () => ({
+  folders: [
+    { folderId: 'top', parentId: null, name: 'Archive', docCount: 1, updatedAt: now },
+    { folderId: 'deep', parentId: 'top', name: '2025', docCount: 1, updatedAt: now }
+  ]
+}))
+registerEndpoint('/api/workspaces/big/documents', (event) => {
+  const cursor = getQuery(event).cursor
+  if (cursor === 'p3') return { items: [docRow('target', 'Zz final notes', 'deep')], total: 201, nextCursor: null }
+  const page = cursor === 'p2' ? 2 : 1
+  return {
+    items: Array.from({ length: 100 }, (_, i) => docRow(`d${page}-${i}`, `Doc ${page}-${String(i).padStart(3, '0')}`, null)),
+    total: 201,
+    nextCursor: page === 1 ? 'p2' : 'p3'
+  }
+})
+registerEndpoint('/api/workspaces/big/version', () => ({ version: 1 }))
 
 const SOURCE = '# Report\n\nIntro\n\n## Methods\n\n```\n# not a heading\n```\n\n## Results\n'
 
@@ -149,6 +169,44 @@ describe('outline tab', () => {
     view.destroy()
   })
 
+  it('keeps a clicked heading marked when the editor scrolls by itself, follows the cursor and the person\'s own scrolling', async () => {
+    const view = new EditorView({ state: EditorState.create({ doc: SOURCE }) })
+    const w = await mountPanel({ view })
+    await until(() => w.findAll('[role="treeitem"]').length === 3, 'the outline')
+    const selected = () => w.findAll('[role="treeitem"]').map(i => i.attributes('aria-selected'))
+    // Click the last heading; the jump puts the cursor on it and scrolls the editor.
+    await w.findAll('[role="treeitem"]')[2]?.trigger('click')
+    view.dispatch({ selection: { anchor: SOURCE.indexOf('## Results') + 10 } })
+    view.scrollDOM.dispatchEvent(new Event('scroll'))
+    await new Promise(resolve => requestAnimationFrame(resolve))
+    await flushPromises()
+    expect(selected()).toEqual(['false', 'false', 'true'])
+    // The cursor moves into another section: that section.
+    view.dispatch({ selection: { anchor: SOURCE.indexOf('Intro') } })
+    await flushPromises()
+    expect(selected()).toEqual(['true', 'false', 'false'])
+    // The person scrolls (wheel): the section at the top of the editor.
+    await w.findAll('[role="treeitem"]')[1]?.trigger('click')
+    expect(selected()).toEqual(['false', 'true', 'false'])
+    view.scrollDOM.dispatchEvent(new Event('wheel'))
+    view.scrollDOM.dispatchEvent(new Event('scroll'))
+    await new Promise(resolve => requestAnimationFrame(resolve))
+    await flushPromises()
+    expect(selected()).toEqual(['true', 'false', 'false'])
+    view.destroy()
+  })
+
+  it('shows a right chevron on a collapsed chapter and a down chevron on an open one', async () => {
+    const w = await mountPanel()
+    await until(() => w.findAll('[role="treeitem"]').length === 3, 'the outline')
+    const chevron = () => w.find('[data-outline-chevron]')
+    expect(chevron().attributes('data-chevron')).toBe('down')
+    await chevron().trigger('click')
+    await flushPromises()
+    expect(w.find('[role="treeitem"]').attributes('aria-expanded')).toBe('false')
+    expect(chevron().attributes('data-chevron')).toBe('right')
+  })
+
   it('has a friendly empty state', async () => {
     const w = await mountPanel({ source: 'Just a paragraph.\n' })
     await until(() => w.find('[data-testid="outline-empty"]').exists(), 'the empty state')
@@ -168,6 +226,22 @@ describe('workspace tab', () => {
     expect(w.find('[data-testid="workspace-docs-open-explorer"]').attributes('href')).toBe('/w/ws1')
     await items[2]?.trigger('click')
     expect(m.navigateTo).toHaveBeenCalledWith('/d/other')
+  })
+
+  it('reveals the current document of a big workspace: loads its page, opens its folders, scrolls to it', async () => {
+    const scrolled: Element[] = []
+    const scrollIntoView = vi.spyOn(Element.prototype, 'scrollIntoView').mockImplementation(function (this: Element) {
+      scrolled.push(this)
+    })
+    const w = await mountPanel({ tab: 'workspace', workspaceId: 'big', workspaceRole: 'editor', docId: 'target' })
+    await until(() => w.find('[data-doc-id="target"]').exists(), 'the current document')
+    const row = w.find('[data-doc-id="target"]').element.closest('[role="treeitem"]')
+    expect(row?.getAttribute('aria-selected')).toBe('true')
+    const folders = w.findAll('[role="treeitem"][aria-expanded]')
+    expect(folders.map(f => [f.text(), f.attributes('aria-expanded')])).toEqual([['Archive', 'true'], ['2025', 'true']])
+    expect(folders.map(f => f.find('[data-chevron]').attributes('data-chevron'))).toEqual(['down', 'down'])
+    await until(() => scrolled.includes(row as Element), 'the scroll')
+    scrollIntoView.mockRestore()
   })
 
   it('opens a document in a new tab with Ctrl + click', async () => {

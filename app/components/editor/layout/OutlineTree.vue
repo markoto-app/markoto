@@ -7,7 +7,7 @@ import {
   type OutlineHeading, type OutlineNode
 } from '~/utils/editor/documentOutline'
 import { subscribeViewUpdates } from '~/utils/editor/viewUpdateHub'
-import { topVisibleLine } from '~/utils/editor/outlineJump'
+import { onUserScroll } from '~/utils/editor/outlineJump'
 
 // The Outline tab of the editor's left panel: the document's headings as a
 // tree, rebuilt from the text a moment after typing stops (only while the
@@ -61,36 +61,39 @@ onMounted(() => {
   void rebuild(props.source)
 })
 
-// Where the person is: the cursor's line after it moves, the line at the
-// top of the editor after a scroll, whichever happened last. Without an
-// editor (preview only) the entry clicked last.
+// Where the person is, in this order: the entry clicked last (until the
+// cursor moves elsewhere or they scroll), else the section the cursor is
+// in, else, while they scroll without moving the cursor, the section at the
+// top of the editor. Scrolls the editor makes by itself (a jump, typing)
+// don't count: at the end of a document the last heading can't reach the
+// top, and the top line would mark the section before it.
 const activeLine = ref(-1)
 const pickedIndex = ref(-1)
 
 watch(() => props.view, (view, _old, onCleanup) => {
   if (!view) return
   activeLine.value = view.state.doc.lineAt(view.state.selection.main.head).number - 1
-  const unsubscribe = subscribeViewUpdates(view, (update) => {
-    if (update.selectionSet) activeLine.value = update.state.doc.lineAt(update.state.selection.main.head).number - 1
+  const unsubscribeCursor = subscribeViewUpdates(view, (update) => {
+    if (!update.selectionSet) return
+    const line = update.state.doc.lineAt(update.state.selection.main.head).number - 1
+    // The jump to a clicked heading puts the cursor on it: the pick stays.
+    if (headings.value[pickedIndex.value]?.line !== line) pickedIndex.value = -1
+    activeLine.value = line
   })
-  // At most once a frame.
-  let frame = 0
-  const onScroll = () => {
-    if (frame) return
-    frame = requestAnimationFrame(() => {
-      frame = 0
-      activeLine.value = topVisibleLine(view)
-    })
-  }
-  view.scrollDOM.addEventListener('scroll', onScroll, { passive: true })
+  const stopScroll = onUserScroll(view, (line) => {
+    pickedIndex.value = -1
+    activeLine.value = line
+  })
   onCleanup(() => {
-    unsubscribe()
-    view.scrollDOM.removeEventListener('scroll', onScroll)
-    cancelAnimationFrame(frame)
+    unsubscribeCursor()
+    stopScroll()
   })
 }, { immediate: true })
 
-const activeIndex = computed(() => props.view ? activeHeadingIndex(headings.value, activeLine.value) : pickedIndex.value)
+const activeIndex = computed(() => {
+  if (pickedIndex.value >= 0 || !props.view) return pickedIndex.value
+  return activeHeadingIndex(headings.value, activeLine.value)
+})
 
 interface Item extends TreeItem {
   key: string
@@ -226,10 +229,10 @@ watch(activeIndex, async (index) => {
       <template #item-trailing="{ item, expanded: isOpen }">
         <UIcon
           v-if="(item as Item).children?.length"
-          name="i-lucide-chevron-down"
+          :name="isOpen ? 'i-lucide-chevron-down' : 'i-lucide-chevron-right'"
           data-outline-chevron
-          class="size-4 shrink-0 text-dimmed transition-transform"
-          :class="isOpen ? '' : '-rotate-90'"
+          :data-chevron="isOpen ? 'down' : 'right'"
+          class="size-4 shrink-0 text-dimmed"
         />
       </template>
     </UTree>

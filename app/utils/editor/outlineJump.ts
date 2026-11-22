@@ -32,3 +32,49 @@ export function topVisibleLine(view: EditorView): number {
   const block = view.lineBlockAtHeight(Math.max(0, scrollerTop - view.documentTop + probe))
   return view.state.doc.lineAt(block.from).number - 1
 }
+
+/** A scroll this soon after a wheel or touch movement is the person's own. */
+const USER_SCROLL_WINDOW_MS = 800
+
+/**
+ * Call `onLine` with the reading position (`topVisibleLine`) while the
+ * person scrolls the editor themselves: wheel, touch or dragging the scroll
+ * bar. Scrolls the editor makes on its own (a jump to a heading, typing at
+ * the end) are ignored. At most once a frame. Returns the unsubscribe.
+ */
+export function onUserScroll(view: EditorView, onLine: (line: number) => void): () => void {
+  const dom = view.scrollDOM
+  let lastInput = Number.NEGATIVE_INFINITY
+  let dragging = false
+  let frame = 0
+  const onInput = () => {
+    lastInput = performance.now()
+  }
+  // The scroll bar belongs to the scroller itself, not to its content.
+  const onPointerDown = (e: PointerEvent) => {
+    dragging = e.target === dom
+  }
+  const onPointerUp = () => {
+    dragging = false
+  }
+  const onScroll = () => {
+    if (frame || !(dragging || performance.now() - lastInput < USER_SCROLL_WINDOW_MS)) return
+    frame = requestAnimationFrame(() => {
+      frame = 0
+      onLine(topVisibleLine(view))
+    })
+  }
+  dom.addEventListener('wheel', onInput, { passive: true })
+  dom.addEventListener('touchmove', onInput, { passive: true })
+  dom.addEventListener('pointerdown', onPointerDown)
+  globalThis.addEventListener('pointerup', onPointerUp)
+  dom.addEventListener('scroll', onScroll, { passive: true })
+  return () => {
+    dom.removeEventListener('wheel', onInput)
+    dom.removeEventListener('touchmove', onInput)
+    dom.removeEventListener('pointerdown', onPointerDown)
+    globalThis.removeEventListener('pointerup', onPointerUp)
+    dom.removeEventListener('scroll', onScroll)
+    cancelAnimationFrame(frame)
+  }
+}

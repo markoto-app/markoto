@@ -1861,7 +1861,7 @@
     "close": "Cerrar esquema y documentos",
     "tabs": {
       "outline": "Esquema",
-      "workspace": "Espacio de trabajo"
+      "workspace": "Documentos"
     },
     "outline": {
       "emptyTitle": "Aún no hay títulos",

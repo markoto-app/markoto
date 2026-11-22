@@ -1861,7 +1861,7 @@
     "close": "アウトラインとドキュメントを閉じる",
     "tabs": {
       "outline": "アウトライン",
-      "workspace": "ワークスペース"
+      "workspace": "ドキュメント"
     },
     "outline": {
       "emptyTitle": "まだ見出しがありません",

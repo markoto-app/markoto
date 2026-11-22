@@ -101,11 +101,11 @@ const explorerHref = computed(() => {
     class="h-full flex flex-col bg-muted"
     data-testid="left-panel"
   >
-    <div class="px-2 py-1.5 border-b border-default/60 flex items-center justify-between gap-2 shrink-0">
+    <div class="pl-1.5 pr-1 py-1.5 border-b border-default/60 flex items-center justify-between gap-1 shrink-0">
       <div
         role="tablist"
         :aria-label="t('leftPanel.label')"
-        class="flex items-center gap-0.5 min-w-0"
+        class="flex flex-1 items-center gap-0.5 min-w-0"
       >
         <button
           v-for="item in tabs"
@@ -117,7 +117,7 @@ const explorerHref = computed(() => {
           :aria-selected="tab === item.value"
           :aria-controls="`left-panel-tabpanel-${item.value}`"
           :tabindex="tab === item.value ? 0 : -1"
-          class="flex items-center gap-1.5 rounded-md px-2 py-1 text-sm min-w-0 transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--ui-border-inverted)"
+          class="flex shrink-0 items-center gap-1 rounded-md px-1.5 py-1 text-[13px] whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--ui-border-inverted)"
           :class="tab === item.value ? 'bg-default text-highlighted' : 'text-muted hover:text-default'"
           :data-testid="`left-panel-tab-${item.value}`"
           @click="emit('update:tab', item.value)"
@@ -125,9 +125,10 @@ const explorerHref = computed(() => {
         >
           <UIcon
             :name="item.icon"
-            class="size-4 shrink-0"
+            class="size-3.5 shrink-0"
           />
-          <span class="truncate">{{ item.label }}</span>
+          <!-- Never truncated: the labels are kept short enough for 260px in every locale. -->
+          <span>{{ item.label }}</span>
         </button>
       </div>
       <UButton

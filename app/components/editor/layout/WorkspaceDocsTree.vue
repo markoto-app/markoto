@@ -68,12 +68,34 @@ const selected = computed(() => {
   return find(items.value)
 })
 
-// The folders around the current document start expanded.
+// Reveal the current document: load further pages until it is among them
+// (a large workspace lists it far down, by title), expand the folders
+// around it and scroll it into view once.
 const expanded = ref<string[]>([])
 watch(() => [current.value?.folderId ?? null, folders.value] as const, ([folderId]) => {
   const above = folderIdsAbove(folders.value, folderId).map(id => `f:${id}`)
   expanded.value = [...new Set([...expanded.value, ...above])]
 }, { immediate: true })
+
+/** Pages the panel loads by itself while looking for the current document. */
+const REVEAL_MAX_PAGES = 20
+let revealPages = 0
+watch(() => [current.value, data.docs.hasNextPage.value, data.docs.isLoading.value] as const, ([doc, more, busy]) => {
+  if (doc || !more || busy || revealPages >= REVEAL_MAX_PAGES) return
+  revealPages++
+  void data.docs.loadNextPage()
+}, { immediate: true })
+
+const root = useTemplateRef<HTMLElement>('root')
+let revealed = false
+watch(() => [selected.value, expanded.value] as const, async ([item]) => {
+  if (revealed || !item) return
+  await nextTick()
+  const row = root.value?.querySelector(`[data-doc-id="${CSS.escape(props.docId)}"]`)?.closest('[role="treeitem"]')
+  if (!row) return
+  revealed = true
+  row.scrollIntoView({ block: 'nearest' })
+}, { immediate: true, flush: 'post' })
 
 type TreeEvent = CustomEvent<{ originalEvent: Event }>
 
@@ -106,6 +128,7 @@ function onAuxclick(e: MouseEvent) {
 
 <template>
   <div
+    ref="root"
     class="p-2"
     data-testid="workspace-docs"
   >
@@ -151,6 +174,14 @@ function onAuxclick(e: MouseEvent) {
         data-testid="workspace-docs-tree"
         @auxclick="onAuxclick"
       >
+        <template #item-trailing="{ item, expanded: isOpen }">
+          <UIcon
+            v-if="(item as Item).children"
+            :name="isOpen ? 'i-lucide-chevron-down' : 'i-lucide-chevron-right'"
+            :data-chevron="isOpen ? 'down' : 'right'"
+            class="size-4 shrink-0 text-dimmed"
+          />
+        </template>
         <template #item-label="{ item }">
           <span
             class="truncate"
