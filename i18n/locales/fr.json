@@ -813,6 +813,7 @@
     "buyPointsCta": "Acheter des points IA",
     "exhaustedPlaceholderPro": "Plus de points IA : achetez-en d’autres pour continuer",
     "workspaceBudgetExhaustedAdminDescription": "Les points IA de cet espace sont épuisés pour ce mois-ci. Ajoutez des places ou achetez des points IA dans Facturation.",
+    "workspaceBudgetExhaustedAdminSeatsDescription": "Les points IA de cet espace sont épuisés pour ce mois-ci. Ils se rechargent le mois prochain, ou ajoutez des places dans Facturation pour en avoir plus dès maintenant.",
     "workspaceBillingCta": "Ouvrir la facturation",
     "workspaceExhaustedPlaceholderAdmin": "Points IA de l’espace épuisés : ajoutez-en dans Facturation",
     "step": {

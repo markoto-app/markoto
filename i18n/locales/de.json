@@ -813,6 +813,7 @@
     "buyPointsCta": "KI-Punkte kaufen",
     "exhaustedPlaceholderPro": "Keine KI-Punkte mehr: kaufe weitere, um weiterzumachen",
     "workspaceBudgetExhaustedAdminDescription": "Die KI-Punkte dieses Workspace sind für diesen Monat aufgebraucht. Füge unter Abrechnung Plätze hinzu oder kaufe KI-Punkte.",
+    "workspaceBudgetExhaustedAdminSeatsDescription": "Die KI-Punkte dieses Workspace sind für diesen Monat aufgebraucht. Sie werden nächsten Monat aufgefüllt, oder füge unter Abrechnung Plätze hinzu, um jetzt mehr zu haben.",
     "workspaceBillingCta": "Zur Abrechnung",
     "workspaceExhaustedPlaceholderAdmin": "KI-Punkte des Workspace aufgebraucht: stocke unter Abrechnung auf",
     "step": {

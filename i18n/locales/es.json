@@ -813,6 +813,7 @@
     "buyPointsCta": "Comprar puntos de IA",
     "exhaustedPlaceholderPro": "Sin puntos de IA: compra más para continuar",
     "workspaceBudgetExhaustedAdminDescription": "Los puntos de IA de este espacio se han agotado este mes. Añade puestos o compra puntos de IA en Facturación.",
+    "workspaceBudgetExhaustedAdminSeatsDescription": "Los puntos de IA de este espacio se han agotado este mes. Se recargan el mes que viene, o añade puestos en Facturación para tener más ahora.",
     "workspaceBillingCta": "Abrir facturación",
     "workspaceExhaustedPlaceholderAdmin": "Puntos de IA del espacio agotados: añade más en Facturación",
     "step": {

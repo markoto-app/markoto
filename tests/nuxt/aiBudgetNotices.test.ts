@@ -162,6 +162,18 @@ describe('AI Points notices: the budget runs out while writing', () => {
     expect(placeholder(wrapper)).toBe('Workspace AI Points used up: add more under Billing')
   })
 
+  it('workspace admin with top-ups switched off: seats or the monthly refill, no AI Points to buy', async () => {
+    useState<BillingMode>('billing-mode').value = { billingEnabled: true, plansComingSoon: false, topupsEnabled: false }
+    setCredits('ws-seats', pooled('ws-seats', { left: 500, canManage: true }))
+    await mountSuspended(AIPromptBar, { props: { ai: aiProps(), workspaceId: 'ws-seats' } })
+    await flushPromises()
+    setCredits('ws-seats', pooled('ws-seats', { left: 0, canManage: true }))
+    await flushPromises()
+    const toast = toastAdd.mock.calls[0]?.[0]
+    expect(toast.description).toBe('This workspace’s AI Points for this month are used up. They refill next month, or add seats under Billing for more now.')
+    expect(toast.actions.map((a: { label: string }) => a.label)).toEqual(['Open billing'])
+  })
+
   it('Pro (the top personal plan): buy AI Points, not upgrade', async () => {
     setCredits(null, personal('pro', 200))
     const wrapper = await mountSuspended(AIPromptBar, { props: { ai: aiProps(), workspaceId: null } })

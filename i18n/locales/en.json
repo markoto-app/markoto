@@ -813,6 +813,7 @@
     "buyPointsCta": "Buy AI Points",
     "exhaustedPlaceholderPro": "Out of AI Points: buy more to continue",
     "workspaceBudgetExhaustedAdminDescription": "This workspace’s AI Points for this month are used up. Add seats or buy AI Points under Billing.",
+    "workspaceBudgetExhaustedAdminSeatsDescription": "This workspace’s AI Points for this month are used up. They refill next month, or add seats under Billing for more now.",
     "workspaceBillingCta": "Open billing",
     "workspaceExhaustedPlaceholderAdmin": "Workspace AI Points used up: add more under Billing",
     "step": {

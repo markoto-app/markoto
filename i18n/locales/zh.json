@@ -813,6 +813,7 @@
     "buyPointsCta": "购买 AI 点数",
     "exhaustedPlaceholderPro": "AI 点数已用完：购买更多以继续",
     "workspaceBudgetExhaustedAdminDescription": "此工作区本月的 AI 点数已用完。请在账单中增加席位或购买 AI 点数。",
+    "workspaceBudgetExhaustedAdminSeatsDescription": "此工作区本月的 AI 点数已用完。点数将在下个月补充，或在账单中增加席位以立即获得更多点数。",
     "workspaceBillingCta": "打开账单",
     "workspaceExhaustedPlaceholderAdmin": "工作区 AI 点数已用完：请在账单中增加",
     "step": {

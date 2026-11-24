@@ -72,7 +72,10 @@ export function useAiBudgetNotices(ai: AiSessionErrors, workspaceId: () => strin
     const admin = adminCanRefillWorkspace.value
     toast.add({
       title: t('ai.workspaceBudgetExhaustedTitle'),
-      description: admin ? t('ai.workspaceBudgetExhaustedAdminDescription') : t('ai.workspaceBudgetExhaustedDescription'),
+      // Without top-ups on sale here, adding seats (or the monthly refill) is the only way.
+      description: admin
+        ? t(canBuyTopups.value ? 'ai.workspaceBudgetExhaustedAdminDescription' : 'ai.workspaceBudgetExhaustedAdminSeatsDescription')
+        : t('ai.workspaceBudgetExhaustedDescription'),
       icon: 'i-lucide-credit-card',
       color: 'warning',
       actions: admin ? [{ label: t('ai.workspaceBillingCta'), color: 'neutral', onClick: goToWorkspaceBilling }] : undefined
