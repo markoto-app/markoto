@@ -51,13 +51,13 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
   // voice where the personal plan doesn't.
   const aiWorkspace = useAiWorkspaceContext()
 
-  // Lets the UI disable the button before a click hits NotAllowedError.
-  // `'unsupported'` on Firefox + iOS Safari (no Permissions API for
-  // `microphone`) means "unknown", not blocked.
+  // Lets the UI disable the button before a click hits NotAllowedError. `'unsupported'`
+  // on Firefox + iOS Safari (no Permissions API for `microphone`) means "unknown", not blocked.
   const micPermission = usePermission('microphone', { controls: false })
 
   const state = ref<VoicePromptState>('idle')
   const errorMessage = ref<string | null>(null)
+  const errorCode = ref<string | null>(null) // set with errorMessage: lets the consumer offer a way forward
   const durationSec = ref(0)
   const levels = ref<number[]>(silentLevels())
 
@@ -67,9 +67,7 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
   let startedAt = 0
   const capture = createMicCapture((next) => {
     levels.value = next
-    if (startedAt) {
-      durationSec.value = (Date.now() - startedAt) / 1000
-    }
+    if (startedAt) durationSec.value = (Date.now() - startedAt) / 1000
   })
   // Auto-stop at `maxDurationSec`. cleanupAudioResources stops it on
   // cancel/error so an early stop doesn't leave an orphaned timer.
@@ -92,9 +90,10 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
     chunks.length = 0
   }
 
-  function fail(message: string) {
+  function fail(message: string, code: string | null = null) {
     cleanupAudioResources()
     errorMessage.value = message
+    errorCode.value = code
     state.value = 'error'
     durationSec.value = 0
     levels.value = silentLevels()
@@ -209,7 +208,7 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
       resetState()
       await opts.onTranscript(res.text)
     } catch (e) {
-      fail(extractError(e).message)
+      fail(extractError(e).message, extractError(e).code)
     }
   }
 
@@ -227,6 +226,7 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
   return {
     state: readonly(state),
     errorMessage: readonly(errorMessage),
+    errorCode: readonly(errorCode),
     durationSec: readonly(durationSec),
     levels: readonly(levels),
     maxDurationSec,

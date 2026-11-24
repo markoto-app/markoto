@@ -37,6 +37,8 @@ RUN bun scripts/check-test-routes.ts --absent .output
 #   docker compose exec app bun cli/reembed-knowledge.js [--dry-run]
 RUN bun build scripts/reembed-knowledge.ts --target=bun --outfile=cli/reembed-knowledge.js
 RUN bun build scripts/reencrypt-secrets.ts --target=bun --outfile=cli/reencrypt-secrets.js
+#   docker compose exec app bun cli/waitlist-launch-email.js --code <CODE> --expires <YYYY-MM-DD> [--dry-run]
+RUN bun build scripts/waitlist-launch-email.ts --target=bun --outfile=cli/waitlist-launch-email.js
 
 # --- Runtime stage ---------------------------------------------------------
 # Nitro's `bun` preset emits an output targeted at the Bun runtime: it

@@ -28,6 +28,8 @@ const props = defineProps<{
 }>()
 
 const { t, locale } = useI18n()
+const { billingEnabled } = useBillingMode()
+const marketingPath = useMarketingPath()
 const toast = useToast()
 const { handleReauthRequired, extractError } = useErrorHandler()
 
@@ -215,6 +217,20 @@ const messageClass = computed(() => {
         {{ sourceLabel() }}
       </UBadge>
     </div>
+
+    <p
+      v-if="status.locked === 'plan' && billingEnabled && !config"
+      class="text-xs text-muted mt-2"
+      :data-testid="`ai-provider-locked-upgrade-${capability}`"
+    >
+      {{ t('ai.locked.upgrade') }}
+      <NuxtLink
+        :to="marketingPath('/pricing')"
+        class="underline"
+      >
+        {{ t('ai.upgradeCta') }}
+      </NuxtLink>
+    </p>
 
     <dl
       v-if="config && !editing"

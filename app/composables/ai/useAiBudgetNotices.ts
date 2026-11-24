@@ -75,15 +75,20 @@ export function useAiBudgetNotices(ai: AiSessionErrors, workspaceId: () => strin
     })
   }
 
-  // Shared free-tier pool used up: the way forward is the user's own key
-  // (Settings → AI provider), never an upgrade, and not "your points".
+  // Shared free-tier pool used up, never "your points". The ways forward:
+  // the user's own key (Settings → AI provider) and, with billing on, Pro,
+  // whose budget is outside the free pool.
   function showFreeAllowanceToast() {
+    const canUpgrade = billingEnabled.value && !creditsAreShared.value
+    const ownKey = { label: t('ai.freeAllowanceCta'), color: 'neutral' as const, onClick: goToAiSettings }
     toast.add({
       title: t('ai.freeAllowanceExhaustedTitle'),
-      description: t('ai.freeAllowanceExhausted'),
+      description: canUpgrade ? t('ai.freeAllowanceExhaustedUpgrade') : t('ai.freeAllowanceExhausted'),
       icon: 'i-lucide-key-round',
       color: 'warning',
-      actions: [{ label: t('ai.freeAllowanceCta'), color: 'neutral', onClick: goToAiSettings }]
+      actions: canUpgrade
+        ? [{ label: t('ai.upgradeCta'), color: 'primary' as const, onClick: () => { globalThis.location.href = marketingPath('/pricing') } }, ownKey]
+        : [ownKey]
     })
   }
 
@@ -91,7 +96,7 @@ export function useAiBudgetNotices(ai: AiSessionErrors, workspaceId: () => strin
   // billing on → "Upgrade" (Free) or "Buy AI Points" (Pro, the top personal
   // plan); hosted free-only SaaS → "refills next period, paid plans coming
   // soon" + link to the coming-soon page; self-hosted → "refills next
-  // period", no action (there is nothing to buy).
+  // period", nothing to buy. Every variant also offers the user's own key.
   function showPersonalBudgetToast() {
     let description = t('ai.budgetExhaustedDescription')
     let actions: Array<{ label: string, color: 'primary' | 'neutral', onClick: () => void }> | undefined
@@ -109,6 +114,8 @@ export function useAiBudgetNotices(ai: AiSessionErrors, workspaceId: () => strin
     } else {
       description = t('ai.budgetExhaustedResetDescription')
     }
+    // An own key is never limited by AI Points: always a way forward.
+    actions = [...(actions ?? []), { label: t('ai.freeAllowanceCta'), color: 'neutral', onClick: goToAiSettings }]
     toast.add({
       title: t('ai.budgetExhaustedTitle'),
       description,

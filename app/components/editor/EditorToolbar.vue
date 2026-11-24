@@ -48,8 +48,9 @@ function onDictationClick() {
   else emit('toggle-dictation')
 }
 
-const { uploadAndInsert, uploading, error: uploadError } = useImageUpload(props.docId)
+const { uploadAndInsert, uploading, error: uploadError, failure: uploadFailure } = useImageUpload(props.docId)
 const toast = useToast()
+const { recoveryAction } = useErrorHandler()
 
 watch(uploadError, (err) => {
   if (!err) return
@@ -61,11 +62,14 @@ watch(uploadError, (err) => {
       color: 'warning'
     })
   } else {
+    // A full image quota carries its way forward (Upgrade, with billing on).
+    const action = recoveryAction(uploadFailure.value)
     toast.add({
       title: t('image.uploadFailed'),
       description: err,
       icon: 'i-lucide-alert-circle',
-      color: 'error'
+      color: 'error',
+      actions: action ? [action] : undefined
     })
   }
 })

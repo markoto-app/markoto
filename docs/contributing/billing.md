@@ -99,8 +99,20 @@ Every `charge.refunded` (a top-up or a plan payment) sends the operator a short 
 
 - **Currency.** Adaptive Pricing is always on with it: the session, subscription, invoice and charge keep the price's currency (EUR / CHF); the buyer's local currency appears only in `presentment_details`. The currency guards (`isCurrency` in `creditTopups.ts`, `billing/currency-locked`) therefore keep working unchanged.
 - **Plan changes** use `pending_if_incomplete` (above), which Managed Payments subscriptions support; `subscription.default_payment_method` can't be changed through the API.
+- **Promotion codes.** A new Pro subscription billed yearly opens Checkout with `allow_promotion_codes: true` (`promotionCodeFields` in `proCheckout.ts`), which Managed Payments supports; monthly, in-place plan changes, top-ups and workspace checkouts never show the field. The codes themselves (coupon, products, duration, expiry) are created by hand in Stripe. A discounted invoice needs nothing of ours: plans are identified by price, never by an amount paid. Covered by `tests/billing-sandbox/proPromotionCode.test.ts`.
 - **Account deletion** still calls `customers.del`; if Stripe refuses it for a Managed Payments customer, that is logged and the deletion goes on (Link deletes buyer data under its own policy).
 - **UI.** `useBillingMode().managedPayments` shows "Sold through Link (Stripe)" with a link to Link's buyer terms on the pricing page and next to every purchase box (`PaidTermsConsent.vue`). The privacy policy, the Terms and the Paid Plans Terms describe Link as the seller.
+
+### Waitlist launch email
+
+The waitlist's consent text promises one email when paid plans launch. `server/utils/privacy/waitlistLaunch.ts` sends it, from a one-shot CLI the operator runs once after billing is switched on (`scripts/waitlist-launch-email.ts`, bundled into the app image as `cli/waitlist-launch-email.js`):
+
+```sh
+docker compose exec app bun cli/waitlist-launch-email.js --code <CODE> --expires <YYYY-MM-DD> --dry-run
+docker compose exec app bun cli/waitlist-launch-email.js --code <CODE> --expires <YYYY-MM-DD>
+```
+
+Every confirmed sign-up gets the email in its sign-up language (paid plans are live, the link to `/pricing`, the code's 40% off the first year of Pro yearly until the expiry day, this is the only email, the entry is deleted) and its row is deleted right after the send succeeded; unconfirmed sign-ups are deleted without email. A failed send keeps its row (one retry, the run stops after five failures in a row), so running the same command again mails only who is left, never anyone twice. It refuses to run while billing is off, without `NUXT_SITE_URL` and, except for `--dry-run`, in email stub mode (it would delete rows it never mailed). `--dry-run` prints counts, never addresses. Sends are 600 ms apart (`--interval-ms`) to stay under Resend's rate limit. The promotion code itself is created by hand in Stripe (see Managed Payments above).
 
 ## Tests
 

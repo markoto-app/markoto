@@ -170,7 +170,7 @@ describe('AI Points notices: the budget runs out while writing', () => {
     await flushPromises()
     const toast = toastAdd.mock.calls[0]?.[0]
     expect(toast.title).toBe('Out of AI Points')
-    expect(toast.actions.map((a: { label: string }) => a.label)).toEqual(['Buy AI Points'])
+    expect(toast.actions.map((a: { label: string }) => a.label)).toEqual(['Buy AI Points', 'Add your own key'])
     expect(placeholder(wrapper)).toBe('Out of AI Points: buy more to continue')
   })
 
@@ -182,6 +182,35 @@ describe('AI Points notices: the budget runs out while writing', () => {
     await flushPromises()
     const toast = toastAdd.mock.calls[0]?.[0]
     expect(toast.description).toBe('Your AI Points for this period are used up. Upgrade your plan to keep going.')
-    expect(toast.actions.map((a: { label: string }) => a.label)).toEqual(['Upgrade'])
+    expect(toast.actions.map((a: { label: string }) => a.label)).toEqual(['Upgrade', 'Add your own key'])
+  })
+})
+
+describe('AI Points notices: the shared free pool runs out', () => {
+  function freePool(exhausted: boolean): AiCredits {
+    return { ...personal('free', 3000), freeAllowance: { pooled: true, exhausted, resetsAt: null } } as unknown as AiCredits
+  }
+
+  it('billing on: Upgrade (Pro is outside the pool) and the own key', async () => {
+    setCredits(null, freePool(false))
+    await mountSuspended(AIPromptBar, { props: { ai: aiProps(), workspaceId: null } })
+    await flushPromises()
+    setCredits(null, freePool(true))
+    await flushPromises()
+    const toast = toastAdd.mock.calls[0]?.[0]
+    expect(toast.title).toBe('Free AI allowance used up')
+    expect(toast.description).toBe('This month\'s free AI allowance is used up. Upgrade to Pro or add your own key to keep going.')
+    expect(toast.actions.map((a: { label: string }) => a.label)).toEqual(['Upgrade', 'Add your own key'])
+  })
+
+  it('billing off: only the own key', async () => {
+    useState<BillingMode>('billing-mode').value = { billingEnabled: false, plansComingSoon: true }
+    setCredits(null, freePool(false))
+    await mountSuspended(AIPromptBar, { props: { ai: aiProps(), workspaceId: null } })
+    await flushPromises()
+    setCredits(null, freePool(true))
+    await flushPromises()
+    const toast = toastAdd.mock.calls[0]?.[0]
+    expect(toast.actions.map((a: { label: string }) => a.label)).toEqual(['Add your own key'])
   })
 })

@@ -63,6 +63,7 @@ export const SYSTEM_ACTORS = [
   'stripe-webhook',
   'sync-server',
   'test-harness',
+  'waitlist-launch',
   'waitlist-sweep',
   'workspace-billing',
   'workspace-invite-sweep'

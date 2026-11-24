@@ -58,7 +58,7 @@ export interface ProPurchase {
  * Nothing is delivered to the webhook yet: `deliverPurchase` does that,
  * or the scenario delivers `purchaseEvents` in an order of its own.
  */
-export async function buyPro(stripe: Stripe, label: string, opts: { interval?: 'month' | 'year', clock?: boolean } = {}): Promise<ProPurchase> {
+export async function buyPro(stripe: Stripe, label: string, opts: { interval?: 'month' | 'year', clock?: boolean, promotionCode?: string } = {}): Promise<ProPurchase> {
   const interval = opts.interval ?? 'month'
   const app = await signedInUser(label)
 
@@ -76,6 +76,8 @@ export async function buyPro(stripe: Stripe, label: string, opts: { interval?: '
     metadata: { subject_type: 'user', subject_id: String(app.user.id) }
   })
   expect(onlyLineItem(session)).toMatchObject({ quantity: 1, price: { id: priceId, lookup_key: `markoto_pro_${interval}_eur` } })
+  // The code field shows only on a new yearly Pro subscription (launch promotions).
+  expect(session.allow_promotion_codes ?? false).toBe(interval === 'year')
 
   // What the hosted page does on payment: the customer (Checkout creates
   // it from `customer_email`), the card, the subscription.
@@ -84,6 +86,8 @@ export async function buyPro(stripe: Stripe, label: string, opts: { interval?: '
   const created = await stripe.subscriptions.create({
     customer: customer.id,
     items: [{ price: priceId, quantity: 1 }],
+    // A code the buyer typed into the hosted page's code field.
+    ...(opts.promotionCode ? { discounts: [{ promotion_code: opts.promotionCode }] } : {}),
     metadata: { subject_type: 'user', subject_id: String(app.user.id), ...runTag() }
   })
   expect(created.status).toBe('active')

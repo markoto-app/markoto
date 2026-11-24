@@ -28,6 +28,7 @@ const emit = defineEmits<{
 const { t } = useI18n()
 const toast = useToast()
 const { extractError } = useErrorHandler()
+const { budgetActions } = useAiWayForward()
 
 const {
   comments,
@@ -207,7 +208,8 @@ async function maybeTriggerAi(commentId: string, replyId: string | null) {
       toast.add({
         title: t('comments.aiTriggerExhausted'),
         icon: 'i-lucide-zap-off',
-        color: 'warning'
+        color: 'warning',
+        actions: budgetActions()
       })
       return
     }

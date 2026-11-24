@@ -37,6 +37,7 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const { purchaseAction } = useAiWayForward()
 const toast = useToast()
 const { extractError } = useErrorHandler()
 const { availability } = useAiAvailability()
@@ -53,6 +54,8 @@ const phase = ref<Phase>('uploading')
 const round = ref(0)
 const maxRounds = ref(3)
 const errorKey = ref('internal')
+// Out of AI Points: besides the own key (settings link), the purchase that gives more.
+const budgetPurchase = computed(() => errorKey.value === 'budget' ? purchaseAction() : null)
 const result = shallowRef<JobResult | null>(null)
 const format = ref<'pdf' | 'docx'>('pdf')
 const fileName = ref('')
@@ -377,6 +380,16 @@ function png(base64: string): string {
             {{ t(`designImport.errors.${errorKey}`) }}
           </p>
           <div class="flex gap-2 justify-end">
+            <UButton
+              v-if="budgetPurchase"
+              :color="budgetPurchase.color"
+              variant="soft"
+              icon="i-lucide-arrow-up-circle"
+              data-testid="design-import-upgrade"
+              @click="budgetPurchase.onClick"
+            >
+              {{ budgetPurchase.label }}
+            </UButton>
             <UButton
               v-if="showSettingsLink"
               :to="aiSettingsRoute"

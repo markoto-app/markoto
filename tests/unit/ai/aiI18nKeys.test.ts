@@ -33,8 +33,6 @@ const EXPECTED_KEYS: string[] = [
   'ai.failed',
 
   // Voice / dictation toasts
-  'ai.dictateBudgetExhaustedTitle',
-  'ai.dictateBudgetExhaustedDescription',
   'ai.dictateIdleDescription',
   'ai.dictateErrorTitle',
   'ai.micBlocked',

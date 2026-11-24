@@ -22,13 +22,17 @@ export function useEditorInserts(docId: string, view: () => EditorView | null, i
     tableModalOpen.value = false
   }
 
-  const { uploadAndInsert: uploadImageAndInsert, error: imageUploadError } = useImageUpload(docId)
+  const { uploadAndInsert: uploadImageAndInsert, error: imageUploadError, failure: imageUploadFailure } = useImageUpload(docId)
+  const { recoveryAction } = useErrorHandler()
   watch(imageUploadError, (err) => {
     if (!err) return
+    // A full image quota carries its way forward (Upgrade, with billing on).
+    const action = err === 'login_required' ? undefined : recoveryAction(imageUploadFailure.value)
     toast.add({
       title: err === 'login_required' ? t('auth.loginRequired') : t('image.uploadFailed'),
       description: err === 'login_required' ? t('image.loginToUpload') : err,
-      color: 'error'
+      color: 'error',
+      actions: action ? [action] : undefined
     })
   })
   const { open: openImagePicker, onChange: onMenuImagePicked } = useFileDialog({

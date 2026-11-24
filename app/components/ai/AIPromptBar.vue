@@ -84,14 +84,13 @@ const voice = useVoicePrompt({
 
 // Show voice errors as a toast, same UX as regular AI errors. `clearError`
 // resets the composable so the button isn't stuck showing an error icon.
+const { budgetActions } = useAiWayForward()
 watch(() => voice.errorMessage.value, (err) => {
   if (!err) return
-  toast.add({
-    title: t('ai.micErrorTitle'),
-    description: err,
-    icon: 'i-lucide-alert-circle',
-    color: 'error'
-  })
+  // Out of AI Points: the ways forward (upgrade or buy points, own key).
+  toast.add(['ai/budget-exhausted', 'ai/free-allowance-exhausted'].includes(voice.errorCode.value ?? '')
+    ? { title: t('ai.budgetExhaustedTitle'), description: err, icon: 'i-lucide-credit-card', color: 'warning', actions: budgetActions() }
+    : { title: t('ai.micErrorTitle'), description: err, icon: 'i-lucide-alert-circle', color: 'error' })
   voice.clearError()
 })
 

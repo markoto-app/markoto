@@ -22,6 +22,7 @@ export function useEditorDictation(opts: {
 }) {
   const { t } = useI18n()
   const toast = useToast()
+  const { budgetActions, budgetDescription } = useAiWayForward()
 
   const dictation = useVoiceDictation({
     docId: computed(opts.docId),
@@ -47,10 +48,11 @@ export function useEditorDictation(opts: {
     },
     onBudgetExhausted: () => {
       toast.add({
-        title: t('ai.dictateBudgetExhaustedTitle'),
-        description: t('ai.dictateBudgetExhaustedDescription'),
+        title: t('ai.budgetExhaustedTitle'),
+        description: budgetDescription(),
         icon: 'i-lucide-battery-low',
-        color: 'warning'
+        color: 'warning',
+        actions: budgetActions()
       })
     },
     onSessionCap: () => {
