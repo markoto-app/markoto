@@ -10,6 +10,8 @@ interface UploadResult {
 export function useImageUpload(docId: string) {
   const uploading = ref(false)
   const error = ref<string | null>(null)
+  // The refusal itself, for its way forward (`recovery` on the storage quota).
+  const failure = shallowRef<unknown>(null)
   // `$i18n` rather than `useI18n()`: the composable is also used outside a
   // component setup context.
   const i18n = useNuxtApp().$i18n
@@ -17,6 +19,7 @@ export function useImageUpload(docId: string) {
   async function upload(file: File): Promise<UploadResult | null> {
     uploading.value = true
     error.value = null
+    failure.value = null
 
     try {
       const { uploadUrl, fileId, key } = await apiFetch('/api/upload/request', {
@@ -49,6 +52,7 @@ export function useImageUpload(docId: string) {
     } catch (e) {
       // The refusal's text in the reader's language, from its code (e.g. 409
       // `upload/storage-quota`), never the English server message.
+      failure.value = e
       error.value = errorStatus(e) === 401 ? 'login_required' : resolveErrorMessage(e, i18n)
       return null
     } finally {
@@ -101,6 +105,7 @@ export function useImageUpload(docId: string) {
     upload,
     uploading: readonly(uploading),
     error: readonly(error),
+    failure: readonly(failure),
     uploadAndInsert
   }
 }

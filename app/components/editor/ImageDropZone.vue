@@ -8,8 +8,9 @@ const props = defineProps<{
 }>()
 
 const { t } = useI18n()
-const { uploadAndInsert, uploading, error } = useImageUpload(props.docId)
+const { uploadAndInsert, uploading, error, failure } = useImageUpload(props.docId)
 const toast = useToast()
+const { recoveryAction } = useErrorHandler()
 const dragging = ref(false)
 const containerRef = ref<HTMLElement | null>(null)
 
@@ -23,11 +24,14 @@ watch(error, (err) => {
       color: 'warning'
     })
   } else {
+    // A full image quota carries its way forward (Upgrade, with billing on).
+    const action = recoveryAction(failure.value)
     toast.add({
       title: t('image.uploadFailed'),
       description: err,
       icon: 'i-lucide-alert-circle',
-      color: 'error'
+      color: 'error',
+      actions: action ? [action] : undefined
     })
   }
 })

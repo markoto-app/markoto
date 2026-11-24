@@ -84,6 +84,17 @@ const recoveryAction = computed(() => {
   }
   return { label: t(r.labelKey), color: 'neutral' as const, variant: 'outline' as const, onClick }
 })
+
+// Out of AI Points (own or the free pool): the purchase that gives more,
+// when there is one here, and always the user's own key.
+const { budgetActions } = useAiWayForward()
+const failureActions = computed(() => {
+  const code = failure.value?.code
+  if (code === 'ai/budget-exhausted' || code === 'ai/free-allowance-exhausted') {
+    return budgetActions().map(a => ({ ...a, variant: 'outline' as const }))
+  }
+  return recoveryAction.value ? [recoveryAction.value] : undefined
+})
 </script>
 
 <template>
@@ -170,7 +181,7 @@ const recoveryAction = computed(() => {
             icon="i-lucide-alert-circle"
             :title="t('aiImage.failed')"
             :description="failure.message"
-            :actions="recoveryAction ? [recoveryAction] : undefined"
+            :actions="failureActions"
             data-testid="generate-image-error"
           />
 

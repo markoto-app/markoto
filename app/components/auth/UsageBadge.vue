@@ -24,7 +24,7 @@
 // plus the own-key note, so the limits stay reachable for them too.
 
 import type { PlanName } from '~~/shared/config/tiers'
-import { useAiCredits } from '~/composables/ai/useAiCredits'
+import { BUY_AI_POINTS_ROUTE, useAiCredits } from '~/composables/ai/useAiCredits'
 
 const { t, locale } = useAreaI18n()
 const router = useRouter()
@@ -34,8 +34,8 @@ const { billing, refresh: refreshBilling } = useBilling()
 // a Team / Business workspace that is the workspace's pooled budget (the
 // member's limit), everywhere else the user's own.
 const workspaceContext = useAiWorkspaceContext()
-const { state: credits, isKnown, planPointsRemaining, pointsTotal, creditPoints, fillRatio, isFreeAllowanceExhausted, isWorkspaceShared } = useAiCredits(workspaceContext)
-const { billingEnabled, plansComingSoon } = useBillingMode()
+const { state: credits, isKnown, isExhausted: pointsExhausted, planPointsRemaining, pointsTotal, creditPoints, fillRatio, isFreeAllowanceExhausted, isWorkspaceShared } = useAiCredits(workspaceContext)
+const { billingEnabled, plansComingSoon, canBuyTopups } = useBillingMode()
 // AI Points only measure platform-paid AI (an operator's model-alias
 // defaults). Calls on the user's own key never touch them, so the meter is
 // hidden when nothing the user can do spends points, and says so when they
@@ -108,6 +108,17 @@ watch(open, (isOpen) => {
 function onUpgrade(): void {
   open.value = false
   void router.push(marketingPath('/pricing'))
+}
+
+// Pro is the top personal plan: with its points used up, the way forward
+// is buying AI Points. Any user whose points are gone can switch to their
+// own key, which never spends them (the free-pool notice links it already).
+const canBuyPoints = computed(() => canBuyTopups.value && !isWorkspaceShared.value && billing.value?.plan === 'pro')
+const offerOwnKey = computed(() => pointsExhausted.value && !isFreeAllowanceExhausted.value && !usesOwnKey.value)
+
+function onBuyPoints(): void {
+  open.value = false
+  void router.push(BUY_AI_POINTS_ROUTE)
 }
 
 function onManage(): void {
@@ -244,7 +255,7 @@ function onManage(): void {
           class="text-xs text-warning leading-relaxed"
           data-testid="usage-badge-free-allowance-exhausted"
         >
-          {{ t('ai.freeAllowanceExhausted') }}
+          {{ canUpgrade ? t('ai.freeAllowanceExhaustedUpgrade') : t('ai.freeAllowanceExhausted') }}
           <NuxtLink
             to="/settings/ai"
             class="underline"
@@ -281,6 +292,29 @@ function onManage(): void {
         />
 
         <div class="flex flex-col gap-2 pt-1">
+          <UButton
+            v-if="pointsExhausted && canBuyPoints"
+            block
+            icon="i-lucide-zap"
+            color="primary"
+            data-testid="usage-badge-buy-points"
+            @click="onBuyPoints"
+          >
+            {{ t('ai.buyPointsCta') }}
+          </UButton>
+          <UButton
+            v-if="offerOwnKey"
+            block
+            variant="outline"
+            color="neutral"
+            size="sm"
+            icon="i-lucide-key-round"
+            to="/settings/ai"
+            data-testid="usage-badge-own-key"
+            @click="open = false"
+          >
+            {{ t('ai.freeAllowanceCta') }}
+          </UButton>
           <UButton
             v-if="canUpgrade && nextPlan"
             block

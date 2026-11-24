@@ -41,6 +41,7 @@ export type TransactionalEmailKind
     | 'consent.version_bump'
     | 'breach.notification'
     | 'waitlist.confirm'
+    | 'waitlist.launch'
     | 'workspace.invite'
     | 'workspace.billing'
     | 'billing.refund_notice'
@@ -95,6 +96,7 @@ const NORMALISED_KIND_LABELS: Record<TransactionalEmailKind, string> = {
   'consent.version_bump': 'consent-version-bump',
   'breach.notification': 'breach-notification',
   'waitlist.confirm': 'waitlist-confirm',
+  'waitlist.launch': 'waitlist-launch',
   'workspace.invite': 'workspace-invite',
   'workspace.billing': 'workspace-billing',
   'billing.refund_notice': 'billing-refund-notice',
@@ -109,6 +111,16 @@ const NORMALISED_KIND_LABELS: Record<TransactionalEmailKind, string> = {
 // local development against a single test account; replace with a
 // verified-domain address (`NUXT_EMAIL_FROM=...`) before launch.
 const SANDBOX_FROM = 'markoto <onboarding@resend.dev>'
+
+/**
+ * Whether emails really go out (Resend with a key), as opposed to stub
+ * mode, which only logs them. One-shot senders that delete what they
+ * mailed refuse to run without it.
+ */
+export function emailDeliveryConfigured(): boolean {
+  const { email } = useEnv()
+  return Boolean(email.resendApiKey) && email.provider !== 'stub'
+}
 
 export async function sendTransactionalEmail(args: SendEmailArgs): Promise<SendEmailResult> {
   const { email } = useEnv()

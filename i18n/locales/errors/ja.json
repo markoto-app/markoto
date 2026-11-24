@@ -110,6 +110,7 @@
       "subscription-check-failed": "現在のサブスクリプションを確認できませんでした。もう一度お試しください。",
       "terms-required": "続けるには有料プラン規約に同意してください。",
       "topup-needs-plan": "追加の AI ポイントは有料プラン向けです。購入するには Pro にアップグレードしてください。",
+      "topups-disabled": "このサービスでは追加の AI ポイントを販売していません。",
       "webhook-body-empty": "リクエストの本文が空です。",
       "webhook-failed": "Webhook イベントを処理できませんでした。",
       "webhook-signature-invalid": "Stripe の署名を確認できませんでした。",

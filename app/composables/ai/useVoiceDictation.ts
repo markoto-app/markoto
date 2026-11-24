@@ -134,7 +134,7 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
     onDone: () => settle(),
     onBudgetExhausted: whileLive((remaining: number) => {
       options.onBudgetExhausted?.(remaining)
-      fail(t('ai.dictateBudgetExhaustedTitle'))
+      fail(t('ai.budgetExhaustedTitle'))
     }),
     // The relay ends these like a stop: trailing `final`, `done`, close.
     onSessionCap: whileLive(() => {

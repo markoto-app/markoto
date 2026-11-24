@@ -149,6 +149,17 @@ describe('useErrorHandler: load-bearing contracts', () => {
     expect(r.recovery).toEqual({ kind: 'link', href: '/pricing', labelKey: 'ai.upgradeCta' })
   })
 
+  it('any limit carrying a recovery link gets its button, not only plan errors (image quota)', async () => {
+    translations['ai.upgradeCta'] = 'Upgrade'
+    const { showContextualError, recoveryAction } = useErrorHandler()
+    const quota = { statusCode: 409, data: { code: 'upload/storage-quota', recovery: { kind: 'link', href: '/pricing', labelKey: 'ai.upgradeCta' } } }
+    showContextualError(quota, 'delete.failed')
+    const call = (toastAddMock.fn as unknown as { mock: { calls: Array<[{ actions?: Array<{ label: string }> }]> } }).mock.calls[0]
+    expect(call![0].actions?.map(a => a.label)).toEqual(['Upgrade'])
+    // Self-hosted: the server sends no recovery, so there is no button.
+    expect(recoveryAction({ statusCode: 409, data: { code: 'upload/storage-quota' } })).toBeUndefined()
+  })
+
   it('401/403/404/429 all map to distinct titles (wrong mapping = wrong UX)', async () => {
     // One bulk check that the status-to-title mapping hasn't collapsed
     // into using one title for multiple cases (a refactor hazard).

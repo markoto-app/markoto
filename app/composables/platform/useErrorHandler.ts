@@ -98,6 +98,27 @@ function useErrorHandlerImpl() {
   }
 
   /**
+   * The way forward a refused limit carries (`recovery`, set by the server
+   * through `limitRecovery()`: "Upgrade" with billing on, the coming-soon
+   * page while paid plans are announced, nothing on a self-hosted
+   * instance), as a toast button. Plan errors, image and knowledge storage
+   * quotas and the workspace cap all carry it.
+   */
+  function recoveryAction(err: unknown): ToastAction | undefined {
+    const extracted = extractError(err)
+    const recovery = extracted.recovery
+    if (extracted.code === 'billing/payment-pending' || recovery?.kind !== 'link' || !recovery.href || !recovery.labelKey) return undefined
+    const href = recovery.href
+    return {
+      label: t(recovery.labelKey),
+      color: 'neutral',
+      onClick: () => {
+        void navigateTo(href)
+      }
+    }
+  }
+
+  /**
    * The optional action adds a button (e.g. "Upgrade" linking to /pricing);
    * without one, a pending payment's "Complete payment" link is the button.
    */
@@ -135,17 +156,14 @@ function useErrorHandlerImpl() {
     // the server's recovery link (Upgrade, or "coming soon") becomes the action;
     // self-hosted instances send none.
     if (isPlanErrorCode(extracted.code)) {
-      const recovery = extracted.recovery
-      const href = recovery?.kind === 'link' ? recovery.href : undefined
-      return showError('plan.limitTitle', err, href && recovery?.labelKey
-        ? { label: t(recovery.labelKey), color: 'neutral', onClick: () => { void navigateTo(href) } }
-        : undefined)
+      return showError('plan.limitTitle', err, recoveryAction(err))
     }
 
     // 402 falls through: the budget-exhausted CTA depends on context
-    // (workspace vs personal quota), which `useAI` handles.
+    // (workspace vs personal quota), which `useAI` handles. Other limits
+    // (storage quotas, the workspace cap) carry their own recovery link.
 
-    return showError(defaultTitleKey, err)
+    return showError(defaultTitleKey, err, recoveryAction(err))
   }
 
   const { user } = useUserSession()
@@ -185,6 +203,7 @@ function useErrorHandlerImpl() {
   return {
     extractError,
     pendingPaymentAction,
+    recoveryAction,
     showError,
     showContextualError,
     handleReauthRequired

@@ -20,5 +20,9 @@ export function useBillingMode() {
   const managedPayments = computed(() => mode.value.managedPayments === true)
   // /pricing is worth linking when there is a plan to buy or upcoming plans + waitlist.
   const pricingVisible = computed(() => billingEnabled.value || plansComingSoon.value)
-  return { mode, billingEnabled, plansComingSoon, managedPayments, pricingVisible }
+  // AI credit top-ups are offered on this deployment (`NUXT_BILLING_TOPUPS_ENABLED`);
+  // `canBuyTopups` adds that billing is on, so they can be bought now.
+  const topupsEnabled = computed(() => mode.value.topupsEnabled !== false)
+  const canBuyTopups = computed(() => billingEnabled.value && topupsEnabled.value)
+  return { mode, billingEnabled, plansComingSoon, managedPayments, pricingVisible, topupsEnabled, canBuyTopups }
 }

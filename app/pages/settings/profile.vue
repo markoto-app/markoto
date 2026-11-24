@@ -18,7 +18,7 @@ const marketingPath = useMarketingPath()
 const { t, locale, locales } = useI18n()
 // The spending section is a billing surface, hidden entirely when
 // billing is off (self-hosted / free-only SaaS).
-const { billingEnabled } = useBillingMode()
+const { billingEnabled, topupsEnabled } = useBillingMode()
 const toast = useToast()
 const { showError, extractError } = useErrorHandler()
 const { loggedIn, user } = useUserSession()
@@ -475,6 +475,7 @@ const policies = computed(() => {
             </p>
           </div>
           <div
+            v-if="topupsEnabled || (billing.credits?.grants.length ?? 0) > 0"
             id="ai-points"
             class="border-t border-default pt-4 scroll-mt-20"
           >

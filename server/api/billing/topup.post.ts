@@ -1,7 +1,7 @@
 import { recordPaidTermsAcceptance, requirePaidTermsAccepted } from '../../utils/billing/paidTerms'
 import { getOwnTopupFacts } from '../../repos/userBilling'
 import { useStripeClient } from '../../utils/billing/stripeClient'
-import { effectivePlan } from '../../utils/billing/billingMode'
+import { assertTopupsEnabled, effectivePlan } from '../../utils/billing/billingMode'
 import { requestBaseUrl } from '../../utils/billing/workspaceStripe'
 import { createTopupCheckout } from '../../utils/billing/topupCheckout'
 import { buyTopupBody } from '~~/shared/api/billing'
@@ -18,6 +18,7 @@ export default defineApiHandler({
   body: buyTopupBody,
   rateLimit: { namespace: 'billing-checkout', max: 10, windowMs: MINUTE_MS, key: 'user', error: 'billing/rate-limited' },
   handler: async ({ event, user, body, self }) => {
+    assertTopupsEnabled()
     const userId = user.id
     const row = await getOwnTopupFacts(self)
     if (!row) throw apiError('resource/not-found')

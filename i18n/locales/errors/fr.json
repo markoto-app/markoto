@@ -110,6 +110,7 @@
       "subscription-check-failed": "Impossible de vérifier l’abonnement actuel. Veuillez réessayer.",
       "terms-required": "Acceptez les Conditions des offres payantes pour continuer.",
       "topup-needs-plan": "Les points IA supplémentaires sont réservés aux forfaits payants. Passez à Pro pour en acheter.",
+      "topups-disabled": "Les points IA supplémentaires ne sont pas en vente sur ce déploiement.",
       "webhook-body-empty": "Le corps de la requête est vide.",
       "webhook-failed": "L’événement webhook n’a pas pu être traité.",
       "webhook-signature-invalid": "La signature Stripe n’a pas pu être vérifiée.",

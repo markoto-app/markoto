@@ -49,7 +49,7 @@ const { t, locale, localeProperties } = useI18n()
 const { loggedIn } = useUserSession()
 // Login starts at the first configured OAuth provider (null when none).
 const { primaryLoginPath, anonDocTtlDays, marketingSite, siteUrl } = useInstanceConfig()
-const { billingEnabled, plansComingSoon } = useBillingMode()
+const { billingEnabled, plansComingSoon, topupsEnabled } = useBillingMode()
 
 // Shared queries: fetched during the server render (cookies forwarded) and
 // hydrated from the payload; awaited so a client-side navigation shows the
@@ -305,7 +305,10 @@ const faqItems = computed<FaqItem[]>(() => {
   })).join(' · ')
   items.push({
     q: t('pricing.faq.pointsQ'),
-    a: `${t('pricing.creditsHint')} ${t('pricing.faq.pointsPacks', { packs })} ${t('credits.explainer', { months: TOPUP_VALIDITY_MONTHS })}`
+    // Without top-ups on sale: how AI Points work, no packs.
+    a: topupsEnabled.value
+      ? `${t('pricing.creditsHint')} ${t('pricing.faq.pointsPacks', { packs })} ${t('credits.explainer', { months: TOPUP_VALIDITY_MONTHS })}`
+      : t('pricing.creditsHint')
   })
   // The EU data path is a statement about markoto.app's own providers,
   // only true on the hosted site.

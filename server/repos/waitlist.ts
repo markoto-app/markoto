@@ -1,4 +1,4 @@
-import { and, eq, gt, isNull, lt } from 'drizzle-orm'
+import { and, asc, count, eq, gt, isNotNull, isNull, lt } from 'drizzle-orm'
 import { waitlistSignups } from '../db/schema'
 import { useDatabase } from '../db/client'
 import type { SystemActor, UserScope } from './proofs'
@@ -17,6 +17,8 @@ import type { SystemActor, UserScope } from './proofs'
 //   confirm → `confirmed_at` set, confirm hash cleared (single use)
 //   unsubscribe → row DELETED (consent withdrawn: we keep nothing)
 //   sweep   → unconfirmed rows past their confirm window deleted
+//   launch  → one email per confirmed row, each row deleted right after its
+//             email went out; unconfirmed rows deleted unsent
 //   account deletion → FK `ON DELETE CASCADE` on `user_id`
 
 export interface WaitlistSignupInput {
@@ -171,5 +173,47 @@ export async function deleteExpiredUnconfirmedWaitlistSignups(_by: SystemActor, 
       lt(waitlistSignups.confirmTokenExpiresAt, now)
     ))
     .returning({ id: waitlistSignups.id })
+  return rows.length
+}
+
+/** Confirmed and unconfirmed sign-ups, for the launch sender's report (never addresses). */
+export async function countWaitlistSignups(_by: SystemActor): Promise<{ confirmed: number, unconfirmed: number }> {
+  const db = useDatabase()
+  const [confirmed] = await db.select({ n: count() }).from(waitlistSignups).where(isNotNull(waitlistSignups.confirmedAt))
+  const [unconfirmed] = await db.select({ n: count() }).from(waitlistSignups).where(isNull(waitlistSignups.confirmedAt))
+  return { confirmed: Number(confirmed?.n ?? 0), unconfirmed: Number(unconfirmed?.n ?? 0) }
+}
+
+export interface WaitlistLaunchRecipient {
+  id: number
+  email: string
+  locale: string
+}
+
+/**
+ * The next confirmed sign-ups after `afterId`, in id order: the launch
+ * sender pages through them with a cursor, so a row whose email failed
+ * is left in place and not retried in the same run.
+ */
+export async function nextConfirmedWaitlistSignups(_by: SystemActor, afterId: number, limit: number): Promise<WaitlistLaunchRecipient[]> {
+  const db = useDatabase()
+  return db.select({ id: waitlistSignups.id, email: waitlistSignups.email, locale: waitlistSignups.locale })
+    .from(waitlistSignups)
+    .where(and(isNotNull(waitlistSignups.confirmedAt), gt(waitlistSignups.id, afterId)))
+    .orderBy(asc(waitlistSignups.id))
+    .limit(limit)
+}
+
+/** Delete one sign-up by id (the launch email to it went out). Returns whether a row was deleted. */
+export async function deleteWaitlistSignupById(_by: SystemActor, id: number): Promise<boolean> {
+  const db = useDatabase()
+  const rows = await db.delete(waitlistSignups).where(eq(waitlistSignups.id, id)).returning({ id: waitlistSignups.id })
+  return rows.length > 0
+}
+
+/** Delete every unconfirmed sign-up (at launch they never get an email). Returns the number deleted. */
+export async function deleteUnconfirmedWaitlistSignups(_by: SystemActor): Promise<number> {
+  const db = useDatabase()
+  const rows = await db.delete(waitlistSignups).where(isNull(waitlistSignups.confirmedAt)).returning({ id: waitlistSignups.id })
   return rows.length
 }

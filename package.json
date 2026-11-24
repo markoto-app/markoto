@@ -45,6 +45,7 @@
     "db:check-migrations": "bun scripts/check-destructive-migrations.ts",
     "db:check-drift": "node scripts/checks/migration-drift.mjs",
     "knowledge:reembed": "bun scripts/reembed-knowledge.ts",
+    "waitlist:launch-email": "bun scripts/waitlist-launch-email.ts",
     "secrets:reencrypt": "bun scripts/reencrypt-secrets.ts",
     "smoke": "playwright test --config=tests/smoke/playwright.config.ts",
     "test": "vitest run --project=unit --project=dom --project=nuxt",

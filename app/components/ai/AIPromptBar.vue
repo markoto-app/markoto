@@ -84,21 +84,20 @@ const voice = useVoicePrompt({
 
 // Show voice errors as a toast, same UX as regular AI errors. `clearError`
 // resets the composable so the button isn't stuck showing an error icon.
+const { budgetActions } = useAiWayForward()
 watch(() => voice.errorMessage.value, (err) => {
   if (!err) return
-  toast.add({
-    title: t('ai.micErrorTitle'),
-    description: err,
-    icon: 'i-lucide-alert-circle',
-    color: 'error'
-  })
+  // Out of AI Points: the ways forward (upgrade or buy points, own key).
+  toast.add(['ai/budget-exhausted', 'ai/free-allowance-exhausted'].includes(voice.errorCode.value ?? '')
+    ? { title: t('ai.budgetExhaustedTitle'), description: err, icon: 'i-lucide-credit-card', color: 'warning', actions: budgetActions() }
+    : { title: t('ai.micErrorTitle'), description: err, icon: 'i-lucide-alert-circle', color: 'error' })
   voice.clearError()
 })
 
 // Billing state: the budget gates the input, send and mic buttons so the
 // user can't type a prompt the server would reject (the bar stays visible
 // to show the way forward), and the notices explain what ran out.
-const { creditsExhausted, freePoolExhausted, creditsAreShared, isTeamBudgetExhausted, adminCanRefillWorkspace, canBuyPersonalPoints, billingEnabled, onCapReached, goToAiSettings } = useAiBudgetNotices(props.ai, () => props.workspaceId)
+const { creditsExhausted, freePoolExhausted, creditsAreShared, isTeamBudgetExhausted, adminCanRefillWorkspace, canBuyPersonalPoints, isPersonalPro, billingEnabled, onCapReached, goToAiSettings } = useAiBudgetNotices(props.ai, () => props.workspaceId)
 
 const placeholder = computed(() => {
   if (!loggedIn.value) return t('ai.loginRequired')
@@ -124,7 +123,7 @@ const exhaustedPlaceholder = computed(() => {
     return adminCanRefillWorkspace.value ? t('ai.workspaceExhaustedPlaceholderAdmin') : t('ai.workspaceExhaustedPlaceholder')
   }
   if (canBuyPersonalPoints.value) return t('ai.exhaustedPlaceholderPro')
-  return billingEnabled.value ? t('ai.exhaustedPlaceholder') : t('ai.exhaustedPlaceholderFree')
+  return billingEnabled.value && !isPersonalPro.value ? t('ai.exhaustedPlaceholder') : t('ai.exhaustedPlaceholderFree')
 })
 
 const disabled = computed(() => {

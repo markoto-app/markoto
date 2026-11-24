@@ -2878,6 +2878,24 @@
       "deprecatedNames": []
     },
     {
+      "name": "NUXT_BILLING_TOPUPS_ENABLED",
+      "namespace": "billing",
+      "key": "topupsEnabled",
+      "type": "boolean",
+      "services": [
+        "app"
+      ],
+      "names": {
+        "app": "NUXT_BILLING_TOPUPS_ENABLED"
+      },
+      "scope": "hosted",
+      "required": null,
+      "secret": false,
+      "default": true,
+      "passedByCompose": true,
+      "deprecatedNames": []
+    },
+    {
       "name": "NUXT_STRIPE_MANAGED_PAYMENTS",
       "namespace": "billing",
       "key": "stripeManagedPayments",

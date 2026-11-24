@@ -258,10 +258,11 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
   {
     // Paid-plans waitlist (hosted SaaS while billing is off). Opt-in via
     // an unticked checkbox + double opt-in email. Retention: until the
-    // person unsubscribes (one-click link in every email; deletes the
-    // row), or at the latest 3 months after we send the launch
-    // notification for paid plans. Unconfirmed sign-ups are deleted
-    // after 7 days. Linked to the account (if signed in) and deleted
+    // person unsubscribes (one-click link in the confirmation email;
+    // deletes the row), or until their launch email for paid plans went
+    // out (`waitlistLaunch.ts` deletes each row right after its send,
+    // unconfirmed rows unsent), at the latest 3 months after the launch.
+    // Unconfirmed sign-ups are deleted after 7 days. Linked to the account (if signed in) and deleted
     // with it. No IP address is stored. See `waitlist_signups` in
     // server/db/schema/billing.ts.
     id: 'paid_plans_waitlist',

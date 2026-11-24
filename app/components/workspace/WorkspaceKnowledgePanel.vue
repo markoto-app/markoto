@@ -31,7 +31,7 @@ const props = defineProps<{
 
 const { t } = useI18n()
 const toast = useToast()
-const { extractError, showError } = useErrorHandler()
+const { extractError, recoveryAction, showError } = useErrorHandler()
 
 const usage = ref<KnowledgeUsage | null>(null)
 const uploading = ref(false)
@@ -192,11 +192,13 @@ async function uploadOne(file: File) {
       color: 'success'
     })
   } catch (e) {
+    const action = recoveryAction(e)
     toast.add({
       title: t('knowledge.uploadFailed'),
       description: extractError(e).message,
       icon: 'i-lucide-alert-circle',
-      color: 'error'
+      color: 'error',
+      actions: action ? [action] : undefined
     })
   } finally {
     uploading.value = false

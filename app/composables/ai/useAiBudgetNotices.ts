@@ -28,14 +28,18 @@ export function useAiBudgetNotices(ai: AiSessionErrors, workspaceId: () => strin
   const { refresh: refreshBilling } = useBilling()
   const { state: credits, isKnown: creditsKnown, isExhausted: pointsExhausted, isFreeAllowanceExhausted, isWorkspaceShared: creditsAreShared, isTeamBudgetExhausted, canManageWorkspaceBudget, refresh: refreshAiCredits } = useAiCredits(workspaceId)
   const { chatPlatformBilled } = useAiAvailability()
-  const { billingEnabled, plansComingSoon, pricingVisible } = useBillingMode()
+  const { billingEnabled, plansComingSoon, pricingVisible, canBuyTopups } = useBillingMode()
 
   // Hosted free tier: the shared monthly pool can run dry before the user's
   // own points do. Only platform-paid chat is affected, an own key keeps working.
   const freePoolExhausted = computed(() => chatPlatformBilled.value && isFreeAllowanceExhausted.value)
   const creditsExhausted = computed(() => freePoolExhausted.value || (chatPlatformBilled.value && pointsExhausted.value))
   // Pro is the top personal plan: the way forward is buying AI Points, not an upgrade.
-  const canBuyPersonalPoints = computed(() => billingEnabled.value && !creditsAreShared.value && credits.value?.plan === 'pro')
+  // Pro is the top personal plan: the way forward is buying AI Points, when
+  // this deployment sells them; otherwise (and for Pro without them) the
+  // points refill next period and the own key works meanwhile.
+  const isPersonalPro = computed(() => billingEnabled.value && !creditsAreShared.value && credits.value?.plan === 'pro')
+  const canBuyPersonalPoints = computed(() => isPersonalPro.value && canBuyTopups.value)
   // The workspace pool is used up and this user is one of its admins.
   const adminCanRefillWorkspace = computed(() => creditsAreShared.value && isTeamBudgetExhausted.value && canManageWorkspaceBudget.value)
 
@@ -68,22 +72,30 @@ export function useAiBudgetNotices(ai: AiSessionErrors, workspaceId: () => strin
     const admin = adminCanRefillWorkspace.value
     toast.add({
       title: t('ai.workspaceBudgetExhaustedTitle'),
-      description: admin ? t('ai.workspaceBudgetExhaustedAdminDescription') : t('ai.workspaceBudgetExhaustedDescription'),
+      // Without top-ups on sale here, adding seats (or the monthly refill) is the only way.
+      description: admin
+        ? t(canBuyTopups.value ? 'ai.workspaceBudgetExhaustedAdminDescription' : 'ai.workspaceBudgetExhaustedAdminSeatsDescription')
+        : t('ai.workspaceBudgetExhaustedDescription'),
       icon: 'i-lucide-credit-card',
       color: 'warning',
       actions: admin ? [{ label: t('ai.workspaceBillingCta'), color: 'neutral', onClick: goToWorkspaceBilling }] : undefined
     })
   }
 
-  // Shared free-tier pool used up: the way forward is the user's own key
-  // (Settings → AI provider), never an upgrade, and not "your points".
+  // Shared free-tier pool used up, never "your points". The ways forward:
+  // the user's own key (Settings → AI provider) and, with billing on, Pro,
+  // whose budget is outside the free pool.
   function showFreeAllowanceToast() {
+    const canUpgrade = billingEnabled.value && !creditsAreShared.value
+    const ownKey = { label: t('ai.freeAllowanceCta'), color: 'neutral' as const, onClick: goToAiSettings }
     toast.add({
       title: t('ai.freeAllowanceExhaustedTitle'),
-      description: t('ai.freeAllowanceExhausted'),
+      description: canUpgrade ? t('ai.freeAllowanceExhaustedUpgrade') : t('ai.freeAllowanceExhausted'),
       icon: 'i-lucide-key-round',
       color: 'warning',
-      actions: [{ label: t('ai.freeAllowanceCta'), color: 'neutral', onClick: goToAiSettings }]
+      actions: canUpgrade
+        ? [{ label: t('ai.upgradeCta'), color: 'primary' as const, onClick: () => { globalThis.location.href = marketingPath('/pricing') } }, ownKey]
+        : [ownKey]
     })
   }
 
@@ -91,7 +103,7 @@ export function useAiBudgetNotices(ai: AiSessionErrors, workspaceId: () => strin
   // billing on → "Upgrade" (Free) or "Buy AI Points" (Pro, the top personal
   // plan); hosted free-only SaaS → "refills next period, paid plans coming
   // soon" + link to the coming-soon page; self-hosted → "refills next
-  // period", no action (there is nothing to buy).
+  // period", nothing to buy. Every variant also offers the user's own key.
   function showPersonalBudgetToast() {
     let description = t('ai.budgetExhaustedDescription')
     let actions: Array<{ label: string, color: 'primary' | 'neutral', onClick: () => void }> | undefined
@@ -101,6 +113,8 @@ export function useAiBudgetNotices(ai: AiSessionErrors, workspaceId: () => strin
     if (canBuyPersonalPoints.value) {
       description = t('ai.budgetExhaustedProDescription')
       actions = [{ label: t('ai.buyPointsCta'), color: 'neutral', onClick: goToBuyPoints }]
+    } else if (isPersonalPro.value) {
+      description = t('ai.budgetExhaustedResetDescription')
     } else if (billingEnabled.value) {
       actions = [{ label: t('ai.upgradeCta'), color: 'primary', onClick: goToPricing }]
     } else if (plansComingSoon.value) {
@@ -109,6 +123,8 @@ export function useAiBudgetNotices(ai: AiSessionErrors, workspaceId: () => strin
     } else {
       description = t('ai.budgetExhaustedResetDescription')
     }
+    // An own key is never limited by AI Points: always a way forward.
+    actions = [...(actions ?? []), { label: t('ai.freeAllowanceCta'), color: 'neutral', onClick: goToAiSettings }]
     toast.add({
       title: t('ai.budgetExhaustedTitle'),
       description,
@@ -138,7 +154,7 @@ export function useAiBudgetNotices(ai: AiSessionErrors, workspaceId: () => strin
       goToBuyPoints()
       return
     }
-    if (pricingVisible.value) {
+    if (pricingVisible.value && !isPersonalPro.value) {
       void router.push(marketingPath('/pricing'))
       return
     }
@@ -203,5 +219,5 @@ export function useAiBudgetNotices(ai: AiSessionErrors, workspaceId: () => strin
     ai.clearLastError()
   })
 
-  return { creditsExhausted, freePoolExhausted, creditsAreShared, isTeamBudgetExhausted, adminCanRefillWorkspace, canBuyPersonalPoints, billingEnabled, onCapReached, goToAiSettings }
+  return { creditsExhausted, freePoolExhausted, creditsAreShared, isTeamBudgetExhausted, adminCanRefillWorkspace, canBuyPersonalPoints, isPersonalPro, billingEnabled, onCapReached, goToAiSettings }
 }

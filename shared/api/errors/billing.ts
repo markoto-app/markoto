@@ -33,6 +33,8 @@ export const billingErrors = defineErrors('billing', {
   'subscription-check-failed': { status: 502 },
   'terms-required': { status: 400 },
   'topup-needs-plan': { status: 409 },
+  // Billing is on, but this deployment sells no AI credit top-ups (`NUXT_BILLING_TOPUPS_ENABLED=false`).
+  'topups-disabled': { status: 404 },
   'webhook-body-empty': { status: 400 },
   'webhook-failed': { status: 500 },
   'webhook-signature-invalid': { status: 400 },

@@ -115,7 +115,8 @@ export async function startProCheckout(event: H3Event, request: ProCheckoutReque
       ...checkoutReturnUrls(event),
       // Existing customer, else email so Stripe creates one.
       ...customerOrEmailFields(stripeCustomerId, userRow.email),
-      ...checkoutTaxFields(stripeCustomerId !== null)
+      ...checkoutTaxFields(stripeCustomerId !== null),
+      ...promotionCodeFields(interval)
     })
     if (!checkoutSession.url) {
       throw apiError('billing/checkout-failed')
@@ -129,6 +130,18 @@ export async function startProCheckout(event: H3Event, request: ProCheckoutReque
     })
     throw apiError('billing/checkout-failed')
   }
+}
+
+/**
+ * Launch promotions are Stripe promotion codes for the first year of Pro
+ * yearly, so only a NEW yearly Pro subscription shows the code field.
+ * Monthly, in-place plan changes, top-ups and workspace checkouts never
+ * do: a code there would discount something no promotion was meant for.
+ * Managed Payments supports `allow_promotion_codes`. Which codes exist
+ * and what they cover (product, duration, expiry) is set in Stripe.
+ */
+function promotionCodeFields(interval: BillingInterval): { allow_promotion_codes: true } | Record<string, never> {
+  return interval === 'year' ? { allow_promotion_codes: true } : {}
 }
 
 async function probeLiveSubscription(stripe: Stripe, userId: number, subscriptionId: string | null): Promise<Stripe.Subscription | null> {

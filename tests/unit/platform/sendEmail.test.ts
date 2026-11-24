@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { captureLogs } from '../../helpers/logs'
 import {
+  emailDeliveryConfigured,
   safeSendTransactionalEmail,
   sendTransactionalEmail
 } from '../../../server/utils/email/sendEmail'
@@ -197,5 +198,21 @@ describe('safeSendTransactionalEmail', () => {
       subject: 's', body: 'b'
     })
     expect(result).toBeNull()
+  })
+})
+
+describe('emailDeliveryConfigured', () => {
+  afterEach(() => {
+    restoreEnv()
+  })
+
+  it('true only with a Resend key and no explicit stub (one-shot senders rely on it)', () => {
+    delete process.env.NUXT_EMAIL_PROVIDER
+    delete process.env.RESEND_API_KEY
+    expect(emailDeliveryConfigured()).toBe(false)
+    process.env.RESEND_API_KEY = 're_test'
+    expect(emailDeliveryConfigured()).toBe(true)
+    process.env.NUXT_EMAIL_PROVIDER = 'stub'
+    expect(emailDeliveryConfigured()).toBe(false)
   })
 })
