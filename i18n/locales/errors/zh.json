@@ -110,6 +110,7 @@
       "subscription-check-failed": "无法验证当前订阅。请重试。",
       "terms-required": "请接受付费方案条款以继续。",
       "topup-needs-plan": "额外 AI 点数仅限付费套餐。升级到 Pro 即可购买。",
+      "topups-disabled": "此部署目前不出售额外的 AI 点数。",
       "webhook-body-empty": "请求正文为空。",
       "webhook-failed": "无法处理该 webhook 事件。",
       "webhook-signature-invalid": "无法验证 Stripe 签名。",

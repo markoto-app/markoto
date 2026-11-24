@@ -16,6 +16,8 @@ const props = defineProps<{
 
 const { t, locale } = useI18n()
 const { marketingSite } = useInstanceConfig()
+// The packs are advertised only where top-ups are sold (`NUXT_BILLING_TOPUPS_ENABLED`).
+const { topupsEnabled } = useBillingMode()
 
 const packs = computed(() =>
   TOPUP_PACKS.map(pack => formatPrice(pack.price[props.currency], props.currency.toUpperCase(), locale.value)).join(' / ')
@@ -26,7 +28,10 @@ const buyPointsRoute = BUY_AI_POINTS_ROUTE
 
 <template>
   <div class="flex flex-col items-center gap-3 text-sm text-center">
-    <p data-testid="pricing-credits">
+    <p
+      v-if="topupsEnabled"
+      data-testid="pricing-credits"
+    >
       <CommonSeal
         :size="9"
         class="inline-block align-middle mr-2 -mt-0.5"

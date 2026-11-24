@@ -7,6 +7,7 @@
 
 import { resolveBillingMode, type BillingMode } from '~~/shared/config/billingMode'
 import type { PlanName } from '~~/shared/config/tiers'
+import { apiError } from '../api/apiError'
 
 export function getBillingMode(): BillingMode {
   return resolveBillingMode()
@@ -36,6 +37,21 @@ export function assertBillingEnabled(): void {
     message: 'Billing is not enabled on this deployment.',
     data: { code: BILLING_DISABLED_CODE }
   })
+}
+
+/** AI credit top-ups can be bought: billing on and `NUXT_BILLING_TOPUPS_ENABLED` not off. */
+export function topupsAvailable(): boolean {
+  const mode = getBillingMode()
+  return mode.billingEnabled && mode.topupsEnabled !== false
+}
+
+/**
+ * Guard of the top-up checkouts (personal and workspace). With billing on
+ * but top-ups switched off they do not exist on this deployment: 404
+ * `billing/topups-disabled`, like `billing/disabled` for billing itself.
+ */
+export function assertTopupsEnabled(): void {
+  if (getBillingMode().topupsEnabled === false) throw apiError('billing/topups-disabled')
 }
 
 /**

@@ -97,7 +97,7 @@ watch(() => voice.errorMessage.value, (err) => {
 // Billing state: the budget gates the input, send and mic buttons so the
 // user can't type a prompt the server would reject (the bar stays visible
 // to show the way forward), and the notices explain what ran out.
-const { creditsExhausted, freePoolExhausted, creditsAreShared, isTeamBudgetExhausted, adminCanRefillWorkspace, canBuyPersonalPoints, billingEnabled, onCapReached, goToAiSettings } = useAiBudgetNotices(props.ai, () => props.workspaceId)
+const { creditsExhausted, freePoolExhausted, creditsAreShared, isTeamBudgetExhausted, adminCanRefillWorkspace, canBuyPersonalPoints, isPersonalPro, billingEnabled, onCapReached, goToAiSettings } = useAiBudgetNotices(props.ai, () => props.workspaceId)
 
 const placeholder = computed(() => {
   if (!loggedIn.value) return t('ai.loginRequired')
@@ -123,7 +123,7 @@ const exhaustedPlaceholder = computed(() => {
     return adminCanRefillWorkspace.value ? t('ai.workspaceExhaustedPlaceholderAdmin') : t('ai.workspaceExhaustedPlaceholder')
   }
   if (canBuyPersonalPoints.value) return t('ai.exhaustedPlaceholderPro')
-  return billingEnabled.value ? t('ai.exhaustedPlaceholder') : t('ai.exhaustedPlaceholderFree')
+  return billingEnabled.value && !isPersonalPro.value ? t('ai.exhaustedPlaceholder') : t('ai.exhaustedPlaceholderFree')
 })
 
 const disabled = computed(() => {

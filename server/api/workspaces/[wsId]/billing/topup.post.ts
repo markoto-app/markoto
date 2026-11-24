@@ -1,3 +1,4 @@
+import { assertTopupsEnabled } from '../../../../utils/billing/billingMode'
 import { recordPaidTermsAcceptance, requirePaidTermsAccepted } from '../../../../utils/billing/paidTerms'
 import { useStripeClient } from '../../../../utils/billing/stripeClient'
 import { requestBaseUrl } from '../../../../utils/billing/workspaceStripe'
@@ -16,6 +17,7 @@ export default defineApiHandler({
   body: buyWorkspaceTopupBody,
   rateLimit: { namespace: 'billing-checkout', max: 10, windowMs: MINUTE_MS, key: 'user', error: 'billing/rate-limited' },
   handler: async ({ event, wsId, body, workspaceAccess }) => {
+    assertTopupsEnabled()
     const pool = await getPooledWorkspace(wsId)
     if (!pool || !pool.subscription.stripeCustomerId) throw apiError('billing/no-subscription')
     requirePaidTermsAccepted(body)

@@ -174,6 +174,19 @@ describe('AI Points notices: the budget runs out while writing', () => {
     expect(placeholder(wrapper)).toBe('Out of AI Points: buy more to continue')
   })
 
+  it('Pro with top-ups switched off: no purchase, the points refill, the own key works', async () => {
+    useState<BillingMode>('billing-mode').value = { billingEnabled: true, plansComingSoon: false, topupsEnabled: false }
+    setCredits(null, personal('pro', 200))
+    const wrapper = await mountSuspended(AIPromptBar, { props: { ai: aiProps(), workspaceId: null } })
+    await flushPromises()
+    setCredits(null, personal('pro', 0))
+    await flushPromises()
+    const toast = toastAdd.mock.calls[0]?.[0]
+    expect(toast.description).toBe('Your AI Points for this period are used up. They refill when the next period starts.')
+    expect(toast.actions.map((a: { label: string }) => a.label)).toEqual(['Add your own key'])
+    expect(placeholder(wrapper)).toBe('Out of AI Points: they refill next period')
+  })
+
   it('Free: upgrade', async () => {
     setCredits(null, personal('free', 200))
     await mountSuspended(AIPromptBar, { props: { ai: aiProps(), workspaceId: null } })

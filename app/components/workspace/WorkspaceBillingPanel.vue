@@ -39,6 +39,8 @@ const emit = defineEmits<{
 const { t, locale } = useI18n()
 const toast = useToast()
 const { showError } = useErrorHandler()
+// AI credit top-ups sold here (`NUXT_BILLING_TOPUPS_ENABLED`); off: the card only shows bought credits.
+const { topupsEnabled } = useBillingMode()
 
 const overview = ref<WorkspaceBillingOverview | null>(null)
 // Shared with the pricing page and the seat-price prompt; a failed load
@@ -518,6 +520,7 @@ function points(usd: number | null | undefined): string {
 
         <!-- AI credit top-ups -->
         <div
+          v-if="topupsEnabled || (overview.credits?.grants.length ?? 0) > 0"
           class="rounded-lg border border-default bg-default p-5 space-y-3"
           data-testid="workspace-billing-credits-card"
         >

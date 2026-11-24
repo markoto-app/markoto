@@ -23,17 +23,17 @@ afterEach(() => {
 
 describe('resolveBillingMode', () => {
   it('defaults to billing off, no coming-soon surfaces (self-hosted default)', () => {
-    expect(resolveBillingMode({})).toEqual({ billingEnabled: false, plansComingSoon: false, managedPayments: false })
+    expect(resolveBillingMode({})).toEqual({ billingEnabled: false, plansComingSoon: false, managedPayments: false, topupsEnabled: true })
   })
 
   it('billing off + NUXT_PLANS_COMING_SOON → hosted free-only SaaS', () => {
     expect(resolveBillingMode({ NUXT_PLANS_COMING_SOON: 'true' }))
-      .toEqual({ billingEnabled: false, plansComingSoon: true, managedPayments: false })
+      .toEqual({ billingEnabled: false, plansComingSoon: true, managedPayments: false, topupsEnabled: true })
   })
 
   it('billing on ignores NUXT_PLANS_COMING_SOON (nothing is "coming" once it is live)', () => {
     expect(resolveBillingMode({ NUXT_BILLING_ENABLED: 'true', NUXT_PLANS_COMING_SOON: 'true' }))
-      .toEqual({ billingEnabled: true, plansComingSoon: false, managedPayments: false })
+      .toEqual({ billingEnabled: true, plansComingSoon: false, managedPayments: false, topupsEnabled: true })
   })
 
   it('managed payments only count with billing on', () => {

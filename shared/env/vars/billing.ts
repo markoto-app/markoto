@@ -78,6 +78,15 @@ export const billing = defineNamespace({
       services: ['app'],
       scope: 'hosted'
     }),
+    topupsEnabled: v({
+      name: 'NUXT_BILLING_TOPUPS_ENABLED',
+      example: 'true',
+      type: bool,
+      default: true,
+      doc: 'Sell AI credit top-ups (extra AI Points) while billing is on. Off = the top-up checkouts answer 404 `billing/topups-disabled` and no page offers them; plans stay on sale. Stripe Managed Payments needs written approval before it sells stored-value credits.',
+      services: ['app'],
+      scope: 'hosted'
+    }),
     stripeManagedPayments: v({
       name: 'NUXT_STRIPE_MANAGED_PAYMENTS',
       type: bool,

@@ -110,6 +110,7 @@
       "subscription-check-failed": "Das aktuelle Abonnement konnte nicht überprüft werden. Bitte versuche es noch einmal.",
       "terms-required": "Akzeptiere die Bedingungen für kostenpflichtige Pläne, um fortzufahren.",
       "topup-needs-plan": "Zusätzliche KI-Punkte gibt es für bezahlte Pläne. Wechsle auf Pro, um sie zu kaufen.",
+      "topups-disabled": "Zusätzliche KI-Punkte werden hier derzeit nicht verkauft.",
       "webhook-body-empty": "Der Anfrageinhalt ist leer.",
       "webhook-failed": "Das Webhook-Ereignis konnte nicht verarbeitet werden.",
       "webhook-signature-invalid": "Die Stripe-Signatur konnte nicht überprüft werden.",

@@ -4,6 +4,7 @@ import { mountSuspended, registerEndpoint, mockNuxtImport } from '@nuxt/test-uti
 import { flushPromises } from '@vue/test-utils'
 import type { H3Event } from 'h3'
 import { CommonAiCreditsCard } from '#components'
+import type { BillingMode } from '~~/shared/config/billingMode'
 
 // Extra AI Points (top-ups): the card shows the balance and history in
 // AI Points (never dollars), sends
@@ -68,5 +69,21 @@ describe('extra AI Points card', () => {
     expect(wrapper.find('[data-testid="profile-buy-10"]').exists()).toBe(false)
     expect(wrapper.text()).toContain('Upgrade first.')
     expect(wrapper.text()).toContain('0 extra AI Points left')
+  })
+
+  it('top-ups switched off on this deployment: balance and history only, nothing to buy', async () => {
+    useState<BillingMode>('billing-mode').value = { billingEnabled: true, plansComingSoon: false, topupsEnabled: false }
+    try {
+      const wrapper = await mountSuspended(CommonAiCreditsCard, {
+        props: { credits, currency: 'eur', canBuy: true, blockedReason: 'Upgrade first.', testidPrefix: 'profile' }
+      })
+      mounted.push(wrapper)
+      expect(wrapper.find('[data-testid="profile-buy-10"]').exists()).toBe(false)
+      expect(wrapper.find('[data-testid="profile-paid-terms"]').exists()).toBe(false)
+      expect(wrapper.text()).not.toContain('Upgrade first.')
+      expect(wrapper.get('[data-testid="profile-credits-balance"]').text()).toBe('32,500 extra AI Points left')
+    } finally {
+      useState<BillingMode>('billing-mode').value = { billingEnabled: false, plansComingSoon: false, topupsEnabled: true }
+    }
   })
 })

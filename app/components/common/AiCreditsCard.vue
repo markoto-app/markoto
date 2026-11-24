@@ -22,6 +22,9 @@ const props = defineProps<{
 
 const { t, locale } = useI18n()
 const { showError } = useErrorHandler()
+// Top-ups switched off on this deployment: balance and past purchases only.
+const { topupsEnabled } = useBillingMode()
+const buyable = computed(() => props.canBuy && topupsEnabled.value)
 const buying = ref<TopupPackId | null>(null)
 // The Paid Plans Terms box: credits are usable at once, so the box
 // also carries the consent that ends the withdrawal right on first use.
@@ -76,13 +79,13 @@ function fmtDate(iso: string): string {
     </p>
 
     <PricingPaidTermsConsent
-      v-if="canBuy"
+      v-if="buyable"
       v-model="paidTermsAccepted"
       kind="topup"
       :testid="`${testidPrefix}-paid-terms`"
     />
     <div
-      v-if="canBuy"
+      v-if="buyable"
       class="grid gap-2 sm:grid-cols-3"
     >
       <UButton
@@ -100,7 +103,7 @@ function fmtDate(iso: string): string {
       </UButton>
     </div>
     <p
-      v-else-if="blockedReason"
+      v-else-if="blockedReason && topupsEnabled"
       class="text-sm text-muted"
     >
       {{ blockedReason }}

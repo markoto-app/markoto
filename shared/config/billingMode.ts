@@ -43,12 +43,21 @@ export interface BillingMode {
    * Absent = false.
    */
   managedPayments?: boolean
+  /**
+   * AI credit top-ups are sold (`NUXT_BILLING_TOPUPS_ENABLED`, default on).
+   * Can be off while billing is on: Stripe Managed Payments sells
+   * stored-value credits only after its written approval. Only meaningful
+   * with billing on (or coming soon, where it decides whether the packs are
+   * advertised). Absent = true.
+   */
+  topupsEnabled?: boolean
 }
 
 export const BILLING_DISABLED_MODE: BillingMode = Object.freeze({
   billingEnabled: false,
   plansComingSoon: false,
-  managedPayments: false
+  managedPayments: false,
+  topupsEnabled: true
 })
 
 export function resolveBillingMode(source?: RawEnv): BillingMode {
@@ -56,6 +65,7 @@ export function resolveBillingMode(source?: RawEnv): BillingMode {
   return {
     billingEnabled: billing.enabled,
     plansComingSoon: !billing.enabled && billing.plansComingSoon,
-    managedPayments: billing.enabled && billing.stripeManagedPayments
+    managedPayments: billing.enabled && billing.stripeManagedPayments,
+    topupsEnabled: billing.topupsEnabled
   }
 }

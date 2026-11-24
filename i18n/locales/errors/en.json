@@ -110,6 +110,7 @@
       "subscription-check-failed": "Could not verify the current subscription. Please try again.",
       "terms-required": "Accept the Paid Plans Terms to continue.",
       "topup-needs-plan": "Extra AI Points are for paid plans. Upgrade to Pro to buy them.",
+      "topups-disabled": "Extra AI Points are not on sale on this deployment.",
       "webhook-body-empty": "The request body is empty.",
       "webhook-failed": "The webhook event could not be processed.",
       "webhook-signature-invalid": "The Stripe signature could not be verified.",

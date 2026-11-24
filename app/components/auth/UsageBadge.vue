@@ -35,7 +35,7 @@ const { billing, refresh: refreshBilling } = useBilling()
 // member's limit), everywhere else the user's own.
 const workspaceContext = useAiWorkspaceContext()
 const { state: credits, isKnown, isExhausted: pointsExhausted, planPointsRemaining, pointsTotal, creditPoints, fillRatio, isFreeAllowanceExhausted, isWorkspaceShared } = useAiCredits(workspaceContext)
-const { billingEnabled, plansComingSoon } = useBillingMode()
+const { billingEnabled, plansComingSoon, canBuyTopups } = useBillingMode()
 // AI Points only measure platform-paid AI (an operator's model-alias
 // defaults). Calls on the user's own key never touch them, so the meter is
 // hidden when nothing the user can do spends points, and says so when they
@@ -113,7 +113,7 @@ function onUpgrade(): void {
 // Pro is the top personal plan: with its points used up, the way forward
 // is buying AI Points. Any user whose points are gone can switch to their
 // own key, which never spends them (the free-pool notice links it already).
-const canBuyPoints = computed(() => billingEnabled.value && !isWorkspaceShared.value && billing.value?.plan === 'pro')
+const canBuyPoints = computed(() => canBuyTopups.value && !isWorkspaceShared.value && billing.value?.plan === 'pro')
 const offerOwnKey = computed(() => pointsExhausted.value && !isFreeAllowanceExhausted.value && !usesOwnKey.value)
 
 function onBuyPoints(): void {
