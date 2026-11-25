@@ -102,8 +102,8 @@ describe('analytics client', () => {
     expect(url).toBe('/a/api/send')
     expect(init.credentials).toBe('omit')
     const body = JSON.parse(String(init.body)) as { payload: { url: string } }
-    // The click id is not sent to analytics, only the UTM parameters.
-    expect(body.payload.url).toBe('/?utm_source=google')
+    // The click id is not sent to analytics, only the UTM parameters and the source.
+    expect(body.payload.url).toBe('/?utm_source=google&ref=google')
   })
 
   it('keeps the click id in memory for conversions, only when conversions are on', () => {

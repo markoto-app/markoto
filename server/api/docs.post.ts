@@ -6,6 +6,7 @@ import { INITIAL_CONTENT_MAX_LENGTH } from '~~/shared/config/docCreate'
 import { createDocBody } from '~~/shared/api/docs'
 import { requestLocale } from '../utils/platform/requestLocale'
 import { captureDocumentConversion } from '../utils/analytics/adConversions'
+import { documentAcquisitionSource } from '../utils/analytics/acquisitionSource'
 
 // Document creation. Anonymous creation is allowed (falls back to `open-edit`
 // access mode, no workspace) but gated on the hosted shape
@@ -72,7 +73,9 @@ export default defineApiHandler({
       templateId: body?.templateId,
       themePreset: body?.themePreset,
       themeId: body?.themeId,
-      content: body?.content
+      content: body?.content,
+      // Admin funnel only (off unless statistics are on).
+      acquisitionSource: await documentAcquisitionSource(event, body?.acquisitionSource, self)
     })
     // Google Ads conversion (off unless configured; never fails the request).
     await captureDocumentConversion(event, body?.attribution, self)

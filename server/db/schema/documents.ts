@@ -98,6 +98,11 @@ export const documents = pgTable('documents', {
   // older anonymous docs, and instances with the gate off.
   anonTermsVersion: integer('anon_terms_version'),
   anonTermsAcceptedAt: timestamp('anon_terms_accepted_at', { withTimezone: true }),
+  // Which site brought the creator (shared/analytics/acquisition.ts): the
+  // creating visit's source for an anonymous document, the account's for
+  // an owned one. NULL = direct or unknown. Only for the admin's "Funnel
+  // by source"; written only where statistics are on.
+  acquisitionSource: text('acquisition_source', { enum: ['producthunt', 'hackernews', 'google', 'github', 'other'] }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   lastActive: timestamp('last_active', { withTimezone: true }).notNull().defaultNow(),
   // When the content or the title last changed (written by the sync server

@@ -3138,6 +3138,7 @@
     "tabs": {
       "overview": "概要",
       "users": "ユーザー",
+      "funnel": "ファネル",
       "content": "コンテンツ",
       "ai": "AI",
       "revenue": "収益",
@@ -3367,6 +3368,31 @@
       "combined": "合計(CHF)",
       "note": "月あたりの推定値です。EUR/CHFは{eur}、USD/CHFは{usd}で換算しています。前提条件はNUXT_STATS_*で設定します。",
       "aiUnavailable": "AIコストを読み取れなかったため、0として計算しています。"
+    },
+    "funnel": {
+      "totals": "すべての流入元",
+      "note": "訪問数は訪問者統計から、ドキュメント、登録、チェックアウト、有料アカウントはデータベースから取得するため、広告ブロッカーが訪問を隠しても数えられます。各ステップには件数と前のステップに対する割合を表示します。",
+      "notTracking": "流入元は訪問者統計が有効な間だけ記録されます (NUXT_PUBLIC_ANALYTICS_WEBSITE_ID)。ここではすべて直接として数えられます。",
+      "noVisits": "訪問数を表示できません: 統計データベースを読み取れません。",
+      "bySource": "流入元別ファネル",
+      "source": "流入元",
+      "unavailable": "なし",
+      "step": {
+        "visits": "訪問",
+        "documents": "最初のドキュメント",
+        "signups": "登録",
+        "checkouts": "チェックアウト開始",
+        "paid": "現在有料"
+      },
+      "sources": {
+        "producthunt": "Product Hunt",
+        "hackernews": "Hacker News",
+        "google": "Google",
+        "github": "GitHub",
+        "other": "その他のサイト",
+        "direct": "直接または不明",
+        "all": "すべての流入元"
+      }
     }
   },
   "admin": {

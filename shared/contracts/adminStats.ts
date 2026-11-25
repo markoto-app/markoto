@@ -5,6 +5,7 @@
 
 import { DAY_MS } from '../config/units'
 import type { BillingInterval, Currency, PaidPlanName, PlanPriceTable } from '../config/pricing'
+import { FUNNEL_SOURCES, type FunnelSource } from '../analytics/acquisition'
 
 export const STATS_RANGES = ['7', '30', '90', '365', 'all'] as const
 export type StatsRange = typeof STATS_RANGES[number]
@@ -320,4 +321,71 @@ export interface OverviewStats {
   content: { documents: number, created: Kpi, documentSeries: SeriesPoint[], workspaces: number, knowledgeFiles: number, publishedPages: number }
   revenue: Pick<RevenueStats, 'revenue' | 'payingCustomers' | 'billingEnabled' | 'plansComingSoon' | 'combinedChf'> & { waitlistConfirmed: number, contributionChf: number }
   ai: Pick<AiStats, 'spendUsd' | 'aiUsers' | 'spendAvailable'>
+}
+
+// Funnel by source
+
+/** The funnel's steps, in order (definitions: docs/contributing/admin-metrics.md#funnel-by-source). */
+export const FUNNEL_STEPS = ['visits', 'documents', 'signups', 'checkouts', 'paid'] as const
+export type FunnelStep = typeof FUNNEL_STEPS[number]
+
+/** One source's counts; `visits` is null where the statistics database cannot be read. */
+export interface FunnelRow {
+  source: FunnelSource | 'all'
+  visits: number | null
+  documents: number
+  signups: number
+  checkouts: number
+  paid: number
+}
+
+export interface FunnelStats {
+  window: StatsWindow
+  /** Sources are recorded only where the statistics are on (NUXT_PUBLIC_ANALYTICS_WEBSITE_ID). */
+  trackingEnabled: boolean
+  /** Visits come from Umami's database; false when it is off or could not be read. */
+  visitsAvailable: boolean
+  /** One row per source (every source, also empty ones), in `FUNNEL_SOURCES` order. */
+  rows: FunnelRow[]
+  /** All sources together. */
+  total: FunnelRow
+}
+
+/** Step-to-step conversion in percent (one decimal); null when the step before is unknown or 0. */
+export function stepConversion(row: FunnelRow, step: FunnelStep): number | null {
+  const i = FUNNEL_STEPS.indexOf(step)
+  if (i <= 0) return null
+  const before = row[FUNNEL_STEPS[i - 1] as FunnelStep]
+  const value = row[step]
+  if (before === null || value === null || before === 0) return null
+  return pct(value, before)
+}
+
+type Counts = Omit<FunnelRow, 'source'>
+
+/** Rows for every source from the per-source counts (missing sources are 0), plus the total. */
+export function funnelRows(counts: Partial<Record<FunnelSource, Partial<Counts>>>, visitsAvailable: boolean): { rows: FunnelRow[], total: FunnelRow } {
+  const rows = FUNNEL_SOURCES.map((source): FunnelRow => {
+    const c = counts[source] ?? {}
+    return {
+      source,
+      visits: visitsAvailable ? (c.visits ?? 0) : null,
+      documents: c.documents ?? 0,
+      signups: c.signups ?? 0,
+      checkouts: c.checkouts ?? 0,
+      paid: c.paid ?? 0
+    }
+  })
+  const sum = (k: Exclude<keyof Counts, 'visits'>) => rows.reduce((n, r) => n + r[k], 0)
+  return {
+    rows,
+    total: {
+      source: 'all',
+      visits: visitsAvailable ? rows.reduce((n, r) => n + (r.visits ?? 0), 0) : null,
+      documents: sum('documents'),
+      signups: sum('signups'),
+      checkouts: sum('checkouts'),
+      paid: sum('paid')
+    }
+  }
 }

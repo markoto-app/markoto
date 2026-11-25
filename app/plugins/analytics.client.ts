@@ -13,7 +13,14 @@
 //     so the server can attribute a new account (server/utils/analytics/);
 //   - `signup_completed` when the server redirects a NEW account to
 //     `/?signed_up=<provider>` (the parameter is removed again);
-//   - product-tour scroll depth.
+//   - product-tour scroll depth;
+//   - the acquisition source of the visit (`?ref=producthunt`, `utm_source`
+//     or the referring site, as one category of
+//     shared/analytics/acquisition.ts): sent as `ref` on the funnel events,
+//     appended to sign-in links so a new account keeps it, and taken back
+//     from `?signed_up_source=` after a sign-up;
+//   - `checkout_completed` when Stripe sends a buyer back
+//     (`/pricing?checkout=success`, `/w/…?billing=success`).
 // The click id is also removed from the address bar, so a copied link
 // doesn't carry it.
 
@@ -21,13 +28,19 @@ import { createAnalyticsClient, setAnalyticsClient } from '~/utils/analytics/ana
 import { ANALYTICS_EVENTS, loginProviderOfPath, newTourDepths, resolveClickEvent } from '~~/shared/analytics/events'
 import { CLICK_ID_PARAMS, clickIdQuery } from '~~/shared/analytics/attribution'
 import { optedOutOfTracking } from '~~/shared/analytics/pages'
+import { SIGNED_UP_SOURCE_PARAM, SOURCE_PARAM, parseAcquisitionSource } from '~~/shared/analytics/acquisition'
 
 export default defineNuxtPlugin((nuxtApp) => {
   const config = useRuntimeConfig().public.analytics
   if (!config?.websiteId && !config?.adsConversions) return
 
   const client = createAnalyticsClient(
-    { websiteId: config.websiteId ?? '', endpoint: config.endpoint || '/a/api/send', adsConversions: Boolean(config.adsConversions) },
+    {
+      websiteId: config.websiteId ?? '',
+      endpoint: config.endpoint || '/a/api/send',
+      adsConversions: Boolean(config.adsConversions),
+      signedIn: useUserSession().loggedIn.value
+    },
     {
       fetch: globalThis.fetch.bind(globalThis),
       location: { hostname: location.hostname, search: location.search },
@@ -43,10 +56,12 @@ export default defineNuxtPlugin((nuxtApp) => {
   const router = useRouter()
   const route = useRoute()
 
-  // Drop the click id from the address bar (kept in memory above).
+  // Drop the click id and the launch `ref` from the address bar (kept in
+  // memory above), so a copied link carries neither.
   const url = new URL(location.href)
-  if (CLICK_ID_PARAMS.some(p => url.searchParams.has(p))) {
-    for (const p of CLICK_ID_PARAMS) url.searchParams.delete(p)
+  const landingParams = [...CLICK_ID_PARAMS, SOURCE_PARAM]
+  if (landingParams.some(p => url.searchParams.has(p))) {
+    for (const p of landingParams) url.searchParams.delete(p)
     history.replaceState(history.state, '', url.pathname + url.search + url.hash)
   }
 
@@ -56,8 +71,13 @@ export default defineNuxtPlugin((nuxtApp) => {
     if (landingClick) client.track(ANALYTICS_EVENTS.adLanding, { network: 'google', id_type: landingClick.type }, route.path)
     const signedUp = route.query.signed_up
     if (signedUp === 'github' || signedUp === 'google' || signedUp === 'oidc') {
+      // The source the new account was stored with (the sign-in left the tab).
+      client.setSource(parseAcquisitionSource(route.query[SIGNED_UP_SOURCE_PARAM]))
       client.track(ANALYTICS_EVENTS.signupCompleted, { provider: signedUp }, route.path)
-      void router.replace({ query: { ...route.query, signed_up: undefined } })
+      void router.replace({ query: { ...route.query, signed_up: undefined, [SIGNED_UP_SOURCE_PARAM]: undefined } })
+    }
+    if (route.query.checkout === 'success' || route.query.billing === 'success') {
+      client.track(ANALYTICS_EVENTS.checkoutCompleted, { kind: route.query.checkout === 'success' ? 'personal' : 'workspace' }, route.path)
     }
   })
   router.afterEach((to, from) => {
@@ -85,6 +105,8 @@ export default defineNuxtPlugin((nuxtApp) => {
     if (!provider) return
     client.track(ANALYTICS_EVENTS.signupStarted, { provider }, route.path)
     for (const [k, v] of Object.entries(clickIdQuery(client.clickId()))) href.searchParams.set(k, v)
+    const source = client.source()
+    if (source) href.searchParams.set(SOURCE_PARAM, source)
     link.href = href.toString()
   }, { capture: true })
 

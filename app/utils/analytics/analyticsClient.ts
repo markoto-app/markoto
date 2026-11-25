@@ -8,12 +8,19 @@
 
 import { attributionFromQuery, searchToQuery, type Attribution, type ClickId } from '~~/shared/analytics/attribution'
 import { buildCollectPayload, trackablePath } from '~~/shared/analytics/pages'
-import type { AnalyticsEventData, AnalyticsEventName, ResolvedEvent } from '~~/shared/analytics/events'
+import { SOURCE_TAGGED_EVENTS, type AnalyticsEventData, type AnalyticsEventName, type ResolvedEvent } from '~~/shared/analytics/events'
+import { acquisitionSourceOf, type AcquisitionSource } from '~~/shared/analytics/acquisition'
 
 export interface AnalyticsConfig {
   websiteId: string
   endpoint: string
   adsConversions: boolean
+  /**
+   * Signed in at page load: the referrer is then not a source (after a
+   * sign-in it is the provider's page); only an explicit `ref` /
+   * `utm_source` counts.
+   */
+  signedIn?: boolean
 }
 
 export interface AnalyticsEnv {
@@ -34,6 +41,10 @@ export interface AnalyticsClient {
   /** The Google Ads click id of this visit, when conversion tracking is on. */
   clickId: () => ClickId | null
   attribution: () => Attribution
+  /** The visit's acquisition source (null = direct, or statistics off). */
+  source: () => AcquisitionSource | null
+  /** Set the source the server knows better (the account's, after a sign-up). */
+  setSource: (source: AcquisitionSource | null) => void
 }
 
 const NOOP: AnalyticsClient = {
@@ -41,19 +52,26 @@ const NOOP: AnalyticsClient = {
   track: () => {},
   trackResolved: () => {},
   clickId: () => null,
-  attribution: () => ({ clickId: null, utm: {} })
+  attribution: () => ({ clickId: null, utm: {} }),
+  source: () => null,
+  setSource: () => {}
 }
 
 export function createAnalyticsClient(config: AnalyticsConfig, env: AnalyticsEnv, optedOut: boolean): AnalyticsClient {
   // A visitor who opted out (GPC / DNT) sends nothing and keeps no click id.
   if (optedOut) return NOOP
 
-  const landing = attributionFromQuery(searchToQuery(env.location.search))
+  const query = searchToQuery(env.location.search)
+  const landing = attributionFromQuery(query)
   const attribution: Attribution = {
     utm: landing.utm,
     clickId: config.adsConversions ? landing.clickId : null
   }
   const sending = Boolean(config.websiteId)
+  // The acquisition source belongs to the statistics: kept only where they are on.
+  let source: AcquisitionSource | null = sending
+    ? acquisitionSourceOf({ query, referrer: config.signedIn ? '' : env.referrer, ownHost: env.location.hostname })
+    : null
   // Umami's session token from its last answer: skips its session lookup.
   let cacheToken: string | null = null
   let lastPageview: string | null = null
@@ -68,7 +86,8 @@ export function createAnalyticsClient(config: AnalyticsConfig, env: AnalyticsEnv
       path,
       title: env.title(),
       referrer: env.referrer,
-      utm: attribution.utm
+      utm: attribution.utm,
+      ref: source
     }, event)
     const headers: Record<string, string> = { 'content-type': 'application/json' }
     if (cacheToken) headers['x-umami-cache'] = cacheToken
@@ -91,14 +110,23 @@ export function createAnalyticsClient(config: AnalyticsConfig, env: AnalyticsEnv
       send(path)
     },
     track(name, data, path) {
-      const d = data as Record<string, string | number | boolean> | undefined
-      send(path, { name, ...(d && Object.keys(d).length > 0 ? { data: d } : {}) })
+      send(path, withSource({ name, ...(data && Object.keys(data).length > 0 ? { data: data as Record<string, string | number | boolean> } : {}) }))
     },
     trackResolved(event, path) {
-      send(path, event)
+      send(path, withSource(event))
     },
     clickId: () => attribution.clickId,
-    attribution: () => attribution
+    attribution: () => attribution,
+    source: () => source,
+    setSource(next) {
+      source = next
+    }
+  }
+
+  /** A funnel event with the visit's source as `ref` (`direct` when none). */
+  function withSource(event: ResolvedEvent): ResolvedEvent {
+    if (!SOURCE_TAGGED_EVENTS.has(event.name)) return event
+    return { ...event, data: { ...event.data, ref: source ?? 'direct' } }
   }
 }
 

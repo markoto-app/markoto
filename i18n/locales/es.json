@@ -3138,6 +3138,7 @@
     "tabs": {
       "overview": "Resumen",
       "users": "Usuarios",
+      "funnel": "Embudo",
       "content": "Contenido",
       "ai": "IA",
       "revenue": "Ingresos",
@@ -3367,6 +3368,31 @@
       "combined": "Total, en CHF",
       "note": "Estimado, por mes. EUR a CHF a {eur}, USD a CHF a {usd}. Los supuestos se definen con NUXT_STATS_*.",
       "aiUnavailable": "No se pudo leer el coste de IA y cuenta como 0."
+    },
+    "funnel": {
+      "totals": "Todas las fuentes",
+      "note": "Las visitas provienen de las estadísticas de visitantes; los documentos, registros, pagos y cuentas de pago, de la base de datos, por lo que se cuentan aunque un bloqueador de anuncios oculte la visita. Cada paso muestra su número y la proporción respecto al paso anterior.",
+      "notTracking": "Las fuentes solo se registran mientras las estadísticas de visitantes están activadas (NUXT_PUBLIC_ANALYTICS_WEBSITE_ID). Aquí todo cuenta como directo.",
+      "noVisits": "Las visitas no están disponibles: no se puede leer la base de datos de estadísticas.",
+      "bySource": "Embudo por fuente",
+      "source": "Fuente",
+      "unavailable": "n/d",
+      "step": {
+        "visits": "Visitas",
+        "documents": "Primer documento",
+        "signups": "Registros",
+        "checkouts": "Pago iniciado",
+        "paid": "Pagan ahora"
+      },
+      "sources": {
+        "producthunt": "Product Hunt",
+        "hackernews": "Hacker News",
+        "google": "Google",
+        "github": "GitHub",
+        "other": "Otros sitios",
+        "direct": "Directo o desconocido",
+        "all": "Todas las fuentes"
+      }
     }
   },
   "admin": {

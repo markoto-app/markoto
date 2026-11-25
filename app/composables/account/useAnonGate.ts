@@ -126,10 +126,15 @@ export function useAnonDocCreate() {
   const analytics = useAnalytics()
 
   async function post(body: Record<string, unknown>): Promise<string> {
-    // The ad click id travels with the creation request (it is the
-    // conversion); null when there is none or conversions are off.
+    // The ad click id and the visit's acquisition source travel with the
+    // creation request (it is the conversion); null when there is none or
+    // they are off.
     const clickId = analytics.clickId()
-    const res = await apiFetch('/api/docs', { method: 'post', body: clickId ? { ...body, attribution: clickId } : body })
+    const acquisitionSource = analytics.acquisitionSource()
+    const res = await apiFetch('/api/docs', {
+      method: 'post',
+      body: { ...body, ...(clickId ? { attribution: clickId } : {}), ...(acquisitionSource ? { acquisitionSource } : {}) }
+    })
     analytics.track(ANALYTICS_EVENTS.docCreated, { anonymous: !loggedIn.value, source: body.content === undefined ? 'dialog' : 'try_it' })
     return res.docId
   }

@@ -1,7 +1,8 @@
 // Umami's database (`umami`), next to the app's on the same Postgres
-// (docs/SELF-HOSTING.md#analytics-optional). The app only deletes expired visitor data
-// there (Umami itself keeps everything forever); `server/repos/umamiRetention.ts`
-// is the only user of this pool.
+// (docs/SELF-HOSTING.md#analytics-optional). The app deletes expired visitor data
+// there (Umami itself keeps everything forever, `server/repos/umamiRetention.ts`)
+// and counts landing visits per source for the admin's funnel
+// (`server/repos/umamiVisits.ts`); nothing else uses this pool.
 //
 // Credentials: Umami's own role when the deployment runs one
 // (NUXT_ANALYTICS_DB_USER / _PASSWORD, wired by compose from

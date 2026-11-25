@@ -1,9 +1,11 @@
 // Which pages are counted, and what the analytics endpoint receives.
 // Only the public site is counted: documents (/d/…), published pages
 // (/p/…), workspaces, settings, admin, sign-in and token links never are,
-// and no URL ever carries more than its path plus the UTM parameters.
+// and no URL ever carries more than its path plus the UTM parameters and
+// the coarse acquisition source (`ref`, shared/analytics/acquisition.ts).
 
 import { UTM_PARAMS, type Utm } from './attribution'
+import { SOURCE_PARAM, type AcquisitionSource } from './acquisition'
 import type { ResolvedEvent } from './events'
 
 /** Paths (and their sub-paths) that are never counted as page views. */
@@ -46,6 +48,8 @@ export interface CollectContext {
   title: string
   referrer: string
   utm: Utm
+  /** The visit's acquisition source, sent as `ref=<source>` (one of a fixed list). */
+  ref?: AcquisitionSource | null
 }
 
 export interface CollectPayload {
@@ -63,12 +67,13 @@ export interface CollectPayload {
   }
 }
 
-function urlWithUtm(path: string, utm: Utm): string {
+function urlWithUtm(path: string, utm: Utm, ref: AcquisitionSource | null | undefined): string {
   const params = new URLSearchParams()
   for (const key of UTM_PARAMS) {
     const v = utm[key]
     if (v) params.set(key, v)
   }
+  if (ref) params.set(SOURCE_PARAM, ref)
   const q = params.toString()
   return q ? `${path}?${q}` : path
 }
@@ -88,7 +93,7 @@ export function buildCollectPayload(ctx: CollectContext, event?: ResolvedEvent):
       hostname: ctx.hostname,
       language: ctx.language.slice(0, 35),
       screen: ctx.screen,
-      url: urlWithUtm(path, ctx.utm),
+      url: urlWithUtm(path, ctx.utm, ctx.ref),
       ...(counted && ctx.title ? { title: ctx.title.slice(0, 200) } : {}),
       ...(counted ? { referrer: referrerOrigin(ctx.referrer, ctx.hostname) } : {}),
       ...(event ? { name: event.name, ...(event.data ? { data: event.data } : {}) } : {})
