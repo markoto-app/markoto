@@ -34,7 +34,10 @@ const update = vi.fn(async (_id: string, _params: Stripe.SubscriptionUpdateParam
 
 const fakeStripe = partial<Stripe>({
   checkout: partial<Stripe['checkout']>({
-    sessions: partial<Stripe['checkout']['sessions']>({ create: create as unknown as Stripe['checkout']['sessions']['create'] })
+    sessions: partial<Stripe['checkout']['sessions']>({
+      create: create as unknown as Stripe['checkout']['sessions']['create'],
+      list: (async function* () {}) as unknown as Stripe['checkout']['sessions']['list']
+    })
   }),
   subscriptions: partial<Stripe['subscriptions']>({
     retrieve: (async () => liveSubscription('price_pro_month')) as unknown as Stripe['subscriptions']['retrieve'],

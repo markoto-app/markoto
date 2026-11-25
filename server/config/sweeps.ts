@@ -32,6 +32,7 @@ export const SWEEPS = {
   // Must stay strictly longer than the 5-minute agentic-loop deadline
   // (AI_SESSION_HARD_DEADLINE_MS in server/utils/agentic/limits.ts).
   analyticsRetention: { intervalMs: DAY_MS, startupDelayMs: 5 * MINUTE_MS },
+  billingConsistency: { intervalMs: DAY_MS, startupDelayMs: 10 * MINUTE_MS },
   aiSessions: { intervalMs: MINUTE_MS, staleAfterMs: 7 * MINUTE_MS },
   auditLog: { intervalMs: DAY_MS, startupDelayMs: 45 * SECOND_MS },
   customDomainRecheck: { intervalMs: 15 * MINUTE_MS },

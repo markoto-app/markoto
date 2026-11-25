@@ -1,6 +1,6 @@
 # Admin product stats: metric definitions
 
-The admin area (`/admin`, "Admin" in the account menu of an admin; its pages are listed in `app/utils/admin/adminSections.ts`) holds the stats page `/admin/stats` (tabs Overview, Users, Content, AI, Revenue, Operations) and the one-page investor summary `/admin/stats/investor`. Both show product numbers of one instance. This page defines every number, so a figure in an investor update can be reproduced from the database.
+The admin area (`/admin`, "Admin" in the account menu of an admin; its pages are listed in `app/utils/admin/adminSections.ts`) holds the stats page `/admin/stats` (tabs Overview, Users, Content, AI, Revenue, Operations) and the one-page investor summary `/admin/stats/investor`. The billing check `/admin/billing-consistency` is described in [billing.md](billing.md#billing-consistency-check). Both show product numbers of one instance. This page defines every number, so a figure in an investor update can be reproduced from the database.
 
 - Endpoints: `GET /api/admin/stats/{overview,users,content,ai,revenue,ops}?range=7|30|90|365|all[&bucket=day|week|month]`, admin only (`allow.admin()`).
 - Code: SQL in `server/repos/productStats.ts` and `server/repos/litellmSpend.ts`, assembly in `server/utils/adminStats/productStats.ts`, shapes and arithmetic in `shared/contracts/adminStats.ts`.

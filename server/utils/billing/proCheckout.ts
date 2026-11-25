@@ -104,6 +104,8 @@ export async function startProCheckout(event: H3Event, request: ProCheckoutReque
     return { updated: true, plan, interval }
   }
 
+  // Only the newest Pro Checkout of a user can still be paid.
+  await expireOpenProCheckouts(stripe, { userId, customerId: stripeCustomerId, email: userRow.email })
   try {
     const checkoutSession = await stripe.checkout.sessions.create({
       mode: 'subscription',
@@ -129,6 +131,77 @@ export async function startProCheckout(event: H3Event, request: ProCheckoutReque
       tags: { component: 'billing', event: 'checkout_create_failed', userId: String(userId) }
     })
     throw apiError('billing/checkout-failed')
+  }
+}
+
+/** How far back an open Checkout Session can reach: Stripe expires one after 24 h by default. */
+const OPEN_SESSION_WINDOW_SECONDS = 24 * 3600
+/** Upper bound on the sessions read for a buyer without a customer (pages of 100). */
+const OPEN_SESSION_SCAN_LIMIT = 500
+
+/** Who is buying: the Stripe customer, or (first purchase) the email Checkout prefills. */
+export interface ProBuyer {
+  userId: number
+  customerId: string | null
+  email: string | null
+}
+
+/**
+ * A personal plan Checkout of this buyer: never a top-up, never another
+ * subject's. Without a customer the email must match too: user ids alone
+ * are not unique across the databases that share one Stripe sandbox.
+ */
+function isOwnProCheckout(session: Stripe.Checkout.Session, buyer: ProBuyer): boolean {
+  const id = String(buyer.userId)
+  return session.mode === 'subscription'
+    && session.client_reference_id === id
+    && session.metadata?.subject_type === 'user'
+    && session.metadata?.subject_id === id
+    && (buyer.customerId !== null || session.customer_email === buyer.email)
+}
+
+/**
+ * Expire the user's other open Pro Checkout Sessions before a new one is
+ * created, so only the newest can still be paid (two tabs or a stale
+ * Checkout page would otherwise each buy a subscription). A buyer with a
+ * Stripe customer is listed by customer; a first-time buyer has none yet
+ * (Checkout creates it from `customer_email`), so the open sessions of the
+ * last 24 h are read and matched by `client_reference_id`, metadata and
+ * the prefilled email.
+ * Best-effort: a failure is logged and the checkout goes on, because the
+ * webhook still cancels and refunds a duplicate that slips through
+ * (`cancelDuplicateSubscription`).
+ */
+export async function expireOpenProCheckouts(stripe: Stripe, buyer: ProBuyer, now: Date = new Date()): Promise<number> {
+  const { userId, customerId } = buyer
+  if (!customerId && !buyer.email) return 0
+  let expired = 0
+  let scanned = 0
+  try {
+    const params: Stripe.Checkout.SessionListParams = customerId
+      ? { customer: customerId, status: 'open', limit: 100 }
+      : { status: 'open', created: { gte: Math.floor(now.getTime() / 1000) - OPEN_SESSION_WINDOW_SECONDS }, limit: 100 }
+    for await (const session of stripe.checkout.sessions.list(params)) {
+      if (++scanned > OPEN_SESSION_SCAN_LIMIT) break
+      if (!isOwnProCheckout(session, buyer)) continue
+      if (await expireSession(stripe, session.id)) expired++
+    }
+  } catch (e) {
+    log.warn('open checkouts not expired', { userId, err: e })
+    Sentry.captureException(e, { tags: { component: 'billing', event: 'checkout_expire_failed', userId: String(userId) } })
+  }
+  if (expired > 0) log.info('expired open pro checkouts', { userId, expired })
+  return expired
+}
+
+async function expireSession(stripe: Stripe, sessionId: string): Promise<boolean> {
+  try {
+    await stripe.checkout.sessions.expire(sessionId)
+    return true
+  } catch (e) {
+    // Completed or expired in the meantime: nothing left to expire.
+    if ((e as { type?: string })?.type === 'StripeInvalidRequestError') return false
+    throw e
   }
 }
 

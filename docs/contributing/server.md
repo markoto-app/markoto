@@ -142,7 +142,7 @@ Options for the exceptions: `enabled` (checked once at boot, e.g. `isBillingEnab
 | `litellm-key-reconcile` | at boot + 6 h | aligns LiteLLM keys and teams with plans (`utils/litellm/keyReconcile.ts`) |
 | `spend-logs-sweep` | daily | LiteLLM spend-log retention |
 | `ai-spend-rollup` | 6 h | daily AI cost rollup without user ids (`utils/litellm/aiSpendRollup.ts`), before the spend logs expire |
-| `webhook-event-sweep`, `subscription-cancel-backfill`, `workspace-budget-alerts`, `ai-credit-settlement` | daily / daily / 15 min / hourly | billing jobs, started only with billing on ([billing.md](billing.md)) |
+| `webhook-event-sweep`, `subscription-cancel-backfill`, `billing-consistency-check`, `workspace-budget-alerts`, `ai-credit-settlement` | daily / daily / daily / 15 min / hourly | billing jobs, started only with billing on ([billing.md](billing.md)) |
 
 ## Other subsystems
 

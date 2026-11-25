@@ -239,3 +239,25 @@ export async function backfillUserPlanCancelAt(_by: SystemActor, userId: number,
     .where(and(eq(users.id, userId), eq(users.stripeSubscriptionId, subscriptionId), isNull(users.subscriptionEventAt), isNull(users.planCancelAt)))
     .returning({ id: users.id })).length
 }
+
+export interface TrackedUserSubscription {
+  userId: number
+  subscriptionId: string
+  customerId: string | null
+  plan: PersonalPlanName
+  interval: BillingInterval | null
+  status: StripeSubscriptionStatus | null
+}
+
+/** Every personal subscription a user row tracks: the billing consistency check compares them with Stripe. */
+export async function listTrackedUserSubscriptions(_by: SystemActor): Promise<TrackedUserSubscription[]> {
+  const rows = await useDatabase().select({
+    userId: users.id,
+    subscriptionId: users.stripeSubscriptionId,
+    customerId: users.stripeCustomerId,
+    plan: users.plan,
+    interval: users.billingInterval,
+    status: users.subscriptionStatus
+  }).from(users).where(isNotNull(users.stripeSubscriptionId))
+  return rows.flatMap(r => r.subscriptionId ? [{ ...r, subscriptionId: r.subscriptionId }] : [])
+}

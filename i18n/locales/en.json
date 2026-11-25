@@ -3370,6 +3370,7 @@
       "stats": "Product stats",
       "investor": "Investor summary",
       "aiSpend": "AI cost",
+      "billingConsistency": "Billing check",
       "abuseReports": "Abuse reports"
     },
     "hub": {
@@ -3381,6 +3382,7 @@
         "stats": "Users, content, AI, revenue and operations, with trends and CSV downloads.",
         "investor": "The key numbers and 12 months of growth on one printable page.",
         "aiSpend": "AI cost per feature for any date range, from the AI proxy's logs.",
+        "billingConsistency": "Stripe's live subscriptions against markoto's records, to catch billing drift.",
         "abuseReports": "Reports from the report form: review them and decide."
       }
     },
@@ -3472,6 +3474,38 @@
       "tokens": "Tokens",
       "loadFailed": "Couldn't load the AI cost",
       "empty": "No data for this range."
+    },
+    "billingConsistency": {
+      "title": "Billing check",
+      "intro": "Compares the subscriptions Stripe bills with the ones markoto tracks: status, plan, billing period and seats. Read-only: fix a mismatch in Stripe or in the database by hand. The same check runs every day and reports to Sentry and the billing email.",
+      "refresh": "Check again",
+      "loadFailed": "Couldn't run the billing check",
+      "disabled": "Billing is off or Stripe is not set up on this instance, so there is nothing to compare.",
+      "totals": "Overview",
+      "checkedAt": "Checked {time}",
+      "stripeLive": "Live in Stripe",
+      "trackedUsers": "Tracked personal plans",
+      "trackedWorkspaces": "Tracked workspace plans",
+      "mismatches": "Mismatches",
+      "listTitle": "Mismatches",
+      "none": "Stripe and markoto agree.",
+      "column": {
+        "kind": "Mismatch",
+        "subscription": "Subscription",
+        "subject": "Belongs to",
+        "stripe": "Stripe",
+        "markoto": "markoto"
+      },
+      "kind": {
+        "untracked": "Not tracked by markoto",
+        "not-live-in-stripe": "Not live in Stripe",
+        "status": "Status differs",
+        "plan": "Plan differs",
+        "interval": "Billing period differs",
+        "seats": "Seats differ",
+        "unknown-price": "Unknown price",
+        "customer": "Customer differs"
+      }
     }
   },
   "explorer": {

@@ -39,6 +39,8 @@ RUN bun build scripts/reembed-knowledge.ts --target=bun --outfile=cli/reembed-kn
 RUN bun build scripts/reencrypt-secrets.ts --target=bun --outfile=cli/reencrypt-secrets.js
 #   docker compose exec app bun cli/waitlist-launch-email.js --code <CODE> --expires <YYYY-MM-DD> [--dry-run]
 RUN bun build scripts/waitlist-launch-email.ts --target=bun --outfile=cli/waitlist-launch-email.js
+#   podman exec markoto-app-1 bun cli/cancel-sandbox-subscriptions.js   (staging DB reset only)
+RUN bun build scripts/cancel-sandbox-subscriptions.ts --target=bun --outfile=cli/cancel-sandbox-subscriptions.js
 
 # --- Runtime stage ---------------------------------------------------------
 # Nitro's `bun` preset emits an output targeted at the Bun runtime: it

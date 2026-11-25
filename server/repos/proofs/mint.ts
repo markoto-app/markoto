@@ -38,6 +38,7 @@ export const SYSTEM_ACTORS = [
   'ai-session',
   'ai-spend-rollup',
   'analytics-retention-sweep',
+  'billing-consistency',
   'comment-trigger',
   'custom-domain-recheck',
   'data-export-expiry-sweep',

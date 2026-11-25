@@ -10,6 +10,13 @@
 #     ledger lives in the separate `drizzle` schema and is left UNTOUCHED, so
 #     the schema stays intact and boot-time migrations see no diff. It then
 #     counts the rows of every public table and fails if any remain.
+#   - first CANCELS every live subscription (active, trialing, past due) of
+#     the staging Stripe SANDBOX: at once, no proration, NO refund. The wipe
+#     drops the rows that track them, and the sandbox would otherwise keep
+#     billing customers staging no longer knows. Runs the bundled
+#     `cli/cancel-sandbox-subscriptions.js` inside the app container (which
+#     holds the staging key); it refuses a live key and prints counts only.
+#     Skipped with RESET_SCOPE=valkey, like the Postgres wipe.
 #   - FLUSHes Valkey (rate limits, per-doc sync attribution/diff state, sweep
 #     locks) so leftover state can't leak between runs.
 #
@@ -69,10 +76,16 @@ printf 'PGPASSWORD=%s\n' "$(envval POSTGRES_PASSWORD)" > "$SECRETS_ENV"
 
 PG_CONTAINER="${PG_CONTAINER:-markoto-postgres-1}"
 VALKEY_CONTAINER="${VALKEY_CONTAINER:-markoto-valkey-1}"
+APP_CONTAINER="${APP_CONTAINER:-markoto-app-1}"
 
 if [ "${RESET_SCOPE}" = "valkey" ]; then
-  echo "[reset-staging-db] RESET_SCOPE=valkey: Postgres left untouched"
+  echo "[reset-staging-db] RESET_SCOPE=valkey: Postgres and Stripe left untouched"
 else
+# Stripe before Postgres: a failure here stops the reset while the rows
+# that name the subscriptions still exist. The CLI reads the key from the
+# container's own environment (never a command line) and exits 0 without
+# one, 1 on a live key or a Stripe error. Safe to re-run.
+podman exec "$APP_CONTAINER" bun cli/cancel-sandbox-subscriptions.js
 # `-i`: without it `podman exec` gives psql no stdin, psql reads an empty
 # script and exits 0, and nothing is truncated.
 podman exec -i --env-file "$SECRETS_ENV" "$PG_CONTAINER" \

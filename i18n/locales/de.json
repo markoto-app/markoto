@@ -3370,6 +3370,7 @@
       "stats": "Produktstatistik",
       "investor": "Investorenübersicht",
       "aiSpend": "KI-Kosten",
+      "billingConsistency": "Abrechnungsprüfung",
       "abuseReports": "Missbrauchsmeldungen"
     },
     "hub": {
@@ -3381,6 +3382,7 @@
         "stats": "Nutzende, Inhalte, KI, Umsatz und Betrieb, mit Verläufen und CSV-Downloads.",
         "investor": "Die wichtigsten Zahlen und 12 Monate Wachstum auf einer druckbaren Seite.",
         "aiSpend": "KI-Kosten pro Funktion für jeden Zeitraum, aus den Protokollen des KI-Proxys.",
+        "billingConsistency": "Die laufenden Abos in Stripe im Vergleich mit den Daten von markoto, damit Abweichungen auffallen.",
         "abuseReports": "Meldungen aus dem Meldeformular: prüfen und entscheiden."
       }
     },
@@ -3472,6 +3474,38 @@
       "tokens": "Tokens",
       "loadFailed": "Die KI-Kosten konnten nicht geladen werden",
       "empty": "Keine Daten für diesen Zeitraum."
+    },
+    "billingConsistency": {
+      "title": "Abrechnungsprüfung",
+      "intro": "Vergleicht die Abos, die Stripe abrechnet, mit denen, die markoto kennt: Status, Plan, Abrechnungszeitraum und Plätze. Nur lesend: Eine Abweichung behebst du von Hand in Stripe oder in der Datenbank. Dieselbe Prüfung läuft täglich und meldet an Sentry und die Abrechnungs-E-Mail.",
+      "refresh": "Erneut prüfen",
+      "loadFailed": "Die Abrechnungsprüfung konnte nicht ausgeführt werden",
+      "disabled": "Die Abrechnung ist aus oder Stripe ist auf dieser Instanz nicht eingerichtet, es gibt also nichts zu vergleichen.",
+      "totals": "Übersicht",
+      "checkedAt": "Geprüft {time}",
+      "stripeLive": "Laufend in Stripe",
+      "trackedUsers": "Persönliche Pläne in markoto",
+      "trackedWorkspaces": "Workspace-Pläne in markoto",
+      "mismatches": "Abweichungen",
+      "listTitle": "Abweichungen",
+      "none": "Stripe und markoto stimmen überein.",
+      "column": {
+        "kind": "Abweichung",
+        "subscription": "Abo",
+        "subject": "Gehört zu",
+        "stripe": "Stripe",
+        "markoto": "markoto"
+      },
+      "kind": {
+        "untracked": "markoto kennt es nicht",
+        "not-live-in-stripe": "In Stripe nicht laufend",
+        "status": "Status weicht ab",
+        "plan": "Plan weicht ab",
+        "interval": "Abrechnungszeitraum weicht ab",
+        "seats": "Plätze weichen ab",
+        "unknown-price": "Unbekannter Preis",
+        "customer": "Kunde weicht ab"
+      }
     }
   },
   "explorer": {

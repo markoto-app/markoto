@@ -7,6 +7,7 @@ export const ADMIN_SECTIONS = [
   { key: 'stats', to: '/admin/stats', icon: 'i-lucide-chart-line' },
   { key: 'investor', to: '/admin/stats/investor', icon: 'i-lucide-presentation' },
   { key: 'aiSpend', to: '/admin/ai-spend', icon: 'i-lucide-receipt' },
+  { key: 'billingConsistency', to: '/admin/billing-consistency', icon: 'i-lucide-scale' },
   { key: 'abuseReports', to: '/admin/abuse-reports', icon: 'i-lucide-flag' }
 ] as const
 
