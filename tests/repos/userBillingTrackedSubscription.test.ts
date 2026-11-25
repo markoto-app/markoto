@@ -122,7 +122,8 @@ describe('listTrackedUserSubscriptions', () => {
   it('lists every user row that tracks a subscription, with what the consistency check compares', async () => {
     const tracked = await proUser('sub_listed')
     await testDb().query('UPDATE users SET billing_interval = $1, subscription_status = $2 WHERE id = $3', ['year', 'past_due', tracked])
-    await proUser(null, 'free')
+    // A free user (no subscription, no customer) is not listed.
+    await createUser()
     expect(await listTrackedUserSubscriptions(sys())).toEqual([
       { userId: tracked, subscriptionId: 'sub_listed', customerId: CUSTOMER, plan: 'pro', interval: 'year', status: 'past_due' }
     ])
