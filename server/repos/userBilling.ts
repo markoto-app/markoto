@@ -71,12 +71,27 @@ export async function applyUserSubscriptionState(_by: SystemActor, tx: TxHandle 
 }
 
 /**
- * The customer's subscription ended at `at`: back to Free, the Stripe
- * anchors cleared (customer and currency stay for a later purchase).
- * Not applied when the row holds newer state (a new subscription bought
- * since). Returns the rows matched.
+ * The subscription the customer's user row tracks (`stripe_subscription_id`),
+ * or null when the customer maps to no user or the row tracks none.
  */
-export async function endUserSubscription(_by: SystemActor, tx: TxHandle | undefined, customerId: string, at: Date): Promise<number> {
+export async function findTrackedUserSubscription(_by: SystemActor, customerId: string, tx?: TxHandle): Promise<string | null> {
+  const rows = await executor(tx).select({ subscriptionId: users.stripeSubscriptionId })
+    .from(users)
+    .where(eq(users.stripeCustomerId, customerId))
+    .limit(1)
+  return rows[0]?.subscriptionId ?? null
+}
+
+/**
+ * The user's tracked subscription `subscriptionId` ended at `at`: back to
+ * Free, the Stripe anchors cleared (customer and currency stay for a later
+ * purchase). Only the subscription the row tracks ends the plan: another
+ * subscription of the same customer (a duplicate, an old one) changes
+ * nothing, and neither does any subscription while the row tracks none.
+ * Not applied when the row holds newer state either. Returns the rows
+ * matched.
+ */
+export async function endUserSubscription(_by: SystemActor, tx: TxHandle | undefined, customerId: string, subscriptionId: string, at: Date): Promise<number> {
   const db = executor(tx)
   return (await db.update(users)
     .set({
@@ -89,7 +104,7 @@ export async function endUserSubscription(_by: SystemActor, tx: TxHandle | undef
       subscriptionStatus: null,
       subscriptionEventAt: at
     })
-    .where(and(eq(users.stripeCustomerId, customerId), stateNotNewerThan(at)))
+    .where(and(eq(users.stripeCustomerId, customerId), eq(users.stripeSubscriptionId, subscriptionId), stateNotNewerThan(at)))
     .returning({ id: users.id })).length
 }
 
