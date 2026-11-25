@@ -27,8 +27,8 @@ const fontStack = (font: string) => `'${font}', system-ui, sans-serif`
   <button
     type="button"
     :data-testid="testid"
-    class="text-left rounded-md border p-1.5 bg-default hover:bg-elevated/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-    :class="selected ? 'border-primary bg-elevated/40' : 'border-default'"
+    class="text-left rounded-md border p-1.5 bg-default hover:bg-elevated/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inverted"
+    :class="selected ? 'border-inverted bg-elevated/40' : 'border-default'"
     :aria-pressed="selected"
     @click="$emit('click')"
   >
