@@ -90,15 +90,15 @@ useClaimAiWorkspaceContext(() => {
 const isAdmin = computed(() => myRole.value === 'admin')
 const myUserId = computed(() => (user.value as { id?: number } | null)?.id)
 
-// Tabs split the workspace into three concerns. Default is Documents
+// Tabs split the workspace into its concerns. Default is Documents
 // since that's what most visits are about. Nuxt UI v4's UTabs needs
 // `value` on each item for v-model binding; `slot` picks the template.
+// The active tab lives in `?tab=` (documents keeps a clean URL), so a
+// tab can be linked; a tab this member can't see reads as Documents.
 type WorkspaceTab = 'documents' | 'knowledge' | 'settings' | 'usage' | 'brand' | 'billing' | 'sso' | 'audit'
-const initialTab = route.query.tab === 'billing' || route.query.billing || route.query.credits ? 'billing' : route.query.tab === 'sso' ? 'sso' : route.query.tab === 'audit' ? 'audit' : route.query.tab === 'usage' ? 'usage' : route.query.tab === 'brand' ? 'brand' : 'documents'
-const activeTab = ref<WorkspaceTab>(initialTab)
 const { billingEnabled } = useBillingMode()
 const tabItems = computed(() => {
-  const items: Array<{ label: string, icon?: string, slot: WorkspaceTab, value: string }> = [
+  const items: Array<{ label: string, icon?: string, slot: WorkspaceTab, value: WorkspaceTab }> = [
     { label: t('workspace.tabs.documents'), icon: 'i-lucide-file-text', slot: 'documents', value: 'documents' },
     { label: t('workspace.tabs.knowledge'), icon: 'i-lucide-library', slot: 'knowledge', value: 'knowledge' }
   ]
@@ -134,6 +134,7 @@ const tabItems = computed(() => {
   }
   return items
 })
+const activeTab = useRouteTab<WorkspaceTab>(() => tabItems.value.map(item => item.value), 'documents')
 
 // With every tab (a Business workspace has eight) the strip is wider than
 // the column, and always on a phone: it scrolls sideways without a
@@ -170,7 +171,12 @@ tryOnMounted(() => {
   // Back from a single sign-on test.
   if (route.query.test === 'activated') toast.add({ title: t('sso.testActivated'), icon: 'i-lucide-check', color: 'neutral' })
   else if (route.query.test === 'ok') toast.add({ title: t('sso.testOk'), icon: 'i-lucide-check', color: 'neutral' })
-  if (route.query.billing || route.query.tab || route.query.credits || route.query.test) void router.replace({ query: {} })
+  // The one-off markers go; the tab stays in the URL (Stripe Checkout
+  // returns with `?billing=` alone, which means the Billing tab).
+  if (route.query.billing || route.query.credits || route.query.test) {
+    const tab = route.query.billing || route.query.credits ? 'billing' : route.query.tab
+    void router.replace({ query: typeof tab === 'string' ? { tab } : {} })
+  }
 })
 
 // Same dialog flow as the home page; just pass our workspaceId so the

@@ -142,7 +142,7 @@ async function persist(theme: DocTheme | null) {
            designs"). A click makes it the workspace default. -->
       <DocumentThemePresetGrid
         testid-prefix="workspace-default-theme-preset-"
-        :columns="2"
+        :columns="4"
         :saved-tab="savedThemes.length > 0"
         :selected-id="selectedPresetId"
         @select="(preset) => persist(preset.theme)"
