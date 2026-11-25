@@ -1,0 +1,31 @@
+# Local LiteLLM for the model evaluation only (not used by any deployment).
+# Same shape as deploy/config/litellm/config.yaml: mistral/<id> on the EU
+# endpoint, prompt_cache_key forwarded, drop_params. No database, no keys:
+# costs are computed by the eval scripts from the reported usage.
+model_list:
+  - model_name: zai-glm-5-3-flash
+    litellm_params: {model: mistral/zai-glm-5-3-flash, api_base: https://api.eu.mistral.ai/v1, api_key: os.environ/MISTRAL_API_KEY, reasoning_effort: low, allowed_openai_params: ["prompt_cache_key"]}
+  - model_name: deepseek-v4-1-flash-1017
+    litellm_params: {model: mistral/deepseek-v4-1-flash-1017, api_base: https://api.eu.mistral.ai/v1, api_key: os.environ/MISTRAL_API_KEY, allowed_openai_params: ["prompt_cache_key"]}
+  - model_name: mistral-small-2603
+    litellm_params: {model: mistral/mistral-small-2603, api_base: https://api.eu.mistral.ai/v1, api_key: os.environ/MISTRAL_API_KEY, allowed_openai_params: ["prompt_cache_key"]}
+  - model_name: mistral-large-4
+    litellm_params: {model: mistral/mistral-large-4, api_base: https://api.eu.mistral.ai/v1, api_key: os.environ/MISTRAL_API_KEY, reasoning_effort: low, top_p: 1, allowed_openai_params: ["prompt_cache_key"]}
+  - model_name: ministral-3b-2512
+    litellm_params: {model: mistral/ministral-3b-2512, api_base: https://api.eu.mistral.ai/v1, api_key: os.environ/MISTRAL_API_KEY, allowed_openai_params: ["prompt_cache_key"]}
+  - model_name: ministral-8b-2512
+    litellm_params: {model: mistral/ministral-8b-2512, api_base: https://api.eu.mistral.ai/v1, api_key: os.environ/MISTRAL_API_KEY, allowed_openai_params: ["prompt_cache_key"]}
+  - model_name: ministral-14b-2512
+    litellm_params: {model: mistral/ministral-14b-2512, api_base: https://api.eu.mistral.ai/v1, api_key: os.environ/MISTRAL_API_KEY, allowed_openai_params: ["prompt_cache_key"]}
+
+litellm_settings:
+  drop_params: true
+  set_verbose: false
+  json_logs: true
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
+
+router_settings:
+  num_retries: 1
+  timeout: 180
