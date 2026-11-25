@@ -476,6 +476,9 @@ export interface AdoptedDoc {
   title: string
   accessMode: AccessMode
   anonTermsVersion: number | null
+  /** Which site brought its creator (admin funnel), kept on the document. */
+  acquisitionSource: AcquisitionSource | null
+  createdAt: Date
 }
 
 /**
@@ -513,8 +516,22 @@ export async function adoptAnonymousDocs(
       .update(documents)
       .set({ ownerId: self.userId, anonCreatorKeyHash: null, anonTermsVersion: null, anonTermsAcceptedAt: null })
       .where(and(inArray(documents.id, [...termsById.keys()]), stillAnonymous))
-      .returning({ id: documents.id, docId: documents.docId, title: documents.title, accessMode: documents.accessMode })
-    return rows.map(r => ({ docId: r.docId, title: r.title, accessMode: r.accessMode, anonTermsVersion: termsById.get(r.id) ?? null }))
+      .returning({
+        id: documents.id,
+        docId: documents.docId,
+        title: documents.title,
+        accessMode: documents.accessMode,
+        acquisitionSource: documents.acquisitionSource,
+        createdAt: documents.createdAt
+      })
+    return rows.map(r => ({
+      docId: r.docId,
+      title: r.title,
+      accessMode: r.accessMode,
+      anonTermsVersion: termsById.get(r.id) ?? null,
+      acquisitionSource: r.acquisitionSource,
+      createdAt: r.createdAt
+    }))
   })
 }
 

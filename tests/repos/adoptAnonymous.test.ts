@@ -4,7 +4,7 @@ import { resetDb, testDb } from '../integration/setup/db'
 import { createDoc, createUser, createWorkspace } from '../integration/setup/fixtures'
 import { asUser } from '../helpers/access'
 import { adoptAnonymousDocs } from '../../server/repos/documents'
-import { ADOPT_MAX_PER_SIGN_IN, adoptBrowserDocuments } from '../../server/utils/documents/adoptAnonymous'
+import { ADOPT_MAX_PER_SIGN_IN, adoptBrowserDocuments, firstAcquisitionSource } from '../../server/utils/documents/adoptAnonymous'
 import { hashAnonCreatorKey } from '../../server/utils/auth/anonCreator'
 
 // "Sign in to keep your documents": the anonymous documents a browser
@@ -120,5 +120,38 @@ describe('adoptBrowserDocuments', () => {
 
     expect(await adoptBrowserDocuments(eventWithCookie(`markoto-anon-creator=${KEY}`), asUser(user.id))).toEqual({ adopted: 0 })
     expect(ADOPT_MAX_PER_SIGN_IN).toBe(50)
+  })
+
+  it('gives the account the source its earliest adopted document was created with, once', async () => {
+    const user = await createUser()
+    const now = Date.now()
+    await anonDoc('first', KEY)
+    await anonDoc('later', KEY)
+    await anonDoc('unknown', KEY)
+    await testDb().query(`UPDATE documents SET acquisition_source = 'producthunt', created_at = $1 WHERE doc_id = 'first'`, [new Date(now - 2 * DAY)])
+    await testDb().query(`UPDATE documents SET acquisition_source = 'google', created_at = $1 WHERE doc_id = 'later'`, [new Date(now - DAY)])
+    await adoptBrowserDocuments(eventWithCookie(`markoto-anon-creator=${KEY}`), asUser(user.id))
+    const source = async (id: number) => (await testDb().query<{ s: string | null }>('SELECT acquisition_source AS s FROM users WHERE id = $1', [id])).rows[0]!.s
+    expect(await source(user.id)).toBe('producthunt')
+
+    // An account that already has a source keeps it.
+    const known = await createUser()
+    await testDb().query(`UPDATE users SET acquisition_source = 'github' WHERE id = $1`, [known.id])
+    await anonDoc('other', OTHER_KEY)
+    await testDb().query(`UPDATE documents SET acquisition_source = 'hackernews' WHERE doc_id = 'other'`)
+    expect(await adoptBrowserDocuments(eventWithCookie(`markoto-anon-creator=${OTHER_KEY}`), asUser(known.id))).toEqual({ adopted: 1 })
+    expect(await source(known.id)).toBe('github')
+  })
+
+  it('picks no source when no adopted document has one', () => {
+    const at = (d: number) => new Date(d)
+    const base = { title: 't', accessMode: 'open-edit' as const, anonTermsVersion: null }
+    expect(firstAcquisitionSource([])).toBeNull()
+    expect(firstAcquisitionSource([{ ...base, docId: 'a', acquisitionSource: null, createdAt: at(1) }])).toBeNull()
+    expect(firstAcquisitionSource([
+      { ...base, docId: 'b', acquisitionSource: 'google', createdAt: at(5) },
+      { ...base, docId: 'c', acquisitionSource: null, createdAt: at(1) },
+      { ...base, docId: 'd', acquisitionSource: 'hackernews', createdAt: at(3) }
+    ])).toBe('hackernews')
   })
 })

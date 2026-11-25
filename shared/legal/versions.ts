@@ -61,11 +61,11 @@
 // the model developers receive no data). The Terms (v4) now point to the
 // privacy policy for the current models instead of naming one: wording
 // only, no TOS bump.
-// v17 (2026-11-25): acquisition source (`acquisition_measurement`): the
-// kind of site that brought a person, one category of a fixed list, on an
-// anonymous document or a new account, and when an account first started
-// a paid checkout; counted per category for the admin's funnel.
-export const PRIVACY_VERSION = 17
+// v16 (2026-11-25), among its other changes: acquisition source
+// (`acquisition_measurement`): the kind of site that brought a person, one
+// category of a fixed list, on an anonymous document or a new account, and
+// when an account first started a paid checkout; counted per category.
+export const PRIVACY_VERSION = 16
 export const PRIVACY_EFFECTIVE_DATE = '2026-11-25'
 
 // v2 (2026-10-26): free-only service, BYOK responsibilities, as-is/discontinuation clauses.

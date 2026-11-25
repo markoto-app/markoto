@@ -1,5 +1,8 @@
 import type { H3Event } from 'h3'
-import { adoptAnonymousDocs } from '../../repos/documents'
+import { adoptAnonymousDocs, type AdoptedDoc } from '../../repos/documents'
+import { recordAccountAcquisitionSource } from '../../repos/acquisition'
+import { useLogger } from '../platform/logger'
+import type { AcquisitionSource } from '~~/shared/analytics/acquisition'
 import { appendAuditEvent } from '../../repos/audit'
 import type { UserScope } from '../../repos/proofs'
 import { AUDIT_DOC_ADOPTED } from '../../legal/auditActions'
@@ -17,6 +20,15 @@ import { getClientIp } from '../platform/clientIp'
  */
 export const ADOPT_MAX_PER_SIGN_IN = 50
 
+const log = useLogger('adopt-anonymous')
+
+/** The source of the earliest adopted document that has one: how the person first found us. */
+export function firstAcquisitionSource(rows: readonly AdoptedDoc[]): AcquisitionSource | null {
+  const withSource = rows.filter(r => r.acquisitionSource !== null)
+  withSource.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+  return withSource[0]?.acquisitionSource ?? null
+}
+
 /**
  * "Sign in to keep your documents": after a sign-in, the anonymous
  * documents this browser created (`markoto-anon-creator` cookie, see
@@ -24,7 +36,8 @@ export const ADOPT_MAX_PER_SIGN_IN = 50
  * made, documents already owned or moved into a workspace, deleted ones
  * and ones past the inactivity limit (about to be swept) are left alone.
  * Idempotent. Each document is audited and indexed for search (anonymous
- * documents are never indexed).
+ * documents are never indexed). The account keeps the documents'
+ * acquisition source if it has none yet.
  */
 export async function adoptBrowserDocuments(event: H3Event, self: UserScope): Promise<{ adopted: number }> {
   const key = readAnonCreatorKey(event)
@@ -47,6 +60,16 @@ export async function adoptBrowserDocuments(event: H3Event, self: UserScope): Pr
     })
     const proof = await proveDocNeed(self.userId, row.docId, 'write-content')
     if (proof) await reindexDocument(proof)
+  }
+  // The account takes the source its anonymous documents were created
+  // with, unless it already has one (write-once; admin funnel).
+  const source = firstAcquisitionSource(rows)
+  if (source) {
+    try {
+      await recordAccountAcquisitionSource(self, source)
+    } catch (err) {
+      log.warn('could not keep the acquisition source', { reason: err instanceof Error ? err.message : String(err) })
+    }
   }
   return { adopted: rows.length }
 }
