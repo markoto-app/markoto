@@ -28,6 +28,7 @@
 
 import { runWaitlistLaunch } from '../server/utils/privacy/waitlistLaunch'
 import { closeDatabase } from '../server/db/client'
+import { describeError } from '../server/utils/platform/describeError'
 
 function flag(argv: string[], name: string): string | undefined {
   const i = argv.indexOf(`--${name}`)
@@ -62,6 +63,6 @@ async function main(): Promise<void> {
 try {
   await main()
 } catch (e) {
-  console.error('[waitlist-launch] FAILED (safe to re-run):', e instanceof Error ? e.message : e)
+  for (const line of describeError(e)) console.error('[waitlist-launch] FAILED (safe to re-run):', line)
   process.exit(1)
 }
