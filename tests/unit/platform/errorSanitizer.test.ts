@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest'
-import { buildSanitizedErrorPayload } from '../../../server/error'
+import { describe, it, expect, vi } from 'vitest'
+import { buildSanitizedErrorPayload, warnUnregisteredCode } from '../../../server/error'
+import { captureLogs } from '../../helpers/logs'
 
 // Pin the sanitization policy. The actual handler that calls this
 // also writes the response via h3 helpers, we test the policy in
@@ -166,5 +167,31 @@ describe('buildSanitizedErrorPayload: statusMessage defaults', () => {
   it('keeps explicit statusMessage when provided', () => {
     const out = buildSanitizedErrorPayload({ statusCode: 404, statusMessage: 'Not Found' })
     expect(out.statusMessage).toBe('Not Found')
+  })
+})
+
+describe('warnUnregisteredCode', () => {
+  const logs = captureLogs()
+
+  it('flags an unregistered 4xx code in development', () => {
+    vi.stubEnv('TEST_MODE', '')
+    vi.stubEnv('NODE_ENV', 'development')
+    warnUnregisteredCode({ code: 'made/up-code' }, 409, '/api/x')
+    expect(logs.find('warn', 'unregistered api error code')).toMatchObject({ code: 'made/up-code', statusCode: 409, path: '/api/x' })
+  })
+
+  it('stays quiet for a registered code or no code', () => {
+    vi.stubEnv('TEST_MODE', '')
+    vi.stubEnv('NODE_ENV', 'development')
+    warnUnregisteredCode({ code: 'auth/required' }, 403, '/api/x')
+    warnUnregisteredCode(undefined, 404, '/api/x')
+    expect(logs.all('warn')).toEqual([])
+  })
+
+  it('stays quiet outside development and test mode', () => {
+    vi.stubEnv('TEST_MODE', '')
+    vi.stubEnv('NODE_ENV', 'test')
+    warnUnregisteredCode({ code: 'made/up-code' }, 409, '/api/x')
+    expect(logs.all('warn')).toEqual([])
   })
 })
