@@ -35,6 +35,9 @@ describe('resolveClickEvent', () => {
     expect(resolveClickEvent(['tour-start-writing'])).toEqual({ name: 'start_writing_clicked', data: { placement: 'tour_hero' } })
     expect(resolveClickEvent(['header-github-link', 'marketing-header'])).toEqual({ name: 'github_clicked', data: { placement: 'header' } })
     expect(resolveClickEvent(['footer-self-host-link', 'legal-footer'])).toEqual({ name: 'selfhost_clicked', data: { placement: 'footer' } })
+    // Both of the hero picture's play buttons (stacked and pinned layouts).
+    expect(resolveClickEvent(['tour-demo-play', 'product-tour'])).toEqual({ name: 'demo_video_open', data: { placement: 'tour_hero' } })
+    expect(resolveClickEvent(['tour-demo-play-stage', 'product-tour'])).toEqual({ name: 'demo_video_open', data: { placement: 'tour_hero' } })
   })
 
   it('takes the innermost known id (an icon inside a button inside a section)', () => {

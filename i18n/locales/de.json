@@ -2466,7 +2466,8 @@
       "title": "Schön gesetztes {markdown}.",
       "markdown": "Markdown",
       "cta": "Jetzt schreiben, ohne Anmeldung",
-      "next": "So funktioniert's"
+      "next": "So funktioniert's",
+      "watchDemo": "{n}-Minuten-Demo anschauen"
     },
     "scenes": {
       "write": {

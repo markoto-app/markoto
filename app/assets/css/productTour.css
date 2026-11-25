@@ -621,6 +621,9 @@ html.lenis body { height: auto; }
 @keyframes mk-hero-layer-out {
   to { opacity: 0; }
 }
+@keyframes mk-play-out {
+  to { opacity: 0; visibility: hidden; }
+}
 
 @supports (animation-timeline: view()) {
   @media (prefers-reduced-motion: no-preference) {
@@ -651,6 +654,10 @@ html.lenis body { height: auto; }
         z-index: 1;
       }
       .mk-hero__figure { display: none; }
+      /* The hero section lies over the stage window's resting place: let
+         clicks through to the window's play button. */
+      .mk-hero { pointer-events: none; }
+      .mk-hero__copy { pointer-events: auto; }
       .mk-scenes {
         grid-row: 2;
         grid-column: 1;
@@ -695,6 +702,21 @@ html.lenis body { height: auto; }
         animation-timeline: scroll(root);
         animation-range: 55vh 85vh;
       }
+      /* Under the hero only the window's upper part is in view: the play
+         button is just the label there, so focusing it never scrolls the
+         page. It goes once the window starts to travel, also out of the
+         tab order and away from the pointer. */
+      .mk-stage .mk-play--stage {
+        inset: clamp(24px, 6cqw, 96px) auto auto 50%;
+        translate: -50% 0;
+        padding: 0;
+        border-radius: 999px;
+        pointer-events: auto;
+        animation: mk-play-out linear both;
+        animation-timeline: scroll(root);
+        animation-range: 0 25vh;
+      }
+      .mk-stage .mk-play--stage:hover { background: transparent; }
 
       .mk-scene {
         display: block;

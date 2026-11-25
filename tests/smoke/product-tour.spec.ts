@@ -58,3 +58,26 @@ test('logged-out home page shows the product tour when the instance enables it',
   await page.getByTestId('tour-start-writing').click()
   await expect(page.getByRole('dialog')).toBeVisible()
 })
+
+test('the hero picture plays the demo video in a dialog, loaded only on demand', async ({ page }) => {
+  const media: string[] = []
+  page.on('request', (req) => {
+    if (/\/media\/markoto-demo-[0-9a-f]+\.mp4$/.test(new URL(req.url()).pathname)) media.push(req.url())
+  })
+  await page.goto('/')
+  const flag = await marketingSiteFlag(page)
+  test.skip(flag !== true, `marketing site not enabled on this instance (flag: ${String(flag)})`)
+  await waitForHydration(page)
+  expect(media).toEqual([])
+
+  // One of the two play buttons is shown, depending on the layout.
+  const play = page.locator('[data-testid="tour-demo-play"]:visible, [data-testid="tour-demo-play-stage"]:visible').first()
+  await expect(play).toHaveText('Watch the 2-minute demo')
+  await play.getByText('Watch the 2-minute demo').click()
+  const dialog = page.getByRole('dialog')
+  await expect(dialog).toBeVisible()
+  await expect(dialog.getByTestId('demo-video-overlay-video')).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(dialog).toBeHidden()
+  await expect(play).toBeFocused()
+})

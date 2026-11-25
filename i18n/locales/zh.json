@@ -2466,7 +2466,8 @@
       "title": "排版精美的 {markdown}。",
       "markdown": "Markdown",
       "cta": "开始写作，无需注册",
-      "next": "看看它如何工作"
+      "next": "看看它如何工作",
+      "watchDemo": "观看 {n} 分钟演示"
     },
     "scenes": {
       "write": {
