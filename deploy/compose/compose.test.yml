@@ -112,7 +112,7 @@ services:
       - "127.0.0.1:6380:6379"
 
   seaweedfs-test:
-    image: chrislusf/seaweedfs:4.53@sha256:ccad23e18639c8b98cee17e7100b95830a06077b56d8e5b006d6dcf8ec5e94a0
+    image: chrislusf/seaweedfs:4.54@sha256:4b42c212543a0acd4c0e675215ecdcaf62a186ef98def76c7e12701871222d15
     restart: unless-stopped
     # `-master.volumeSizeLimitMB=256`: recent SeaweedFS derives how many
     # volumes a server may hold from free disk / volume size limit (default
@@ -264,7 +264,7 @@ services:
     entrypoint: ["/bin/sh", "/db-init.sh"]
 
   litellm-test:
-    image: ghcr.io/berriai/litellm:1.108.10@sha256:297bf657b0e7af37cee6b9a48ce6882b6d5504c2e77554cdafcb1a0c18ba1fc6
+    image: ghcr.io/berriai/litellm:1.108.15@sha256:431c1cc770b6b324cc7458ca842fd0c02c28ba86838ac3e2d013c6cf421696cf
     restart: unless-stopped
     environment:
       - DATABASE_URL=postgresql://litellm_test:litellmtestpassword@postgres-test:5432/litellm_test
@@ -326,7 +326,7 @@ services:
   # builds the URL (override with TEST_FAKE_OPENAI_BASE_URL). The
   # loopback binding serves the suites' /_test/requests reads.
   fake-openai-test:
-    image: ghcr.io/berriai/litellm:1.108.10@sha256:297bf657b0e7af37cee6b9a48ce6882b6d5504c2e77554cdafcb1a0c18ba1fc6
+    image: ghcr.io/berriai/litellm:1.108.15@sha256:431c1cc770b6b324cc7458ca842fd0c02c28ba86838ac3e2d013c6cf421696cf
     restart: unless-stopped
     entrypoint: ["python3", "/fake/server.py"]
     environment:
