@@ -29,7 +29,9 @@
         // compile-time API contract checks, read by `bun run typecheck` (vue-tsc), never run
         "tests/nuxt/apiContract.typecheck.ts",
         // file name the proof-rule tests lint their own text under (tests/unit/access/proofRules.test.ts)
-        "tests/fixtures/proof-forgery/probe.ts"
+        "tests/fixtures/proof-forgery/probe.ts",
+        // bundled and run by tests/unit/platform/cliBundles.test.ts
+        "tests/fixtures/cli-bundles/postgresSslProbe.ts"
       ],
       "project": [
         "app/**/*.{ts,vue,css}",

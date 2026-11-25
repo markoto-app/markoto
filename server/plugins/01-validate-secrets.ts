@@ -1,4 +1,5 @@
 import { EnvError, loadEnv, primeEnv } from '~~/shared/env/load'
+import { isProduction } from '~~/shared/env/runtime'
 import { publishPagesErrors } from '../utils/publish/pagesHost'
 
 // Fail-fast at boot: every variable of the app is parsed and checked
@@ -28,7 +29,7 @@ export default defineNitroPlugin(() => {
   } catch (e) {
     // A container prints the operator-facing list and stops, without a
     // stack trace around it; in development the error surfaces as usual.
-    if (e instanceof EnvError && process.env.NODE_ENV === 'production') {
+    if (e instanceof EnvError && isProduction()) {
       console.error(e.message)
       process.exit(1)
     }

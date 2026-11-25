@@ -64,9 +64,13 @@ const MESSAGE = 'Internal milestone vocabulary ({{ match }}); describe the behav
 // Configuration is read through the typed env registry (shared/env,
 // docs/contributing/configuration.md), never `process.env` directly, a
 // raw read bypasses boot validation, the documented default and the
-// generated reference. `process.env.NODE_ENV` stays allowed: bundlers
-// replace it at build time. The files in RAW_ENV_ALLOWED are the env
-// module itself and the few places that must see the raw record.
+// generated reference. `process.env.NODE_ENV` is a build-time constant
+// to every bundler (`bun build` turns it into 'development' in the operator
+// CLIs): server/ and shared/ ask `isProduction()` / `nodeEnv()`
+// (shared/env/runtime.ts) instead; the sync server and the renderer run
+// their TypeScript unbundled and may still read it. The files in
+// RAW_ENV_ALLOWED are the env module itself and the few places that must
+// see the raw record.
 const RAW_ENV_ALLOWED = [
   'shared/env/**',
   // Copy of nitropack's bun preset entry (NITRO_* listen options), kept
@@ -79,21 +83,30 @@ const RAW_ENV_ALLOWED = [
   'server/plugins/01-validate-secrets.ts'
 ]
 const RAW_ENV_MESSAGE = 'Read configuration through the typed env (useEnv() / syncEnv() / renderer env), not process.env, see docs/contributing/configuration.md.'
+const NODE_ENV_MESSAGE = 'process.env.NODE_ENV is replaced at build time (bun build makes it \'development\' in the operator CLIs); use isProduction() / nodeEnv() from shared/env/runtime.ts.'
 
 /** @type {import('eslint').ESLint.Plugin} */
 const markoto = {
   rules: {
     ...proofRules.rules,
     'no-raw-env': {
-      meta: { type: 'problem', schema: [], messages: { raw: RAW_ENV_MESSAGE } },
+      meta: {
+        type: 'problem',
+        schema: [{ type: 'object', properties: { allowNodeEnv: { type: 'boolean' } }, additionalProperties: false }],
+        messages: { raw: RAW_ENV_MESSAGE, nodeEnv: NODE_ENV_MESSAGE }
+      },
       create(context) {
+        const allowNodeEnv = context.options[0]?.allowNodeEnv === true
         return {
           'MemberExpression[object.type="Identifier"][object.name="process"][property.name="env"]'(node) {
             const parent = node.parent
             const key = parent?.type === 'MemberExpression' && parent.object === node
               ? (parent.computed ? parent.property.value : parent.property.name)
               : undefined
-            if (key === 'NODE_ENV') return
+            if (key === 'NODE_ENV') {
+              if (!allowNodeEnv) context.report({ node, messageId: 'nodeEnv' })
+              return
+            }
             context.report({ node, messageId: 'raw' })
           }
         }
@@ -415,10 +428,17 @@ const composed = withNuxt(
   // --- Configuration -------------------------------------------------------
   {
     name: 'markoto/no-raw-env',
-    files: ['server/**', 'shared/**', 'sync-server/src/**', 'renderer/src/**'].map(g => `${g}/*.{ts,mts,js,mjs}`),
+    files: ['server/**', 'shared/**'].map(g => `${g}/*.{ts,mts,js,mjs}`),
     ignores: [...TESTS, ...RAW_ENV_ALLOWED],
     plugins: { markoto },
     rules: { 'markoto/no-raw-env': 'error' }
+  },
+  {
+    name: 'markoto/no-raw-env-services',
+    files: ['sync-server/src/**', 'renderer/src/**'].map(g => `${g}/*.{ts,mts,js,mjs}`),
+    ignores: [...TESTS, ...RAW_ENV_ALLOWED],
+    plugins: { markoto },
+    rules: { 'markoto/no-raw-env': ['error', { allowNodeEnv: true }] }
   },
 
   // --- Restricted syntax + milestone vocabulary ---------------------------

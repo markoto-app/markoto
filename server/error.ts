@@ -4,6 +4,7 @@ import type { H3Event } from 'h3'
 import { dropUnusedSessionCookie } from './utils/auth/sessionCookie'
 import { API_ERRORS, isApiErrorCode } from '../shared/api/errors'
 import { isTestModeEnabled } from '../shared/utils/security/testMode'
+import { nodeEnv } from '../shared/env/runtime'
 import { useLogger } from './utils/platform/logger'
 
 const log = useLogger('api-error')
@@ -159,7 +160,7 @@ const handler: NitroErrorHandler = async (error, event) => {
   // Every 4xx code belongs in the registry (shared/api/errors/). In dev and
   // test runs, flag one that isn't, so a route conversion that invents a code
   // without registering it shows up in the integration logs.
-  if (!isServerError && (isTestModeEnabled() || process.env.NODE_ENV === 'development')) {
+  if (!isServerError && (isTestModeEnabled() || nodeEnv() === 'development')) {
     const code = (error.data as { code?: unknown } | undefined)?.code
     if (typeof code === 'string' && !isApiErrorCode(code)) log.warn('unregistered api error code', { code, statusCode, path: url })
   }

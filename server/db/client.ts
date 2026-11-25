@@ -5,6 +5,7 @@ import * as schema from './schema'
 import { postgresUrlFromEnv } from '../../shared/utils/runtime/connectionStrings'
 import { resolvePostgresSsl } from '../../shared/utils/runtime/postgresSsl'
 import { useEnv } from '~~/shared/env/load'
+import { isProduction } from '~~/shared/env/runtime'
 
 let db: ReturnType<typeof drizzle<typeof schema>> | null = null
 let pool: Pool | null = null
@@ -70,7 +71,7 @@ export function useDatabase() {
       connectionString: postgresUrlFromEnv(useEnv().database),
       // Prod verifies the server cert (pinned CA or system bundle); dev keeps
       // TLS off for the local TLS-less Postgres. See shared/utils/runtime/postgresSsl.ts.
-      ssl: resolvePostgresSsl(useEnv().database, process.env.NODE_ENV === 'production'),
+      ssl: resolvePostgresSsl(useEnv().database, isProduction()),
       // The default of 10 is too tight: many handlers hold a connection across
       // S3 / LiteLLM / markitdown calls. 30 stays well under Postgres
       // `max_connections` even with the sync container sharing the DB.
