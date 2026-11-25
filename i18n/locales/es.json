@@ -3377,6 +3377,7 @@
       "stats": "Estadísticas del producto",
       "investor": "Resumen para inversores",
       "aiSpend": "Coste de IA",
+      "billingConsistency": "Control de facturación",
       "abuseReports": "Denuncias de abuso"
     },
     "hub": {
@@ -3388,6 +3389,7 @@
         "stats": "Usuarios, contenido, IA, ingresos y operaciones, con tendencias y descargas en CSV.",
         "investor": "Las cifras clave y 12 meses de crecimiento en una página imprimible.",
         "aiSpend": "Coste de IA por función para cualquier rango de fechas, según los registros del proxy de IA.",
+        "billingConsistency": "Las suscripciones activas en Stripe comparadas con los registros de markoto, para detectar desajustes de facturación.",
         "abuseReports": "Denuncias del formulario: revísalas y decide."
       }
     },
@@ -3479,6 +3481,38 @@
       "tokens": "Tokens",
       "loadFailed": "No se pudo cargar el coste de IA",
       "empty": "No hay datos para este rango."
+    },
+    "billingConsistency": {
+      "title": "Control de facturación",
+      "intro": "Compara las suscripciones que Stripe cobra con las que markoto registra: estado, plan, periodo de facturación y plazas. Solo lectura: corrige un desajuste a mano en Stripe o en la base de datos. El mismo control se ejecuta cada día e informa a Sentry y al correo de facturación.",
+      "refresh": "Volver a comprobar",
+      "loadFailed": "No se pudo ejecutar el control de facturación",
+      "disabled": "La facturación está desactivada o Stripe no está configurado en esta instancia, así que no hay nada que comparar.",
+      "totals": "Resumen",
+      "checkedAt": "Comprobado {time}",
+      "stripeLive": "Activas en Stripe",
+      "trackedUsers": "Planes personales registrados",
+      "trackedWorkspaces": "Planes de espacio de trabajo registrados",
+      "mismatches": "Desajustes",
+      "listTitle": "Desajustes",
+      "none": "Stripe y markoto coinciden.",
+      "column": {
+        "kind": "Desajuste",
+        "subscription": "Suscripción",
+        "subject": "Pertenece a",
+        "stripe": "Stripe",
+        "markoto": "markoto"
+      },
+      "kind": {
+        "untracked": "markoto no la registra",
+        "not-live-in-stripe": "No activa en Stripe",
+        "status": "Estado distinto",
+        "plan": "Plan distinto",
+        "interval": "Periodo de facturación distinto",
+        "seats": "Plazas distintas",
+        "unknown-price": "Precio desconocido",
+        "customer": "Cliente distinto"
+      }
     }
   },
   "explorer": {

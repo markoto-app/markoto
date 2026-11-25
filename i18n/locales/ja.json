@@ -3377,6 +3377,7 @@
       "stats": "プロダクト統計",
       "investor": "投資家向けサマリー",
       "aiSpend": "AIコスト",
+      "billingConsistency": "請求チェック",
       "abuseReports": "不正利用の報告"
     },
     "hub": {
@@ -3388,6 +3389,7 @@
         "stats": "ユーザー、コンテンツ、AI、収益、運用を推移とCSVダウンロードつきで確認できます。",
         "investor": "主要な数値と12か月の成長を、印刷できる1ページにまとめています。",
         "aiSpend": "AIプロキシのログから、任意の期間の機能別AIコストを確認できます。",
+        "billingConsistency": "Stripeで有効なサブスクリプションをmarkotoの記録と照合し、請求のずれを見つけます。",
         "abuseReports": "報告フォームからの報告を確認し、判断します。"
       }
     },
@@ -3479,6 +3481,38 @@
       "tokens": "トークン",
       "loadFailed": "AIコストを読み込めませんでした",
       "empty": "この期間のデータはありません。"
+    },
+    "billingConsistency": {
+      "title": "請求チェック",
+      "intro": "Stripeが請求しているサブスクリプションとmarkotoが記録しているものを、ステータス、プラン、請求期間、席数で比較します。読み取り専用です。ずれはStripeまたはデータベースで手動で修正してください。同じチェックが毎日実行され、Sentryと請求通知メールに報告されます。",
+      "refresh": "再チェック",
+      "loadFailed": "請求チェックを実行できませんでした",
+      "disabled": "このインスタンスでは請求がオフか、Stripeが設定されていないため、比較するものがありません。",
+      "totals": "概要",
+      "checkedAt": "{time} にチェック",
+      "stripeLive": "Stripeで有効",
+      "trackedUsers": "記録済みの個人プラン",
+      "trackedWorkspaces": "記録済みのワークスペースプラン",
+      "mismatches": "ずれ",
+      "listTitle": "ずれ",
+      "none": "Stripeとmarkotoは一致しています。",
+      "column": {
+        "kind": "ずれ",
+        "subscription": "サブスクリプション",
+        "subject": "所属",
+        "stripe": "Stripe",
+        "markoto": "markoto"
+      },
+      "kind": {
+        "untracked": "markotoに記録なし",
+        "not-live-in-stripe": "Stripeで有効でない",
+        "status": "ステータスが異なる",
+        "plan": "プランが異なる",
+        "interval": "請求期間が異なる",
+        "seats": "席数が異なる",
+        "unknown-price": "不明な価格",
+        "customer": "顧客が異なる"
+      }
     }
   },
   "explorer": {

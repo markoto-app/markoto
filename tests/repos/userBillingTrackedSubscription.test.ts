@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { resetDb, testDb } from '../integration/setup/db'
 import { createUser } from '../integration/setup/fixtures'
 import { sys } from '../helpers/access'
-import { endUserSubscription, findTrackedUserSubscription, lockTrackedSubscriptionOfUser, updateUserBilling } from '../../server/repos/userBilling'
+import { endUserSubscription, findTrackedUserSubscription, listTrackedUserSubscriptions, lockTrackedSubscriptionOfUser, updateUserBilling } from '../../server/repos/userBilling'
 import { withTransaction } from '../../server/db/client'
 
 // A customer can hold two personal subscriptions (a double checkout, an
@@ -111,5 +111,21 @@ describe('lockTrackedSubscriptionOfUser', () => {
     releaseFirst()
     await first
     expect(await second).toBe('sub_first')
+  })
+})
+
+describe('listTrackedUserSubscriptions', () => {
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  it('lists every user row that tracks a subscription, with what the consistency check compares', async () => {
+    const tracked = await proUser('sub_listed')
+    await testDb().query('UPDATE users SET billing_interval = $1, subscription_status = $2 WHERE id = $3', ['year', 'past_due', tracked])
+    // A free user (no subscription, no customer) is not listed.
+    await createUser()
+    expect(await listTrackedUserSubscriptions(sys())).toEqual([
+      { userId: tracked, subscriptionId: 'sub_listed', customerId: CUSTOMER, plan: 'pro', interval: 'year', status: 'past_due' }
+    ])
   })
 })

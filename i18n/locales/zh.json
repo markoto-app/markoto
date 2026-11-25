@@ -3377,6 +3377,7 @@
       "stats": "产品统计",
       "investor": "投资者摘要",
       "aiSpend": "AI 成本",
+      "billingConsistency": "账单核对",
       "abuseReports": "滥用举报"
     },
     "hub": {
@@ -3388,6 +3389,7 @@
         "stats": "用户、内容、AI、收入和运营，含趋势与 CSV 下载。",
         "investor": "关键数据和 12 个月的增长，集中在一个可打印的页面上。",
         "aiSpend": "按功能统计任意日期范围内的 AI 成本，数据来自 AI 代理的日志。",
+        "billingConsistency": "将 Stripe 中的有效订阅与 markoto 的记录进行比对，发现账单偏差。",
         "abuseReports": "来自举报表单的举报：审核并作出决定。"
       }
     },
@@ -3479,6 +3481,38 @@
       "tokens": "Token",
       "loadFailed": "无法加载 AI 成本",
       "empty": "此范围内没有数据。"
+    },
+    "billingConsistency": {
+      "title": "账单核对",
+      "intro": "比较 Stripe 正在计费的订阅与 markoto 记录的订阅：状态、套餐、计费周期和席位。只读：请在 Stripe 或数据库中手动修正偏差。同样的核对每天运行，并报告给 Sentry 和账单通知邮箱。",
+      "refresh": "重新核对",
+      "loadFailed": "无法运行账单核对",
+      "disabled": "此实例未开启计费或未配置 Stripe，因此没有可比对的内容。",
+      "totals": "概览",
+      "checkedAt": "核对时间 {time}",
+      "stripeLive": "Stripe 中有效",
+      "trackedUsers": "已记录的个人套餐",
+      "trackedWorkspaces": "已记录的工作区套餐",
+      "mismatches": "偏差",
+      "listTitle": "偏差",
+      "none": "Stripe 与 markoto 一致。",
+      "column": {
+        "kind": "偏差",
+        "subscription": "订阅",
+        "subject": "所属",
+        "stripe": "Stripe",
+        "markoto": "markoto"
+      },
+      "kind": {
+        "untracked": "markoto 未记录",
+        "not-live-in-stripe": "在 Stripe 中无效",
+        "status": "状态不同",
+        "plan": "套餐不同",
+        "interval": "计费周期不同",
+        "seats": "席位不同",
+        "unknown-price": "未知价格",
+        "customer": "客户不同"
+      }
     }
   },
   "explorer": {

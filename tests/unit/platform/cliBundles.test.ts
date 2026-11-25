@@ -66,18 +66,28 @@ function lastArgument(args: string): string {
 }
 
 const CLI_BUILDS = dockerfileCliBuilds()
+/** CLIs that talk to Stripe only: no Postgres pool may end up in their bundle. */
+const STRIPE_ONLY_CLIS = new Set(['scripts/cancel-sandbox-subscriptions.ts'])
+const POSTGRES_CLI_BUILDS = CLI_BUILDS.filter(b => !STRIPE_ONLY_CLIS.has(b.entry))
 
 describe('operator CLI bundles', () => {
   it('finds the CLIs the Dockerfile bundles', () => {
     expect(CLI_BUILDS.map(b => b.entry)).toEqual(expect.arrayContaining([
       'scripts/reembed-knowledge.ts',
       'scripts/reencrypt-secrets.ts',
-      'scripts/waitlist-launch-email.ts'
+      'scripts/waitlist-launch-email.ts',
+      'scripts/cancel-sandbox-subscriptions.ts'
     ]))
     for (const b of CLI_BUILDS) expect(b.flags).toContain('--target=bun')
   })
 
-  it.each(CLI_BUILDS)('$entry decides Postgres TLS at runtime', ({ entry, flags }) => {
+  it.each([...STRIPE_ONLY_CLIS])('%s never opens a Postgres connection', (entry) => {
+    const code = readFileSync(bundle(entry, ['--target=bun']), 'utf8')
+    expect(callArguments(code, 'resolvePostgresSsl')).toEqual([])
+    expect(code).not.toMatch(/new Pool\(/)
+  }, 60_000)
+
+  it.each(POSTGRES_CLI_BUILDS)('$entry decides Postgres TLS at runtime', ({ entry, flags }) => {
     const code = readFileSync(bundle(entry, flags), 'utf8')
     const calls = callArguments(code, 'resolvePostgresSsl')
     // Every bundled CLI talks to Postgres; no call means the check is blind.
