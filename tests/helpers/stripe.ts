@@ -130,11 +130,13 @@ export function makeSubscriptionEvent(opts: {
  * Build a Stripe.CustomerSubscriptionDeletedEvent. Handlers read:
  *   - `data.object.id`
  *   - `data.object.customer`
+ *   - `data.object.items.data[0].price` (when `priceId` is given: the history)
  */
 export function makeSubscriptionDeletedEvent(opts: {
   eventId?: string
   subscriptionId?: string
   customer: string
+  priceId?: string
 }): Stripe.CustomerSubscriptionDeletedEvent {
   const subId = opts.subscriptionId ?? 'sub_test'
   return {
@@ -150,7 +152,8 @@ export function makeSubscriptionDeletedEvent(opts: {
       object: {
         id: subId,
         object: 'subscription',
-        customer: opts.customer
+        customer: opts.customer,
+        ...(opts.priceId ? { items: { data: [{ id: 'si_test', price: { id: opts.priceId } }] } } : {})
       } as unknown as Stripe.Subscription
     }
   }

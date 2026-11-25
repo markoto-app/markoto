@@ -252,6 +252,26 @@ describe('POST /api/webhooks/stripe: customer.subscription.deleted', () => {
     expect(history).toEqual([{ kind: 'ended', subject_type: 'user', user_id: u.id, plan: 'pro' }])
   })
 
+  it('a cancelled duplicate subscription of the same customer keeps the user on Pro', async () => {
+    const u = await createUser()
+    await testDb().query(
+      `UPDATE users SET stripe_customer_id = $1, stripe_subscription_id = $2, plan = 'pro',
+                        plan_valid_until = now() + interval '1 month'
+       WHERE id = $3`,
+      ['cus_test_alice', 'sub_test_alice_tracked', u.id]
+    )
+    // The fixture's subscription (`sub_test_alice_pro`) is a second one the row does not track.
+    expect((await postWebhook(loadStripeFixture('customer.subscription.deleted'))).status).toBe(200)
+
+    const row = await readUser(u.id)
+    expect(row.plan).toBe('pro')
+    expect(row.stripe_subscription_id).toBe('sub_test_alice_tracked')
+    expect(row.plan_valid_until).not.toBeNull()
+    // The duplicate did end in Stripe: the history records it.
+    const history = (await testDb().query(`SELECT kind, stripe_subscription_id FROM subscription_events`)).rows
+    expect(history).toEqual([{ kind: 'ended', stripe_subscription_id: 'sub_test_alice_pro' }])
+  })
+
   it('a late subscription.updated after the deletion does not bring Pro back', async () => {
     const u = await createUser()
     await testDb().query(

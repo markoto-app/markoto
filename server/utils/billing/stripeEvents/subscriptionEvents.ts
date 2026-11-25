@@ -16,7 +16,7 @@ import {
 } from './billingSubjects'
 import { eventTime } from './eventAge'
 import { recordSubscriptionHistory } from './subscriptionHistory'
-import { applyUserSubscriptionState, endUserSubscription, findUserIdByStripeCustomer, type UserBillingUpdate } from '../../../repos/userBilling'
+import { applyUserSubscriptionState, endUserSubscription, findTrackedUserSubscription, findUserIdByStripeCustomer, type UserBillingUpdate } from '../../../repos/userBilling'
 import type { TxHandle, DeferredAfterCommit } from './types'
 import { useLogger } from '../../platform/logger'
 import { system } from '../../../repos/proofs'
@@ -127,14 +127,15 @@ async function applyPersonalSubscription(
   if (period.start) setFields.stripeCurrentPeriodStart = period.start
   if (period.end) setFields.planValidUntil = period.end
   // Only the user's current subscription (stamped by the checkout) is
-  // applied. `customer.subscription.deleted` clears it, so a late event
-  // of an ended subscription can't bring Pro back; a new subscription's
-  // events that beat its checkout are covered by the checkout, which
-  // reads the live subscription. An event older than the state the row
-  // holds is not applied either (`eventAge.ts`).
+  // applied, so a second subscription of the same customer can't
+  // overwrite its plan, period or end date. `customer.subscription.deleted`
+  // clears it, so a late event of an ended subscription can't bring Pro
+  // back; a new subscription's events that beat its checkout are covered
+  // by the checkout, which reads the live subscription. An event older
+  // than the state the row holds is not applied either (`eventAge.ts`).
   const matched = await applyUserSubscriptionState(STRIPE, db, customerId, sub.id, setFields, eventTime(event))
   if (matched === 0) {
-    log.info('ignoring event: not the customer\'s current subscription, or older than its stored state', { eventType: event.type, eventId: event.id, subscriptionId: sub.id })
+    await logIgnoredPersonalEvent(event, customerId, db)
     return { matched: 0, plan: null }
   }
 
@@ -160,7 +161,9 @@ async function applyPersonalSubscription(
 
 /**
  * `customer.subscription.deleted` handler.
- *   - Personal: revert to Free and null the Stripe anchor (the resolver
+ *   - Personal, when it is the subscription the user row tracks (any
+ *     other one of the customer changes nothing): revert to Free and null
+ *     the Stripe anchor (the resolver
  *     falls back to the calendar month). `stripeCustomerId` and
  *     `billingCurrency` stay: a resubscription reuses the customer.
  *   - Workspace: mark the subscription `canceled` (the row stays as the
@@ -195,11 +198,21 @@ export async function handleSubscriptionDeleted(
     return { matched }
   }
 
+  // The history records the end of every Pro subscription of the
+  // customer, a duplicate's too: its start was recorded by its `created`
+  // event (`handleSubscriptionUpdated`), and it did end in Stripe.
   if (subject?.kind === 'user' && identity?.plan === 'pro') await recordSubscriptionHistory(event, subject, identity, handle)
-  // Not applied when the row holds newer state: a subscription bought
-  // after this one ended must not be taken away by its late event.
-  const matched = await endUserSubscription(STRIPE, handle, customerId, eventTime(event))
-  if (matched === 0) return { matched }
+  // Only the subscription the user row tracks ends the plan. A cancelled
+  // duplicate (a second checkout, an old subscription support cleans up)
+  // leaves the tracked, still billed one in charge; a row that tracks no
+  // subscription is already Free. Not applied when the row holds newer
+  // state either: a subscription bought after this one ended must not be
+  // taken away by its late event.
+  const matched = await endUserSubscription(STRIPE, handle, customerId, sub.id, eventTime(event))
+  if (matched === 0) {
+    await logIgnoredPersonalEvent(event, customerId, handle)
+    return { matched }
+  }
 
   // Drop the LiteLLM key budget to the free-tier value, deferred to
   // post-commit (see handleCheckoutSessionCompleted).
@@ -224,4 +237,23 @@ export async function handleSubscriptionDeleted(
   }
 
   return { matched }
+}
+
+/**
+ * Say why a personal subscription event changed nothing: the user row
+ * tracks another subscription (a duplicate on the same customer: a
+ * warning, the customer may be billed twice), or none, or newer state.
+ */
+async function logIgnoredPersonalEvent(
+  event: SubscriptionChangeEvent | Stripe.CustomerSubscriptionDeletedEvent,
+  customerId: string,
+  db: TxHandle | undefined
+): Promise<void> {
+  const subscriptionId = event.data.object.id
+  const tracked = await findTrackedUserSubscription(STRIPE, customerId, db)
+  if (tracked && tracked !== subscriptionId) {
+    log.warn('ignoring event: the user is on another subscription', { eventType: event.type, eventId: event.id, subscriptionId, trackedSubscriptionId: tracked })
+    return
+  }
+  log.info('ignoring event: the user tracks no subscription, or the stored state is newer', { eventType: event.type, eventId: event.id, subscriptionId })
 }
