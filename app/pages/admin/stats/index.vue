@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { STATS_RANGES, type AiStats, type ContentStats, type OpsStats, type OverviewStats, type RevenueStats, type StatsRange, type UsersStats } from '~~/shared/contracts/adminStats'
+import { STATS_RANGES, type AiStats, type ContentStats, type FunnelStats, type OpsStats, type OverviewStats, type RevenueStats, type StatsRange, type UsersStats } from '~~/shared/contracts/adminStats'
 import { ADMIN_STATS_TABS, useAdminStatsQuery, type AdminStatsTab } from '~/queries/adminStats'
 
 // Operator dashboard: product, revenue and usage stats of this instance.
@@ -95,6 +95,11 @@ const tabItems = computed(() => ADMIN_STATS_TABS.map(value => ({ label: t(`admin
       <AdminStatsUsers
         v-else-if="tab === 'users'"
         :data="data as UsersStats"
+        :range="range"
+      />
+      <AdminStatsFunnel
+        v-else-if="tab === 'funnel'"
+        :data="data as FunnelStats"
         :range="range"
       />
       <AdminStatsContent

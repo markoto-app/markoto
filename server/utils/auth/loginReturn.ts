@@ -21,7 +21,7 @@ function returnKey(state: string): string {
 }
 
 /** The OAuth `state` of the start leg's redirect to the provider (its `Location` header). */
-function redirectState(event: H3Event): string | null {
+export function oauthRedirectState(event: H3Event): string | null {
   const location = event.node.res.getHeader('location')
   if (typeof location !== 'string') return null
   try {
@@ -36,7 +36,7 @@ function redirectState(event: H3Event): string | null {
  * `state` (read from the redirect the handler set, unless given). Best
  * effort: without Valkey the sign-in still works and lands on `/`.
  */
-export async function rememberLoginReturn(event: H3Event, state: string | null = redirectState(event)): Promise<void> {
+export async function rememberLoginReturn(event: H3Event, state: string | null = oauthRedirectState(event)): Promise<void> {
   const path = safeLoginReturnPath(getQuery(event)[LOGIN_RETURN_PARAM])
   if (!path || !state) return
   try {

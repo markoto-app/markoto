@@ -7,7 +7,7 @@ import type { H3Event } from 'h3'
 import AdminStatsPage from '~/pages/admin/stats/index.vue'
 import InvestorPage from '~/pages/admin/stats/investor.vue'
 import AdminHubPage from '~/pages/admin/index.vue'
-import type { AiStats, ContentStats, OpsStats, OverviewStats, RevenueStats, StatsWindow, UsersStats } from '~~/shared/contracts/adminStats'
+import { funnelRows, type AiStats, type ContentStats, type FunnelStats, type OpsStats, type OverviewStats, type RevenueStats, type StatsWindow, type UsersStats } from '~~/shared/contracts/adminStats'
 
 // The admin's product stats: tabs and range live in the URL, every tab
 // renders its numbers from its endpoint, tables download as CSV, and the
@@ -128,6 +128,12 @@ const ops: OpsStats = {
   pendingStripeEvents: 0
 }
 
+const funnelCounts = funnelRows({
+  producthunt: { visits: 400, documents: 100, signups: 40, checkouts: 8, paid: 2 },
+  direct: { visits: 50, documents: 10, signups: 5 }
+}, true)
+const funnel: FunnelStats = { window, trackingEnabled: true, visitsAvailable: true, ...funnelCounts }
+
 const queries: Array<{ tab: string, query: Record<string, unknown> }> = []
 function stats(tab: string, body: unknown) {
   registerEndpoint(`/api/admin/stats/${tab}`, async (event: H3Event) => {
@@ -138,6 +144,7 @@ function stats(tab: string, body: unknown) {
 }
 stats('overview', overview)
 stats('users', users)
+stats('funnel', funnel)
 stats('content', content)
 stats('ai', ai)
 stats('revenue', revenue)
@@ -211,6 +218,33 @@ describe('admin product stats page', () => {
     expect(rev.text()).toContain('counts as 0')
     expect(rev.text()).toContain('Lost MRR EUR')
     expect((await open('?tab=ops')).text()).toContain('2 GB')
+  })
+
+  it('shows the funnel by source with step-to-step conversion', async () => {
+    const w = await open('?tab=funnel&range=7')
+    expect(queries.at(-1)).toEqual({ tab: 'funnel', query: { range: '7' } })
+    const text = w.get('[data-testid="admin-stats-funnel"]').text()
+    expect(text).toContain('Product Hunt')
+    expect(text).toContain('Direct or unknown')
+    // Visits, then each step with its share of the step before.
+    expect(text).toContain('400')
+    expect(text).toContain('100 · 25 %')
+    expect(text).toContain('40 · 40 %')
+    expect(text).toContain('8 · 20 %')
+    expect(text).toContain('2 · 25 %')
+    expect(text).toContain('450')
+    expect(w.find('[data-testid="admin-stats-funnel-off"]').exists()).toBe(false)
+    expect(w.find('[data-testid="admin-stats-funnel-no-visits"]').exists()).toBe(false)
+  })
+
+  it('says when sources are not recorded and visits are unavailable', async () => {
+    const { rows, total } = funnelRows({ google: { documents: 3 } }, false)
+    registerEndpoint('/api/admin/stats/funnel', () => ({ window, trackingEnabled: false, visitsAvailable: false, rows, total }))
+    const w = await open('?tab=funnel&range=90')
+    expect(w.find('[data-testid="admin-stats-funnel-off"]').exists()).toBe(true)
+    expect(w.find('[data-testid="admin-stats-funnel-no-visits"]').exists()).toBe(true)
+    expect(w.text()).toContain('n/a')
+    stats('funnel', funnel)
   })
 
   it('falls back to the overview and 30 days for unknown values', async () => {

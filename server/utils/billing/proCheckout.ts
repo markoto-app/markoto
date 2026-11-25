@@ -16,6 +16,7 @@ import { checkoutTaxFields } from './checkoutSession'
 import { useEnv } from '~~/shared/env/load'
 import { useLogger } from '../platform/logger'
 import type { UserScope } from '../../repos/proofs'
+import { captureCheckoutStarted } from '../analytics/acquisitionSource'
 
 const log = useLogger('billing')
 
@@ -124,6 +125,7 @@ export async function startProCheckout(event: H3Event, request: ProCheckoutReque
       throw apiError('billing/checkout-failed')
     }
     await recordPaidTermsAcceptance(event, self, { kind: 'plan', subject: { type: 'user', id: String(userId) }, item: `${plan}_${interval}` })
+    await captureCheckoutStarted(event, self)
     return { url: checkoutSession.url, sessionId: checkoutSession.id }
   } catch (e) {
     log.error('checkout session creation failed', { userId, err: e })

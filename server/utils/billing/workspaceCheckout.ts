@@ -23,6 +23,7 @@ import { stripeResponseTime } from './stripeEvents/eventAge'
 import { checkoutTaxFields } from './checkoutSession'
 import { AUDIT_WORKSPACE_BILLING_CHECKOUT_STARTED, AUDIT_WORKSPACE_BILLING_PLAN_CHANGED } from '../../legal/auditActions'
 import type { UserScope, WorkspaceAccess } from '../../repos/proofs'
+import { captureCheckoutStarted } from '../analytics/acquisitionSource'
 
 // Buying Team / Business for a workspace, or changing the plan / billing
 // period of its live subscription (`POST /api/workspaces/:wsId/billing/checkout`,
@@ -239,6 +240,7 @@ async function openCheckout(ctx: CheckoutContext): Promise<PlanCheckoutResponse<
       metadata: { plan, seats, interval, currency }
     })
     await recordPaidTermsAcceptance(event, ws, { kind: 'plan', subject: { type: 'workspace', id: wsId }, item: `${plan}_${interval}` })
+    await captureCheckoutStarted(event, self)
     return { url: checkout.url, sessionId: checkout.id }
   } catch (e) {
     if ((e as { statusCode?: number })?.statusCode) throw e

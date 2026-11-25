@@ -392,7 +392,7 @@ The self-host stack does not bundle Umami and its compose file does not pass the
 | `NUXT_PUBLIC_ANALYTICS_ENDPOINT` | `/a/api/send` | Same-origin path the browser posts to. |
 | `NUXT_ANALYTICS_RETENTION_DAYS` | `395` | The app deletes Umami events older than this (needs `NUXT_ANALYTICS_DB_*` for the Umami database). |
 
-The full list, including the optional ad click-ID conversion record, is in the [configuration reference](reference/configuration.md#analytics-and-ad-conversions). If you turn analytics on, name it in your own privacy policy.
+With analytics on, markoto also keeps the coarse acquisition source (which kind of site brought a visitor, one category of a fixed list) on anonymous documents and new accounts for the admin's funnel ([admin metrics](contributing/admin-metrics.md#funnel-by-source)). The full list, including the optional ad click-ID conversion record, is in the [configuration reference](reference/configuration.md#analytics-and-ad-conversions). If you turn analytics on, name it in your own privacy policy.
 
 ## Ports and networking
 

@@ -1,6 +1,7 @@
 import { analyticsClient } from '~/utils/analytics/analyticsClient'
 import type { AnalyticsEventData, AnalyticsEventName } from '~~/shared/analytics/events'
 import type { ClickId } from '~~/shared/analytics/attribution'
+import type { AcquisitionSource } from '~~/shared/analytics/acquisition'
 
 /**
  * Send an analytics event from a component (names and data shapes:
@@ -17,6 +18,10 @@ export function useAnalytics() {
     /** The Google Ads click id to attach to a conversion request (null when none or off). */
     clickId(): ClickId | null {
       return import.meta.server ? null : analyticsClient().clickId()
+    },
+    /** The visit's acquisition source to attach to a funnel request (null when direct or off). */
+    acquisitionSource(): AcquisitionSource | null {
+      return import.meta.server ? null : analyticsClient().source()
     }
   }
 }

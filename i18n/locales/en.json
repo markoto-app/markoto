@@ -3138,6 +3138,7 @@
     "tabs": {
       "overview": "Overview",
       "users": "Users",
+      "funnel": "Funnel",
       "content": "Content",
       "ai": "AI",
       "revenue": "Revenue",
@@ -3367,6 +3368,31 @@
       "combined": "All, in CHF",
       "note": "Estimated, per month. EUR to CHF at {eur}, USD to CHF at {usd}. The assumptions are set with NUXT_STATS_*.",
       "aiUnavailable": "The AI cost could not be read and counts as 0."
+    },
+    "funnel": {
+      "totals": "All sources",
+      "note": "Visits come from the visitor statistics; documents, sign-ups, checkouts and paid accounts from the database, so they count even where an ad blocker hides the visit. Each step shows its count and the share of the step before.",
+      "notTracking": "Sources are recorded only while visitor statistics are on (NUXT_PUBLIC_ANALYTICS_WEBSITE_ID). Everything counts as direct here.",
+      "noVisits": "Visits are not available: the statistics database cannot be read.",
+      "bySource": "Funnel by source",
+      "source": "Source",
+      "unavailable": "n/a",
+      "step": {
+        "visits": "Visits",
+        "documents": "First document",
+        "signups": "Sign-ups",
+        "checkouts": "Checkout started",
+        "paid": "Paying now"
+      },
+      "sources": {
+        "producthunt": "Product Hunt",
+        "hackernews": "Hacker News",
+        "google": "Google",
+        "github": "GitHub",
+        "other": "Other sites",
+        "direct": "Direct or unknown",
+        "all": "All sources"
+      }
     }
   },
   "admin": {

@@ -3,6 +3,7 @@ import type { SuggestionPolicy } from '~~/shared/utils/suggestions/record'
 import type { DocTheme } from '~~/shared/types/theme'
 import type { AudienceKind } from '~~/shared/audiences'
 import type { DocListSort, SortDirection } from '~~/shared/api/explorer'
+import type { AcquisitionSource } from '~~/shared/analytics/acquisition'
 import { documents, users } from '../db/schema'
 import { useDatabase } from '../db/client'
 import { NotFoundError } from './errors'
@@ -63,6 +64,8 @@ export interface CreateDocInput {
   /** Anonymous docs only: the Terms version + acceptance time from the gate. */
   anonTermsVersion?: number
   anonTermsAcceptedAt?: Date
+  /** The creator's acquisition source (admin funnel only). */
+  acquisitionSource?: AcquisitionSource | null
   /** A folder of the document's scope, checked by the caller (`createDocument`). */
   folderId?: string
 }
@@ -151,6 +154,7 @@ export async function createDoc(
   if (input.anonCreatorKeyHash !== undefined) values.anonCreatorKeyHash = input.anonCreatorKeyHash
   if (input.anonTermsVersion !== undefined) values.anonTermsVersion = input.anonTermsVersion
   if (input.anonTermsAcceptedAt !== undefined) values.anonTermsAcceptedAt = input.anonTermsAcceptedAt
+  if (input.acquisitionSource) values.acquisitionSource = input.acquisitionSource
   if (input.folderId !== undefined) values.folderId = input.folderId
   await db.insert(documents).values(values as typeof documents.$inferInsert)
 }
@@ -472,6 +476,9 @@ export interface AdoptedDoc {
   title: string
   accessMode: AccessMode
   anonTermsVersion: number | null
+  /** Which site brought its creator (admin funnel), kept on the document. */
+  acquisitionSource: AcquisitionSource | null
+  createdAt: Date
 }
 
 /**
@@ -509,8 +516,22 @@ export async function adoptAnonymousDocs(
       .update(documents)
       .set({ ownerId: self.userId, anonCreatorKeyHash: null, anonTermsVersion: null, anonTermsAcceptedAt: null })
       .where(and(inArray(documents.id, [...termsById.keys()]), stillAnonymous))
-      .returning({ id: documents.id, docId: documents.docId, title: documents.title, accessMode: documents.accessMode })
-    return rows.map(r => ({ docId: r.docId, title: r.title, accessMode: r.accessMode, anonTermsVersion: termsById.get(r.id) ?? null }))
+      .returning({
+        id: documents.id,
+        docId: documents.docId,
+        title: documents.title,
+        accessMode: documents.accessMode,
+        acquisitionSource: documents.acquisitionSource,
+        createdAt: documents.createdAt
+      })
+    return rows.map(r => ({
+      docId: r.docId,
+      title: r.title,
+      accessMode: r.accessMode,
+      anonTermsVersion: termsById.get(r.id) ?? null,
+      acquisitionSource: r.acquisitionSource,
+      createdAt: r.createdAt
+    }))
   })
 }
 

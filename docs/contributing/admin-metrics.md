@@ -1,8 +1,8 @@
 # Admin product stats: metric definitions
 
-The admin area (`/admin`, "Admin" in the account menu of an admin; its pages are listed in `app/utils/admin/adminSections.ts`) holds the stats page `/admin/stats` (tabs Overview, Users, Content, AI, Revenue, Operations) and the one-page investor summary `/admin/stats/investor`. The billing check `/admin/billing-consistency` is described in [billing.md](billing.md#billing-consistency-check). Both show product numbers of one instance. This page defines every number, so a figure in an investor update can be reproduced from the database.
+The admin area (`/admin`, "Admin" in the account menu of an admin; its pages are listed in `app/utils/admin/adminSections.ts`) holds the stats page `/admin/stats` (tabs Overview, Users, Funnel, Content, AI, Revenue, Operations) and the one-page investor summary `/admin/stats/investor`. The billing check `/admin/billing-consistency` is described in [billing.md](billing.md#billing-consistency-check). Both show product numbers of one instance. This page defines every number, so a figure in an investor update can be reproduced from the database.
 
-- Endpoints: `GET /api/admin/stats/{overview,users,content,ai,revenue,ops}?range=7|30|90|365|all[&bucket=day|week|month]`, admin only (`allow.admin()`).
+- Endpoints: `GET /api/admin/stats/{overview,users,funnel,content,ai,revenue,ops}?range=7|30|90|365|all[&bucket=day|week|month]`, admin only (`allow.admin()`).
 - Code: SQL in `server/repos/productStats.ts` and `server/repos/litellmSpend.ts`, assembly in `server/utils/adminStats/productStats.ts`, shapes and arithmetic in `shared/contracts/adminStats.ts`.
 - Every response holds counts and sums only; no response names a person.
 - Answers are cached in the app process for 60 seconds (`server/utils/adminStats/statsCache.ts`).
@@ -31,6 +31,32 @@ The admin area (`/admin`, "Admin" in the account menu of an admin; its pages are
 | Plans | `users.plan` (free / pro), as stored; with billing off every account is treated as free at runtime. |
 
 The accounts chart in the investor summary is the running total of sign-ups per month, shifted so the last point equals today's account count. Deleted accounts are not in it.
+
+## Funnel by source
+
+The Funnel tab answers "of the people a launch or a channel brought, how many wrote something, signed up, started a checkout and pay now", per acquisition source. It is built for launch days (for example the Product Hunt launch with `https://markoto.app/?ref=producthunt`): pick the 7-day range on the day after the launch and read the Product Hunt row.
+
+**Sources.** One category of a fixed list (`shared/analytics/acquisition.ts`): `producthunt`, `hackernews`, `google`, `github`, `other`, and `direct` for no source. The browser derives it from the landing URL, in this order: `?ref=` (our own launch links; known labels like `producthunt`, `ph`, `hn` map to their source, any other label is `other`), `utm_source` (same mapping), then the referring site (`producthunt.com`, `news.ycombinator.com`, `google.*`, `github.com`; any other external site is `other`). Only the category leaves the browser, never the URL, label or referrer. A visitor who is signed in when the page loads gets no referrer-derived source (after a sign-in the referrer is the provider's page). Use `?ref=<source>` on every link you post; a bare link from a site that sends no referrer counts as direct.
+
+**Where it is stored.** Only where visitor statistics are on (`NUXT_PUBLIC_ANALYTICS_WEBSITE_ID`) and never for a request with Global Privacy Control or Do Not Track:
+
+- `documents.acquisition_source`: the creating visit's source for an anonymous document (body field `acquisitionSource` of `POST /api/docs`); the account's source for a signed-in creator.
+- `users.acquisition_source`: written once at sign-up. The sign-in link carries `?ref=<source>`; the start leg parks it in Valkey under the OAuth `state` (15 minutes), the callback of a NEW account stores it and adds `signed_up_source=<source>` to the landing URL for the browser's `signup_completed` event. GitHub and Google sign-in only.
+- `users.checkout_started_at`: the first time the account opened a paid checkout (Pro or a workspace plan), set when the Stripe Checkout Session is created.
+
+**Steps** (window `[from, to)`, UTC days):
+
+| Step | Definition | Source |
+|---|---|---|
+| Visits | Umami visits (`website_event.visit_id`) whose first page view falls in the window, classified by that page view's query (`ref`, `utm_source`) and referring domain with the same rules as the browser. "n/a" when analytics is off or the Umami database cannot be read; undercounted by ad blockers. | Umami database |
+| First document | People whose first document was created in the window: accounts (`owner_id`) and anonymous browsers (`anon_creator_key_hash`), each counted once, by the source on that first document. An anonymous visitor who later signs up and writes again counts twice (as a browser and as an account). | `documents` |
+| Sign-ups | Accounts created in the window, by `users.acquisition_source`. | `users` |
+| Checkout started | Of those accounts: `checkout_started_at` set (at any time up to now). | `users` |
+| Paying now | Of those accounts: a billed Pro subscription (as in Revenue), or billing admin of a billed Team / Business workspace subscription. | `users`, `workspace_subscriptions` |
+
+Sign-ups, checkouts and paying accounts are one cohort (the accounts created in the window), so their rates are true conversions. Visits and first documents are counted in the window on their own; the percentages next to each count are the share of the step before (they can exceed 100 % where a step has more sources than the one before, for example documents of people whose visit Umami never saw). The table downloads as CSV with the raw counts.
+
+**In Umami.** Page views carry `ref=<source>` in their query (next to the UTM parameters), and the events `doc_created`, `signup_started`, `signup_completed`, `checkout_started` and `checkout_completed` carry the event property `ref` (the source, `direct` when none). The funnel `launchFunnel` in `shared/analytics/events.ts` (`/` → `doc_created` → `signup_completed` → `checkout_started` → `checkout_completed`) can be set up in Umami (Reports → Funnel) and filtered by `ref`. Umami's numbers are per visit and lower than the database's wherever ad blockers or Global Privacy Control stop the requests; the database numbers are the ones to report.
 
 ## Content
 
@@ -144,5 +170,6 @@ New personal data, privacy policy (current version in `shared/legal/versions.ts`
 
 - `users.last_active_on` (a date, overwritten daily, no history), under `account_authentication` in `server/legal/lawfulBasis.ts`; in the data export (`profile.json`), deleted with the account. Admins see only counts built from it.
 - The subscription history `subscription_events`, under `billing` (category `subscription_history`); in the data export, anonymised on account deletion.
+- `users.acquisition_source`, `users.checkout_started_at` and `documents.acquisition_source` (one category of a fixed list, the first checkout time), under `acquisition_measurement` (shown only where analytics is on); the account's two columns in the data export (`profile.json`), gone with the account or document.
 
 `ai_spend_daily` holds no personal data.

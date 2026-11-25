@@ -3,6 +3,7 @@
 import { z } from 'zod'
 import { serialId } from './ids'
 import { clickIdBody } from '../analytics/attribution'
+import { acquisitionSourceBody } from '../analytics/acquisition'
 import { AUDIENCE_KINDS } from '../audiences'
 import { LANGUAGE_MAX_LENGTH } from '../languages'
 import { isTemplateId, resolveTemplateId } from '../templates'
@@ -62,7 +63,9 @@ export const createDocBody = z.object({
   // The length cap answers `docs/content-too-long` in the handler.
   content: z.string().optional(),
   // Google Ads click id of this visit (shared/analytics/attribution.ts).
-  attribution: clickIdBody.optional()
+  attribution: clickIdBody.optional(),
+  // Acquisition source of this visit (shared/analytics/acquisition.ts).
+  acquisitionSource: acquisitionSourceBody.optional()
 }).nullish()
 
 const WORD_COUNT_MAX = 10_000_000

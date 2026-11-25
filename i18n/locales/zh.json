@@ -3138,6 +3138,7 @@
     "tabs": {
       "overview": "概览",
       "users": "用户",
+      "funnel": "漏斗",
       "content": "内容",
       "ai": "AI",
       "revenue": "收入",
@@ -3367,6 +3368,31 @@
       "combined": "合计,CHF",
       "note": "按月预估。EUR 兑 CHF 按 {eur},USD 兑 CHF 按 {usd}。假设通过 NUXT_STATS_* 设置。",
       "aiUnavailable": "无法读取 AI 成本,按 0 计算。"
+    },
+    "funnel": {
+      "totals": "所有来源",
+      "note": "访问数来自访客统计；文档、注册、结账和付费账户来自数据库，因此即使广告拦截器隐藏了访问也会被计入。每一步显示其数量以及相对上一步的比例。",
+      "notTracking": "仅在访客统计开启时记录来源 (NUXT_PUBLIC_ANALYTICS_WEBSITE_ID)。此处所有内容均计为直接访问。",
+      "noVisits": "访问数不可用：无法读取统计数据库。",
+      "bySource": "按来源的漏斗",
+      "source": "来源",
+      "unavailable": "无",
+      "step": {
+        "visits": "访问",
+        "documents": "首个文档",
+        "signups": "注册",
+        "checkouts": "已开始结账",
+        "paid": "当前付费"
+      },
+      "sources": {
+        "producthunt": "Product Hunt",
+        "hackernews": "Hacker News",
+        "google": "Google",
+        "github": "GitHub",
+        "other": "其他网站",
+        "direct": "直接或未知",
+        "all": "所有来源"
+      }
     }
   },
   "admin": {

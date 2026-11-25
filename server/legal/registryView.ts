@@ -32,6 +32,7 @@ const GATED_SUB_PROCESSORS: Record<string, keyof RegistryFlags> = {
 const GATED_PURPOSES: Record<string, keyof RegistryFlags> = {
   billing: 'billing',
   web_analytics: 'analytics',
+  acquisition_measurement: 'analytics',
   ad_conversion_measurement: 'adsConversions'
 }
 

@@ -476,3 +476,58 @@ export async function subscriptionStepSeries(_by: AdminActor, w: StatsWindow): P
     WHERE kind = ${kind} AND occurred_at >= ${utc(w.from)} AND occurred_at < ${utc(w.to)} GROUP BY 1`)
   return { started: await step('started'), ended: await step('ended') }
 }
+
+// Funnel by source (docs/contributing/admin-metrics.md#funnel-by-source)
+
+export interface SourceFunnelCounts {
+  /** `documents.acquisition_source` / `users.acquisition_source`, `direct` for none. */
+  source: string
+  documents: number
+  signups: number
+  checkouts: number
+  paid: number
+}
+
+/**
+ * Per acquisition source, in the window: people who created their first
+ * document (an account, or an anonymous browser by its creator key), and
+ * the accounts created, how many of those opened a checkout and how many
+ * pay now (Pro, or billing admin of a Team / Business workspace).
+ */
+export async function acquisitionFunnel(_by: AdminActor, w: StatsWindow): Promise<SourceFunnelCounts[]> {
+  const r = await rows<{ source: string, documents: number, signups: number, checkouts: number, paid: number }>(sql`
+    WITH firsts AS (
+      SELECT DISTINCT ON (creator) acquisition_source, created_at
+      FROM (
+        SELECT coalesce('u' || owner_id::text, 'a' || anon_creator_key_hash, 'd' || doc_id) AS creator, acquisition_source, created_at
+        FROM documents
+      ) d
+      ORDER BY creator, created_at
+    ),
+    docs AS (
+      SELECT coalesce(acquisition_source, 'direct') AS source, count(*)::int AS documents
+      FROM firsts WHERE created_at >= ${utc(w.from)} AND created_at < ${utc(w.to)}
+      GROUP BY 1
+    ),
+    accounts AS (
+      SELECT coalesce(u.acquisition_source, 'direct') AS source,
+        count(*)::int AS signups,
+        count(*) FILTER (WHERE u.checkout_started_at IS NOT NULL)::int AS checkouts,
+        count(*) FILTER (WHERE
+          (u.plan = 'pro' AND u.stripe_subscription_id IS NOT NULL AND u.subscription_status IN ${BILLED} AND u.plan_valid_until > now())
+          OR EXISTS (
+            SELECT 1 FROM workspace_subscriptions s
+            WHERE s.billing_admin_id = u.id AND s.status IN ${BILLED} AND (s.valid_until IS NULL OR s.valid_until > now())
+          ))::int AS paid
+      FROM users u
+      WHERE u.created_at >= ${utc(w.from)} AND u.created_at < ${utc(w.to)}
+      GROUP BY 1
+    )
+    SELECT coalesce(d.source, a.source) AS source,
+      coalesce(d.documents, 0)::int AS documents,
+      coalesce(a.signups, 0)::int AS signups,
+      coalesce(a.checkouts, 0)::int AS checkouts,
+      coalesce(a.paid, 0)::int AS paid
+    FROM docs d FULL OUTER JOIN accounts a ON a.source = d.source`)
+  return r.map(x => ({ source: x.source, documents: Number(x.documents), signups: Number(x.signups), checkouts: Number(x.checkouts), paid: Number(x.paid) }))
+}

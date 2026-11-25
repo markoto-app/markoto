@@ -3138,6 +3138,7 @@
     "tabs": {
       "overview": "Übersicht",
       "users": "Nutzende",
+      "funnel": "Funnel",
       "content": "Inhalte",
       "ai": "KI",
       "revenue": "Umsatz",
@@ -3367,6 +3368,31 @@
       "combined": "Alles, in CHF",
       "note": "Geschätzt, pro Monat. EUR zu CHF bei {eur}, USD zu CHF bei {usd}. Die Annahmen werden mit NUXT_STATS_* festgelegt.",
       "aiUnavailable": "Die KI-Kosten konnten nicht gelesen werden und zählen als 0."
+    },
+    "funnel": {
+      "totals": "Alle Quellen",
+      "note": "Besuche stammen aus der Besucherstatistik; Dokumente, Registrierungen, Checkouts und zahlende Konten aus der Datenbank, sie zählen also auch, wo ein Werbeblocker den Besuch verbirgt. Jeder Schritt zeigt seine Anzahl und den Anteil am Schritt davor.",
+      "notTracking": "Quellen werden nur erfasst, solange die Besucherstatistik eingeschaltet ist (NUXT_PUBLIC_ANALYTICS_WEBSITE_ID). Hier zählt alles als direkt.",
+      "noVisits": "Besuche sind nicht verfügbar: Die Statistikdatenbank kann nicht gelesen werden.",
+      "bySource": "Funnel nach Quelle",
+      "source": "Quelle",
+      "unavailable": "k. A.",
+      "step": {
+        "visits": "Besuche",
+        "documents": "Erstes Dokument",
+        "signups": "Registrierungen",
+        "checkouts": "Checkout begonnen",
+        "paid": "Zahlen jetzt"
+      },
+      "sources": {
+        "producthunt": "Product Hunt",
+        "hackernews": "Hacker News",
+        "google": "Google",
+        "github": "GitHub",
+        "other": "Andere Websites",
+        "direct": "Direkt oder unbekannt",
+        "all": "Alle Quellen"
+      }
     }
   },
   "admin": {

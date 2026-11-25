@@ -14,6 +14,7 @@ import { LANGUAGE_MAX_LENGTH } from '~~/shared/languages'
 import { THEME_PRESETS } from '~~/shared/utils/theme/themePresets'
 import { getTemplate, templateCover, type TemplateMeta } from '~~/shared/templates'
 import type { DocTheme } from '~~/shared/types/theme'
+import type { AcquisitionSource } from '~~/shared/analytics/acquisition'
 import { adaptCustomCssToDoc } from '~~/shared/utils/theme/customCss'
 import { themeImagesForDoc } from '~~/shared/utils/theme/themeImages'
 import { DOC_DESCRIPTION_MAX_LENGTH, DOC_TITLE_MAX_LENGTH, INITIAL_CONTENT_MAX_LENGTH } from '~~/shared/config/docCreate'
@@ -60,6 +61,8 @@ export interface CreateDocumentParams {
   /** Anonymous creation only (ignored when `ownerId` is set): the Terms
    *  acceptance the anonymous gate verified (server/utils/anonGate/). */
   anonTermsAcceptance?: { termsVersion: number, acceptedAt: Date }
+  /** Which site brought the creator (POST /api/docs only; admin funnel). */
+  acquisitionSource?: AcquisitionSource | null
   /** Markdown body to start with (≤ `INITIAL_CONTENT_MAX_LENGTH`), written
    *  as the doc's first Y.js update. Mutually exclusive with `templateId`
    *  (a template seeds its body in the browser on first open). */
@@ -135,6 +138,7 @@ export async function createDocument(input: CreateDocumentParams): Promise<Creat
   }
 
   if (ownerId == null) applyAnonymousCreator(create, input)
+  if (input.acquisitionSource) create.acquisitionSource = input.acquisitionSource
 
   await createDoc(input.owner, workspace, create)
   // Just created: its creator holds every right on it.

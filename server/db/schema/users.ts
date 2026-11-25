@@ -124,6 +124,18 @@ export const users = pgTable('users', {
   // folders and documents (create, rename, move, delete): open explorers
   // poll it and refetch when it moved (migration 0009).
   explorerVersion: bigint('explorer_version', { mode: 'number' }).notNull().default(0),
+  // Which site brought the person who signed up: one coarse category
+  // (producthunt / hackernews / google / github / other), never a URL or
+  // campaign label (the list is ACQUISITION_SOURCES in
+  // shared/analytics/acquisition.ts). Written once, at sign-up, from the
+  // sign-in link's `ref`; NULL = direct, unknown, or
+  // statistics off / declined (GPC, DNT). Feeds the admin's "Funnel by
+  // source" (docs/contributing/admin-metrics.md).
+  acquisitionSource: text('acquisition_source', { enum: ['producthunt', 'hackernews', 'google', 'github', 'other'] }),
+  // When the account first opened a paid checkout (Pro or a workspace plan).
+  // Written once, only where statistics are on; the funnel's "started a
+  // checkout" step. NULL = never.
+  checkoutStartedAt: timestamp('checkout_started_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 }, table => [
   // Partial indexes: the plan-lapse and account-deletion sweeps scan these

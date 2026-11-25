@@ -2,10 +2,10 @@
 // server caches each answer for a minute, so the client keeps it as long.
 import { useQuery } from '@pinia/colada'
 import type { MaybeRefOrGetter } from 'vue'
-import type { AiStats, ContentStats, OpsStats, OverviewStats, RevenueStats, StatsBucket, StatsRange, UsersStats } from '~~/shared/contracts/adminStats'
+import type { AiStats, ContentStats, FunnelStats, OpsStats, OverviewStats, RevenueStats, StatsBucket, StatsRange, UsersStats } from '~~/shared/contracts/adminStats'
 import { apiFetch } from '~/utils/api/client'
 
-export const ADMIN_STATS_TABS = ['overview', 'users', 'content', 'ai', 'revenue', 'ops'] as const
+export const ADMIN_STATS_TABS = ['overview', 'users', 'funnel', 'content', 'ai', 'revenue', 'ops'] as const
 export type AdminStatsTab = typeof ADMIN_STATS_TABS[number]
 
 const adminStatsKeys = {
@@ -16,7 +16,7 @@ const adminStatsKeys = {
 const STATS_STALE_MS = 60_000
 
 /** One tab's answer; the page narrows it by the tab it asked for. */
-export type AdminStatsData = OverviewStats | UsersStats | ContentStats | AiStats | RevenueStats | OpsStats
+export type AdminStatsData = OverviewStats | UsersStats | FunnelStats | ContentStats | AiStats | RevenueStats | OpsStats
 
 function fetchTab(tab: AdminStatsTab, range: StatsRange, bucket: StatsBucket | null, signal: AbortSignal): Promise<AdminStatsData> {
   return requestTab(tab, range, bucket, signal) as Promise<unknown> as Promise<AdminStatsData>
@@ -27,6 +27,7 @@ function requestTab(tab: AdminStatsTab, range: StatsRange, bucket: StatsBucket |
   switch (tab) {
     case 'overview': return apiFetch('/api/admin/stats/overview', { query, signal })
     case 'users': return apiFetch('/api/admin/stats/users', { query, signal })
+    case 'funnel': return apiFetch('/api/admin/stats/funnel', { query, signal })
     case 'content': return apiFetch('/api/admin/stats/content', { query, signal })
     case 'ai': return apiFetch('/api/admin/stats/ai', { query, signal })
     case 'revenue': return apiFetch('/api/admin/stats/revenue', { query, signal })

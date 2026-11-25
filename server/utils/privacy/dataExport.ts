@@ -214,6 +214,8 @@ function buildProfileEntry(userRow: UserProfileRow) {
     dpaVersionAcceptedLocale: userRow.dpaVersionAcceptedLocale,
     editorTourDoneAt: userRow.editorTourDoneAt?.toISOString() ?? null,
     lastActiveOn: userRow.lastActiveOn,
+    acquisitionSource: userRow.acquisitionSource,
+    checkoutStartedAt: userRow.checkoutStartedAt?.toISOString() ?? null,
     createdAt: userRow.createdAt.toISOString()
   }
 }

@@ -356,6 +356,24 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     subProcessors: ['ovh_postgres']
   },
   {
+    // Which site brought a person (shared/analytics/acquisition.ts): one
+    // category of a fixed list (producthunt, hackernews, google, github,
+    // other), never a URL, referrer or campaign label. Kept in the browser's
+    // memory only, sent with the creation of a document or the sign-in link
+    // and stored on the anonymous document or the new account
+    // (`acquisition_source`), plus when the account first opened a paid
+    // checkout (`users.checkout_started_at`). Read only as counts per
+    // source (admin "Funnel by source"). Not recorded with Global Privacy
+    // Control / Do Not Track. Kept with the document / account. Shown
+    // only where analytics is on.
+    id: 'acquisition_measurement',
+    label: 'Measuring which sites bring new users',
+    basis: 'legitimate_interest',
+    dataCategories: ['acquisition_source_category', 'first_checkout_time'],
+    retention: 'until_deletion',
+    subProcessors: ['ovh_postgres']
+  },
+  {
     // Google Ads conversion measurement without a Google script: when a
     // visitor who came from a Google ad (click id `gclid` / `gbraid` /
     // `wbraid` in the landing URL) signs up, joins the waitlist (and

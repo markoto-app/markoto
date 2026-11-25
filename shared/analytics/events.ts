@@ -3,6 +3,8 @@
 // never free text, ids, emails, document titles or content.
 // docs/SELF-HOSTING.md#analytics-optional lists them with the funnels built from them.
 
+import type { FunnelSource } from './acquisition'
+
 export const ANALYTICS_EVENTS = {
   /** The landing URL carried a Google Ads click id (the id itself is not sent). */
   adLanding: 'ad_landing',
@@ -14,6 +16,8 @@ export const ANALYTICS_EVENTS = {
   pricingCtaClicked: 'pricing_cta_clicked',
   /** A paid plan's checkout button (billing on). */
   checkoutStarted: 'checkout_started',
+  /** Back from a paid checkout (Stripe's success page sent the buyer back). */
+  checkoutCompleted: 'checkout_completed',
   waitlistSubmitted: 'waitlist_submitted',
   waitlistConfirmed: 'waitlist_confirmed',
   /** A sign-in button (GitHub / Google / OIDC). */
@@ -37,24 +41,40 @@ export type Placement = 'header' | 'footer' | 'tour_hero' | 'tour_final' | 'cont
 export type PricingPlan = 'anonymous' | 'free' | 'self_hosted' | 'pro' | 'team' | 'business'
 export type LoginProviderName = 'github' | 'google' | 'oidc'
 
+/**
+ * Funnel steps: the analytics client adds the visit's acquisition source
+ * (`ref`, one of `FUNNEL_SOURCES`, never a raw URL or label) to these.
+ */
+export interface SourceTag { ref?: FunnelSource }
+
 /** The data each event may carry. */
 export interface AnalyticsEventData {
   ad_landing: { network: 'google', id_type: 'gclid' | 'gbraid' | 'wbraid' }
   tour_scrolled: { depth: 25 | 50 | 75 | 100 }
   start_writing_clicked: { placement: Placement }
   pricing_cta_clicked: { plan: PricingPlan, action: 'start' | 'sign_in' | 'waitlist' | 'self_host' | 'checkout' }
-  checkout_started: { plan: PricingPlan }
+  checkout_started: { plan: PricingPlan } & SourceTag
+  checkout_completed: { kind: 'personal' | 'workspace' } & SourceTag
   waitlist_submitted: Record<string, never>
   waitlist_confirmed: Record<string, never>
-  signup_started: { provider: LoginProviderName }
-  signup_completed: { provider: LoginProviderName }
-  doc_created: { anonymous: boolean, source: 'dialog' | 'try_it' }
+  signup_started: { provider: LoginProviderName } & SourceTag
+  signup_completed: { provider: LoginProviderName } & SourceTag
+  doc_created: { anonymous: boolean, source: 'dialog' | 'try_it' } & SourceTag
   ai_first_use: Record<string, never>
   github_clicked: { placement: Placement }
   selfhost_clicked: { placement: Placement }
   demo_video_open: { placement: Placement }
   published_page_view: Record<string, never>
 }
+
+/** The events the analytics client tags with the acquisition source (`ref`). */
+export const SOURCE_TAGGED_EVENTS: ReadonlySet<AnalyticsEventName> = new Set<AnalyticsEventName>([
+  ANALYTICS_EVENTS.docCreated,
+  ANALYTICS_EVENTS.signupStarted,
+  ANALYTICS_EVENTS.signupCompleted,
+  ANALYTICS_EVENTS.checkoutStarted,
+  ANALYTICS_EVENTS.checkoutCompleted
+])
 
 export interface ResolvedEvent {
   name: AnalyticsEventName
@@ -132,6 +152,10 @@ export const FUNNELS: Record<string, { title: string, steps: FunnelStep[] }> = {
   landingToPaid: {
     title: 'Landing to paid-plan interest',
     steps: [{ path: '/' }, { path: '/pricing' }, { event: ANALYTICS_EVENTS.pricingCtaClicked }, { event: ANALYTICS_EVENTS.waitlistSubmitted }]
+  },
+  launchFunnel: {
+    title: 'Launch funnel (filter by the event property ref, e.g. producthunt)',
+    steps: [{ path: '/' }, { event: ANALYTICS_EVENTS.docCreated }, { event: ANALYTICS_EVENTS.signupCompleted }, { event: ANALYTICS_EVENTS.checkoutStarted }, { event: ANALYTICS_EVENTS.checkoutCompleted }]
   },
   landingToActivation: {
     title: 'Landing to activated account',

@@ -30,6 +30,7 @@ function checkToken(token: typeof MINT): void {
 export const SYSTEM_ACTORS = [
   'account-deletion',
   'account-deletion-sweep',
+  'acquisition-source',
   'ad-conversions',
   'admin-bootstrap',
   'ai-jobs',
