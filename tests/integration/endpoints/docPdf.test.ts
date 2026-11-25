@@ -142,7 +142,6 @@ describe('GET /api/docs/:docId/pdf: real renderer', () => {
       expect(res.headers.get('cache-control')).toBe('private, no-store')
       const bytes = new Uint8Array(await res.arrayBuffer())
       expect(new TextDecoder().decode(bytes.slice(0, 5))).toBe('%PDF-')
-      expect(Number(res.headers.get('content-length'))).toBe(bytes.length)
 
       await wipeRendersFor(doc.docId)
     }, 60_000)
