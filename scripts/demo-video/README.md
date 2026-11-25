@@ -58,7 +58,7 @@ captures):
   `docs/contributing/CONTAINER-ENGINES.md`). Without `FLOWS_HOSTED_AI` the
   editor shows an AI-points meter the hosted service doesn't, and the AI
   scenes fail on it;
-- `MISTRAL_API_KEY`, `JINA_AI_API_KEY` and `BFL_API_KEY` in the shell and
+- `MISTRAL_API_KEY`, `STAAN_API_KEY` and `BFL_API_KEY` in the shell and
   the stack's LiteLLM (the AI scenes are skipped without them).
 
 Watch the result before committing it: the contact sheet shows stale UI,

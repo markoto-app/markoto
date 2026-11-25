@@ -361,7 +361,7 @@ describe('executeFunctionByName: dispatch', () => {
 
     // Positive oracle: web_search is routed (i.e. NOT in the
     // "unknown" branch). We don't actually execute it, that would
-    // need runtime config + Jina; instead we assert the dispatcher
+    // need runtime config + Staan; instead we assert the dispatcher
     // dispatches it. If it returned the "Unsupported function"
     // sentinel, this test would fail.
     let routedToBridge: boolean

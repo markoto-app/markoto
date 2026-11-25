@@ -8,8 +8,8 @@ import type { FetchUrlRequest } from '../../ai/tools/fetchUrl'
 import { workerProviderFor } from '../../aiProviders/resolve'
 
 /**
- * web_search and fetch_url share the same shape: 2-call (Jina then
- * Mistral synthesis). Both run a session-context-aware fetch and emit
+ * web_search and fetch_url share the same shape: 2-call (Staan search or
+ * fetch, then worker-model synthesis). Both run a session-context-aware fetch and emit
  * an ai.tool activity row on success.
  */
 export async function runSubCall(
@@ -22,7 +22,7 @@ export async function runSubCall(
     userId: ctx.opts.aiSession.initiatorUserId ?? null,
     docId: ctx.opts.aiSession.docId ?? null,
     attributedTo: ctx.opts.billingContext.attributedTo,
-    // The per-call charge (Staan / Jina, priced into the AI budget) and the
+    // The per-call charge (Staan, priced into the AI budget) and the
     // synthesis sub-call authenticate with the caller's virtual key (never
     // the master key). The synthesis runs on the session's worker model,
     // the user's own key (and fast model, if set) under BYOK.

@@ -1,14 +1,14 @@
 ---
 slug: privacy
 locale: en
-version: 15
-effectiveDate: 2026-11-18
+version: 16
+effectiveDate: 2026-11-25
 translationStatus: authoritative
 ---
 
 # Privacy Policy
 
-> **In short:** markoto stores the documents you write, the comments you leave, and the minimum we need to run your account. The service is free; paid plans are not offered yet. AI features run on EU-based providers (Mistral AI for text and voice, Jina AI for embeddings and single-page fetching, Staan for web search, Black Forest Labs for image generation) unless you connect your own AI provider, in which case your AI content goes to the provider you chose. We use only essential cookies. We count visits to our public pages with our own statistics tool, which stores nothing on your device, and when you come from one of our Google ads and then sign up, we tell Google Ads that the ad worked, without loading any Google script. We don't sell your data and we don't train AI on your content. You can export the data we hold about you and delete your account at any time from your settings.
+> **In short:** markoto stores the documents you write, the comments you leave, and the minimum we need to run your account. The service is free; paid plans are not offered yet. AI features run on EU-based providers (Mistral AI for text, voice and knowledge-base search, Staan for web search and reading single web pages, Black Forest Labs for image generation) unless you connect your own AI provider, in which case your AI content goes to the provider you chose. We use only essential cookies. We count visits to our public pages with our own statistics tool, which stores nothing on your device, and when you come from one of our Google ads and then sign up, we tell Google Ads that the ad worked, without loading any Google script. We don't sell your data and we don't train AI on your content. You can export the data we hold about you and delete your account at any time from your settings.
 
 **Contents**
 
@@ -89,7 +89,7 @@ We notify workspace owners at least 30 days in advance of any new sub-processor.
 
 ## 5. Storage location and retention
 
-Application data and documents are stored in OVHcloud's managed PostgreSQL and Object Storage in the EU (France). AI processing is done by EU-based providers: Mistral AI (France; data centres in the EU and EFTA), Jina AI (Germany), Staan (France) and Black Forest Labs (EU-pinned region), routed through our own AI gateway. While the service is free, we process no payment data. Error reports are processed by Sentry in its EU (Frankfurt) region. Transactional emails are sent through Resend.
+Application data and documents are stored in OVHcloud's managed PostgreSQL and Object Storage in the EU (France). AI processing is done by EU-based providers: Mistral AI (France; data centres in the EU and EFTA), Staan (France) and Black Forest Labs (EU-pinned region), routed through our own AI gateway. While the service is free, we process no payment data. Error reports are processed by Sentry in its EU (Frankfurt) region. Transactional emails are sent through Resend.
 
 Retention follows the register in §13. In general:
 
@@ -176,13 +176,12 @@ We do not make decisions with legal or similarly significant effects on you base
 
 ## 8. AI features and transparency
 
-markoto includes an AI writing assistant and a knowledge-base search. AI requests go through our own AI gateway to these EU-based providers: Mistral AI (text generation with open-weight and Mistral models, voice transcription; every request goes to its EU endpoint, data centres in the EU and in EFTA countries), Jina AI (embeddings for the knowledge base, extracting the content of a single web page), Staan (web search via a European search index) and Black Forest Labs (image generation, EU-pinned region).
+markoto includes an AI writing assistant and a knowledge-base search. AI requests go through our own AI gateway to these EU-based providers: Mistral AI (text generation with open-weight and Mistral models, voice transcription, embeddings for the knowledge base; every request goes to its EU endpoint, data centres in the EU and in EFTA countries), Staan (web search via a European search index, extracting the content of a single web page) and Black Forest Labs (image generation, EU-pinned region).
 
 **AI transparency.** When the AI works in a document, it appears as a separate collaborator, its answers are labelled as coming from markoto's AI, and its edits are recorded in the document's activity log as made by the AI.
 
 **Training.** We do not use your content to train AI models. Our providers' terms differ:
 
-- **Jina AI** states in its terms that it does not use customer request data, inputs or uploaded content to train its models.
 - **Staan** states that search data is not used to train language models.
 - **Mistral AI** and **Black Forest Labs** may, under their standard terms, use API content to improve their models unless the customer opts out. We have opted out of this with both providers.
 
@@ -201,9 +200,9 @@ If you are signed in and have not connected your own provider for the writing as
 
 You can connect your own AI provider account (an OpenAI-compatible service from the choices in the settings, for example Mistral AI or OpenAI) under **Settings → AI provider**, separately for chat, image generation and voice transcription. When you do, the content needed for that feature (your prompt, the relevant document context, voice recordings and the generated result) is sent through our AI gateway to **the provider you chose, under your own agreement with it**. We do not choose that provider and it is not our sub-processor; its terms and data-protection practices, including where it processes data and whether it trains on your content, are those of your contract with it. We store your provider settings (provider URL, model name and your API key, encrypted at rest) until you remove them or delete your account. Only the last four characters of the key are ever shown back to you, the key is never included in your data export, and we do not write it to our logs. Prompt and tool-call records follow the 90-day retention above. Embeddings always use our own provider listed above.
 
-Web search and single-page fetching are provided by us, whether or not you use your own AI provider: the search query the assistant formulates (up to 400 characters, possibly derived from your prompt or document) is sent to Staan, and the web address the assistant wants to read is sent to Jina AI, directly from our application and through our account with those providers. The results are then summarised by your chat provider (your own if you connected one, otherwise ours). To limit cost and abuse, each user may make a limited number of web searches and page fetches (by default 30 per hour and 100 per day). We count them in a short-lived store under your internal user ID; the counters hold only timestamps and expire automatically.
+Web search and single-page fetching are provided by us, whether or not you use your own AI provider: the search query the assistant formulates (up to 400 characters, possibly derived from your prompt or document) and the web address the assistant wants to read are sent to Staan, directly from our application and through our account with Staan. The results are then summarised by your chat provider (your own if you connected one, otherwise ours). To limit cost and abuse, each user may make a limited number of web searches and page fetches (by default 30 per hour and 100 per day). We count them in a short-lived store under your internal user ID; the counters hold only timestamps and expire automatically.
 
-The AI features require an account and are optional: document content is sent to an AI provider only when you use the assistant or upload files to a workspace knowledge base (which are embedded by Jina AI).
+The AI features require an account and are optional: document content is sent to an AI provider only when you use the assistant or upload files to a workspace knowledge base (which are embedded by Mistral AI).
 
 ## 9. Cookies and similar technologies
 
@@ -270,6 +269,7 @@ This is **version {{currentVersion}}**, effective **{{effectiveDate}}**. Materia
 
 ### Change log
 
+- **v16 (2026-11-25).** Removed Jina AI GmbH as a sub-processor. Knowledge-base embeddings are now generated by Mistral AI on its EU endpoint, and single web pages the assistant reads are now fetched by Staan, which already provides web search (§4, §5, §8, register in §13). No new kind of data and no new recipient.
 - **v15 (2026-11-18).** Described large AI edits that run in the background (§5): the instruction and settings of such a job, and copies of the earlier text of each changed part for undoing the job, deleted after 7 days; the job record after 90 days. The writing assistant and the free AI allowance now run on DeepSeek V4.1 Flash, with GLM-5.3 Flash as fallback and for background edits and Mistral Large 4 for plans with the stronger model, all served and processed by Mistral AI on its EU endpoint; the developers of these models receive no data, and Mistral AI remains the only sub-processor for AI text generation (§8).
 - **v14 (2026-11-17).** Added visitor statistics of our public pages with Umami, which we run ourselves, without cookies or other storage on your device, deleted after 13 months; and ad measurement for our Google ads without any Google script: if you come from one of our ads and sign up, join the waitlist or create your first document, we keep the ad's click identifier for 90 days and report it with the time of that step to Google Ads, which is a new recipient (§2, §4, §5, §9, §9b). Global Privacy Control and Do Not Track switch both off. Added to your data export (`ad_conversions.ndjson`). Added the last active day (§2): one date, replaced every day, used only to count active accounts. Added to your data export (`profile.json`, `lastActiveOn`). Once paid plans are offered we also record when a plan started, changed, was cancelled or ended (§2); your data export lists yours (`billing/subscription_history.json`), and after you delete your account these records stay without any link to you. Paid plans and AI credits, once offered, are sold through Link (Sold through Link, LLC, a Stripe company) as seller and merchant of record (§2, §4, §5, §5b, §7): the payment details, billing address and VAT number you enter at checkout go to Link and Stripe, which process them as independent controllers under their own privacy policies; we receive the order data needed to provide your plan.
 - **v13 (2026-11-10).** Described publishing a document as a web page and showing it on your own domain (§2, §5): the published copy and its address, the domain name, its verification and DNS checks, and the HTTPS certificate requested from Let's Encrypt, which makes the domain name public in Certificate Transparency logs. Added to your data export (`published_pages.json`, `custom_domains.json`).

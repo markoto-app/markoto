@@ -94,6 +94,17 @@ describe('LiteLLM: every Mistral deployment is EU-pinned', () => {
     }
   })
 
+  it('the knowledge-base embeddings (mistral-embed, the default) run on the EU endpoint with the operator key', () => {
+    const block = (config.split(/\n {2}- model_name: /).find(b => b.startsWith('mistral-embed\n')) ?? '')
+      .split('\n').filter(l => !/^\s*#/.test(l)).join('\n')
+    expect(block).toMatch(/\n {6}model: mistral\/mistral-embed-2312\n/)
+    expect(block).toMatch(/\n {6}api_base: https:\/\/api\.eu\.mistral\.ai\/v1\n/)
+    expect(block).toMatch(/\n {6}api_key: os\.environ\/MISTRAL_API_KEY\n/)
+    // Spend is recorded from usage.prompt_tokens at the EU price (1.1 x $0.10 / M).
+    expect(block).toMatch(/\n {6}input_cost_per_token: 0\.00000011\b/)
+    expect(config).not.toMatch(/jina/i)
+  })
+
   it('thinking is off on the free-allowance model and its fallback, each set at the proxy for every caller', () => {
     // YAML of one deployment, comments dropped (the next entry's header
     // comment would otherwise count as part of this one).

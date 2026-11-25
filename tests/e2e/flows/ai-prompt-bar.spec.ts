@@ -10,8 +10,8 @@ import { test, expect, requireLiveAi } from '../fixtures/flow'
 // no fixture or mock. The output is therefore non-deterministic
 // between runs (the model picks fresh wording each time), but the
 // assertions check behaviour, not exact text. MISTRAL_API_KEY +
-// JINA_AI_API_KEY + BFL_API_KEY must be forwarded into the LiteLLM
-// proxy via scripts/flows-ephemeral.ts; `requireLiveAi()` enforces
+// BFL_API_KEY + STAAN_API_KEY must be forwarded into the stack
+// via scripts/flows-ephemeral.ts; `requireLiveAi()` enforces
 // that up-front rather than failing mid-stream.
 
 test('Write with AI', async ({ flow, editor }) => {

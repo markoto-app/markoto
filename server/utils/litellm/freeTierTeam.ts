@@ -20,7 +20,7 @@
 //   - paid tiers (billing on): their keys carry no team (`teamIdForPlan`).
 //   - calls the app pays outside LiteLLM or with the master key:
 //     knowledge embeddings (bounded by the knowledge file / byte caps).
-//     The Staan / Jina Reader half of the web tools IS covered, through
+//     The Staan half of the web tools IS covered, through
 //     its per-call tick (`ai/webToolCharge.ts`).
 //
 // Membership is set when a key is created / its budget updated

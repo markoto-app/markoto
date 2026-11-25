@@ -2,19 +2,18 @@
 Custom LiteLLM providers, registered via litellm_settings.custom_provider_map.
 
 They wrap non-chat operations (FLUX image generation, Voxtral transcription
-and voice ticks, web-tool ticks, Jina embeddings) as billable calls so LiteLLM's
+and voice ticks, web-tool ticks) as billable calls so LiteLLM's
 key / team budget enforcement and spend tags apply to them. Cost flows through
 model_info.input_cost_per_token / output_cost_per_token in config.yaml.
 
 Pass-through endpoints with `auth: true` and `cost_per_request` are NOT
 Enterprise-only (any more): v1.106.4 registers `user_api_key_auth` for them in
 OSS. We still use these providers because each one fixes something a plain
-pass-through would not: the usage shape of Jina embeddings and Voxtral
-transcription, BFL's submit + poll flow, and, for the ticks, a charge for a
+pass-through would not: the usage shape of Voxtral transcription, BFL's submit + poll flow, and, for the ticks, a charge for a
 call that never goes through the proxy (live dictation streams straight to
 Mistral; the web tools keep one code path that also works on a LiteLLM config
 without the tick models, carry the same `metadata.tags` as every other call
-and leave the Staan / Jina Reader request untouched).
+and leave the Staan request untouched).
 """
 
 from __future__ import annotations
@@ -33,7 +32,6 @@ import litellm
 from litellm import CustomLLM
 from litellm.types.utils import (
     Choices,
-    EmbeddingResponse,
     Message,
     ModelResponse,
     Usage,
@@ -292,94 +290,6 @@ bfl_flux_provider = BFLFluxProvider()
 # Realtime on Mistral's EU endpoint, 1.1x list). The dictate orchestrator hits this once per minute of audio.
 # Direct upstream call to Voxtral Realtime stays in our app's WS handler.
 
-# Jina embeddings with proper spend tracking
-# LiteLLM's native Jina provider works for routing but its spend math is
-# broken: Jina returns `usage.total_tokens` only (no `prompt_tokens`),
-# while LiteLLM's embeddings-cost computation is `input_cost_per_token ×
-# prompt_tokens`. Result: $0.00 spend on every call. This wrapper hits
-# Jina directly and reshapes the usage so `prompt_tokens == total_tokens`,
-# which makes LiteLLM's existing pricing config (input_cost_per_token in
-# model_info) compute correctly.
-
-_JINA_API = "https://api.jina.ai/v1/embeddings"
-
-
-class JinaEmbeddingsProvider(CustomLLM):
-    """Drop-in replacement for LiteLLM's Jina embeddings provider that
-    fixes the prompt_tokens=0 spend-tracking bug. Identical request/
-    response shape: callers don't see the difference."""
-
-    async def aembedding(  # type: ignore[override]
-        self, *args, **kwargs
-    ) -> EmbeddingResponse:
-        model: str = kwargs.get("model", "jina-embeddings-v5-text-nano")
-        # Strip the "jina-embed/" provider prefix.
-        jina_model = model.split("/", 1)[1] if "/" in model else model
-        api_key = kwargs.get("api_key") or os.environ["JINA_AI_API_KEY"]
-
-        # `input` is required; OpenAI shape allows string OR array. Jina
-        # accepts an array of strings and returns one vector per element.
-        inp = kwargs.get("input")
-        if isinstance(inp, str):
-            inputs = [inp]
-        elif isinstance(inp, list):
-            inputs = [str(x) for x in inp]
-        else:
-            raise ValueError("Jina embeddings requires `input` (string or list)")
-
-        # Jina-specific: task hint propagates as a top-level field.
-        # `dimensions` triggers MRL truncation. Both come through the
-        # OpenAI SDK as kwargs.
-        body: dict = {
-            "model": jina_model,
-            "input": inputs,
-        }
-        if "dimensions" in kwargs and kwargs["dimensions"] is not None:
-            body["dimensions"] = kwargs["dimensions"]
-        if kwargs.get("task"):
-            body["task"] = kwargs["task"]
-
-        async with httpx.AsyncClient(timeout=30.0) as http:
-            r = await http.post(
-                _JINA_API,
-                headers={
-                    "Authorization": f"Bearer {api_key}",
-                    "Content-Type": "application/json",
-                },
-                json=body,
-            )
-            r.raise_for_status()
-            payload = r.json()
-
-        data = payload.get("data") or []
-        if not data:
-            raise RuntimeError(f"Jina returned no embeddings: {payload}")
-
-        # Reshape usage so LiteLLM's spend math works. Jina's
-        # `usage.total_tokens` is the only count we get; mirror it into
-        # `prompt_tokens` so `input_cost_per_token × prompt_tokens` lands
-        # at the right number.
-        usage_in = payload.get("usage") or {}
-        total = int(usage_in.get("total_tokens") or 0)
-
-        resp = EmbeddingResponse()
-        resp.model = model
-        resp.object = "list"
-        resp.data = [
-            {"object": "embedding", "index": i, "embedding": d.get("embedding") or []}
-            for i, d in enumerate(data)
-        ]
-        resp.usage = Usage(
-            prompt_tokens=total,
-            completion_tokens=0,
-            total_tokens=total,
-        )
-        return resp
-
-
-jina_embeddings_provider = JinaEmbeddingsProvider()
-
-
 # Mistral Voxtral Mini Transcribe 2 (batch STT) with proper cost
 # LiteLLM's native /v1/audio/transcriptions path can't extract Voxtral's
 # duration field (`usage.prompt_audio_seconds`): its cost calculator looks
@@ -530,7 +440,7 @@ voxtral_tick_provider = VoxtralTickProvider()
 
 
 # Web-tool ticks (billing-only stub)
-# `web_search` (Staan) and `fetch_url` (Jina Reader) are plain HTTP calls the
+# `web_search` (Staan search) and `fetch_url` (Staan Fetch) are plain HTTP calls the
 # app makes with the operator's keys. Before each one the app sends ONE chat
 # completion on `web-search-tick` / `web-fetch-tick` with the caller's virtual
 # key, so the call is priced into the same per-key (and team) budget as every

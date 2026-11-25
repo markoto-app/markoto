@@ -191,10 +191,10 @@ Every platform-paid AI call goes through the self-hosted LiteLLM proxy (deploy/c
 | `NUXT_LITELLM_DB_USER` | string |  |  | app | both | Role the app reads LiteLLM's spend logs as; empty = POSTGRES_USER (and POSTGRES_PASSWORD). |
 | `NUXT_LITELLM_DB_PASSWORD` | string |  |  | app | both | Password of NUXT_LITELLM_DB_USER. Secret. |
 | `NUXT_LITELLM_DB_NAME` | string | `litellm` |  | app | both | LiteLLM's database name. Not passed by the compose files: the stacks use the default. |
-| `NUXT_LITELLM_EMBEDDINGS_MODEL` | string | `jina-embeddings-v5-text-nano` |  | app | self-host | Embedding model alias for the knowledge base; `custom-embeddings` = the EMBEDDINGS_UPSTREAM_* deployment. |
-| `NUXT_LITELLM_EMBEDDINGS_DIMS` | integer 1–2000 | `768` |  | app | self-host | Embedding size (the pgvector column is retyped at boot while empty; else `bun run knowledge:reembed`). |
-| `NUXT_LITELLM_EMBEDDINGS_SEND_DIMENSIONS` | auto \| true \| false | `auto` |  | app | self-host | Send the OpenAI `dimensions` parameter (auto = Jina models only). |
-| `NUXT_LITELLM_EMBEDDINGS_TASK_HINTS` | auto \| true \| false | `auto` |  | app | self-host | Send Jina's `task` parameter (auto = Jina models only). |
+| `NUXT_LITELLM_EMBEDDINGS_MODEL` | string | `mistral-embed` |  | app | self-host | Embedding model alias for the knowledge base; `custom-embeddings` = the EMBEDDINGS_UPSTREAM_* deployment. |
+| `NUXT_LITELLM_EMBEDDINGS_DIMS` | integer 1–2000 | `1024` |  | app | self-host | Embedding size (the pgvector column is retyped at boot while empty; else `bun run knowledge:reembed`). |
+| `NUXT_LITELLM_EMBEDDINGS_SEND_DIMENSIONS` | auto \| true \| false | `auto` |  | app | self-host | Send the OpenAI `dimensions` parameter (auto = off; only for models that accept a reduced output size). |
+| `NUXT_LITELLM_EMBEDDINGS_TASK_HINTS` | auto \| true \| false | `auto` |  | app | self-host | Send a `task` retrieval hint (`retrieval.passage` / `retrieval.query`) for providers that accept one (auto = off). |
 | `NUXT_LITELLM_EMBEDDINGS_UPSTREAM_MODEL` | string | (empty) |  | app | self-host | Label only (stored with the vectors): mirrors the proxy's EMBEDDINGS_UPSTREAM_MODEL. |
 | `EMBEDDINGS_UPSTREAM_MODEL` | string |  |  | litellm | self-host | LiteLLM model id behind `custom-embeddings` (e.g. openai/text-embedding-3-small). |
 | `EMBEDDINGS_UPSTREAM_API_BASE` | string |  |  | litellm | self-host | API base of the custom embeddings upstream. |
@@ -207,14 +207,13 @@ Every platform-paid AI call goes through the self-hosted LiteLLM proxy (deploy/c
 
 ## AI provider keys
 
-Platform-paid upstreams. MISTRAL / BFL / JINA are read by LiteLLM; JINA (fetch_url), STAAN (web_search) and MISTRAL (live dictation) also by the app.
+Platform-paid upstreams. MISTRAL / BFL are read by LiteLLM; STAAN (web_search + fetch_url) and MISTRAL (live dictation) also by the app.
 
 | Variable | Type | Default | Required | Services | Scope | Description |
 |---|---|---|---|---|---|---|
-| `JINA_AI_API_KEY` | string |  |  | app, litellm | both | Jina: embeddings (proxy) and the fetch_url tool (app). Empty = fetch_url not offered. Secret. |
-| `MISTRAL_API_KEY` | string |  |  | app, litellm | both | Mistral (EU endpoint): chat / transcription deployments (proxy) and live dictation on the platform default (app). Secret. |
+| `MISTRAL_API_KEY` | string |  |  | app, litellm | both | Mistral (EU endpoint): chat / transcription / knowledge-base embedding deployments (proxy) and live dictation on the platform default (app). Secret. |
 | `BFL_API_KEY` | string |  |  | litellm | both | Black Forest Labs image generation (proxy only). Secret. |
-| `STAAN_API_KEY` | string |  |  | app | both | Staan web search for the web_search tool. Empty = web_search not offered. Secret. |
+| `STAAN_API_KEY` | string |  |  | app | both | Staan: web search (web_search tool) and page extraction (fetch_url tool). Empty = neither tool is offered. Secret. |
 | `NUXT_WEB_TOOLS_HOURLY_LIMIT` | integer ≥ 0 | `30` |  | app | both | web_search + fetch_url calls per user per rolling hour (0 = unlimited). |
 | `NUXT_WEB_TOOLS_DAILY_LIMIT` | integer ≥ 0 | `100` |  | app | both | web_search + fetch_url calls per user per rolling day (0 = unlimited). |
 

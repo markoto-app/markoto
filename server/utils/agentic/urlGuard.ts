@@ -13,14 +13,14 @@
 //     Nuxt app's own internal endpoints) reachable only via the
 //     compose / k8s service network.
 //   - `file://`, `gopher://`, `dict://`, `ftp://`, schemes the
-//     downstream URL fetcher (Jina Reader, or a future provider) might
+//     downstream URL fetcher (Staan Fetch, or a future provider) might
 //     dereference depending on backend.
 //   - DNS-resolved hostnames that map to private space, the public-DNS
 //     answer is fine but the resolved IP is not (DNS rebinding-shaped).
 //   - Every textual form of an IPv6 address that embeds an IPv4 one
 //     (`::ffff:7f00:1`, NAT64, 6to4, …): addresses are parsed into bytes.
 //
-// Rebinding: `fetch_url` forwards the URL to Jina Reader, which resolves
+// Rebinding: `fetch_url` forwards the URL to Staan Fetch, which resolves
 // it again on its own network, nothing we can pin there. Where the app
 // itself connects (`view_image`, `safeFetch.ts`), it connects to the
 // address that was checked, so a DNS answer that flips after the check

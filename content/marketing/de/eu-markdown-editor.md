@@ -47,10 +47,10 @@ Diese Übermittlungen stützen sich auf das EU-U.S. und das Swiss-U.S. Data Priv
 
 ## KI-Funktionen
 
-Schreibassistent, Spracheingabe, Websuche, Seitenabruf und Bilderzeugung laufen über das eigene KI-Gateway von markoto zu Anbietern in der EU: Mistral AI (Frankreich; Rechenzentren in der EU und der EFTA) für Text und Sprache, Jina AI (Deutschland) für die Suche in der Wissensdatenbank und das Lesen von Webseiten, Staan (Frankreich) für die Websuche und Black Forest Labs für Bilder (auf eine EU-Region festgelegt).
+Schreibassistent, Spracheingabe, Websuche, Seitenabruf und Bilderzeugung laufen über das eigene KI-Gateway von markoto zu Anbietern in der EU: Mistral AI (Frankreich; Rechenzentren in der EU und der EFTA) für Text, Sprache und die Suche in der Wissensdatenbank, Staan (Frankreich) für die Websuche und das Lesen von Webseiten und Black Forest Labs für Bilder (auf eine EU-Region festgelegt).
 
 - **Ohne KI-Nutzung geht nichts an einen KI-Anbieter.** Dokumentinhalte werden nur gesendet, wenn du den Assistenten nutzen oder Dateien in die Wissensdatenbank eines Workspace hochladest. KI setzt ein Konto voraus; anonyme Besucherinnen und Besucher können sie nicht nutzen.
-- **Kein Training mit deinen Inhalten.** markoto trainiert keine Modelle. Jina AI und Staan erklären, dass sie Anfragedaten nicht zum Training verwenden; bei Mistral AI und Black Forest Labs hat markoto dem Training widersprochen (Opt-out).
+- **Kein Training mit deinen Inhalten.** markoto trainiert keine Modelle. Staan erklärt, dass es Anfragedaten nicht zum Training verwendet; bei Mistral AI und Black Forest Labs hat markoto dem Training widersprochen (Opt-out).
 - **Dein eigener Anbieter ist deine Wahl.** Binde unter Einstellungen › KI-Anbieter einen eigenen KI-Anbieter an, gehen deine KI-Anfragen an diesen Anbieter, auf Grundlage deiner eigenen Vereinbarung mit ihm. Er ist dann nicht Unterauftragsverarbeiter von markoto, und wo er Daten verarbeitet, hängt vom gewählten Anbieter ab.
 - **KI-Eingaben und Werkzeugaufrufe** werden 90 Tage lang zur Missbrauchsprüfung aufbewahrt und dann gelöscht.
 

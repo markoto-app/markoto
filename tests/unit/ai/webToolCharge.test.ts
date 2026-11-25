@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { createError } from 'h3'
 import type { ResolvedAiProvider } from '../../../server/utils/aiProviders/resolve'
 
-// Web search (Staan) and page fetch (Jina Reader) are charged to the
+// Web search and page fetch (both Staan) are charged to the
 // caller's AI budget through a billing-only LiteLLM tick model before the
 // upstream call (`server/utils/ai/webToolCharge.ts`). Pins: which model /
 // key / tags the tick uses, when it is skipped, how a budget refusal maps
@@ -63,7 +63,6 @@ beforeEach(() => {
   consumeWebToolQuota.mockReset()
   consumeWebToolQuota.mockImplementation(async () => {})
   vi.stubEnv('STAAN_API_KEY', 'staan-test-key')
-  vi.stubEnv('JINA_AI_API_KEY', 'jina-test-key')
   vi.stubEnv('NUXT_BILLING_ENABLED', 'false')
   vi.stubEnv('NUXT_PLANS_COMING_SOON', 'false')
 })
@@ -161,7 +160,7 @@ describe('webToolBudgetRefusal', () => {
 
 describe('web tools charge before the upstream call', () => {
   function stubFetch(body: unknown) {
-    const fetchMock = vi.fn(async () => ({ ok: true, status: 200, json: async () => body }))
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify(body), { status: 200 }))
     vi.stubGlobal('fetch', fetchMock)
     return fetchMock
   }
@@ -178,7 +177,7 @@ describe('web tools charge before the upstream call', () => {
     const fetchMock = stubFetch({ web: { results: [{ title: 'T', url: 'https://example.com', snippet: 'S' }] } })
     fetchMock.mockImplementation(async () => {
       order.push('staan')
-      return { ok: true, status: 200, json: async () => ({ web: { results: [{ title: 'T', url: 'https://example.com', snippet: 'S' }] } }) }
+      return new Response(JSON.stringify({ web: { results: [{ title: 'T', url: 'https://example.com', snippet: 'S' }] } }), { status: 200 })
     })
     await webSearch(undefined, '', 'query', neverAbort, { virtualKey: 'sk-user-1', userId: 7, chatProvider: aliasProvider })
     expect(order).toEqual(['quota', 'web-search-tick', 'staan', 'zai-glm-5-3-flash'])
@@ -199,8 +198,8 @@ describe('web tools charge before the upstream call', () => {
     expect(tickCalls()).toHaveLength(0)
   })
 
-  it('fetch_url: charges the fetch tick, and a refusal never reaches Jina', async () => {
-    stubFetch({ data: { content: '# Page', title: 'Page' } })
+  it('fetch_url: charges the fetch tick, and a refusal never reaches Staan', async () => {
+    stubFetch({ results: [{ url: 'https://example.com/', title: 'Page', content: '# Page' }], errors: [] })
     await fetchUrl(undefined, '', 'https://example.com', neverAbort, { virtualKey: 'sk-user-1', chatProvider: null })
     expect(tickCalls().map(c => c[1].model)).toEqual(['web-fetch-tick'])
 

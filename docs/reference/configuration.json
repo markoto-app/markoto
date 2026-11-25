@@ -2041,7 +2041,7 @@
       "scope": "self-host",
       "required": null,
       "secret": false,
-      "default": "jina-embeddings-v5-text-nano",
+      "default": "mistral-embed",
       "passedByCompose": true,
       "deprecatedNames": []
     },
@@ -2059,7 +2059,7 @@
       "scope": "self-host",
       "required": null,
       "secret": false,
-      "default": 768,
+      "default": 1024,
       "passedByCompose": true,
       "deprecatedNames": []
     },
@@ -2259,26 +2259,6 @@
       "secret": false,
       "default": "web-fetch-tick",
       "passedByCompose": false,
-      "deprecatedNames": []
-    },
-    {
-      "name": "JINA_AI_API_KEY",
-      "namespace": "providers",
-      "key": "jinaApiKey",
-      "type": "string",
-      "services": [
-        "app",
-        "litellm"
-      ],
-      "names": {
-        "app": "JINA_AI_API_KEY",
-        "litellm": "JINA_AI_API_KEY"
-      },
-      "scope": "both",
-      "required": null,
-      "secret": true,
-      "default": null,
-      "passedByCompose": true,
       "deprecatedNames": []
     },
     {

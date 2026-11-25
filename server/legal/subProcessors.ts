@@ -68,8 +68,9 @@ export const SUB_PROCESSORS: readonly SubProcessor[] = [
     // within Mistral's EU endpoint only updates the "currently" list here,
     // in en.json and in the privacy policy.
     // Every request goes to Mistral's EU regional endpoint (api.eu.mistral.ai):
-    // the LiteLLM deployments and the live-dictation WebSocket.
-    purpose: 'AI text generation for the writing assistant, including the free AI allowance: open-weight and Mistral models served and processed by Mistral (currently DeepSeek V4.1 Flash, GLM-5.3 Flash and Mistral Large 4; their developers receive no data); voice transcription (Voxtral). All requests go to Mistral\'s EU endpoint (data centres in the EU and EFTA)',
+    // the LiteLLM deployments (chat, transcription, `mistral-embed`) and the
+    // live-dictation WebSocket.
+    purpose: 'AI text generation for the writing assistant, including the free AI allowance: open-weight and Mistral models served and processed by Mistral (currently DeepSeek V4.1 Flash, GLM-5.3 Flash and Mistral Large 4; their developers receive no data); voice transcription (Voxtral); embedding generation for the workspace knowledge base (Mistral Embed). All requests go to Mistral\'s EU endpoint (data centres in the EU and EFTA)',
     location: 'eu',
     transferMechanism: 'intra_eu',
     dpfCertified: false,
@@ -77,21 +78,9 @@ export const SUB_PROCESSORS: readonly SubProcessor[] = [
     dpaUrl: 'https://legal.mistral.ai/terms/data-processing-addendum'
   },
   {
-    id: 'jina_ai',
-    name: 'Jina AI GmbH',
-    purpose: 'Embedding generation for knowledge-base RAG; single-URL page content extraction for the fetch-URL tool (Jina Reader; the URL is sent for every user, including users with their own AI provider)',
-    location: 'eu',
-    transferMechanism: 'intra_eu',
-    dpfCertified: false,
-    privacyPolicyUrl: 'https://jina.ai/legal/#privacy-policy',
-    // Jina AI is part of Elastic; jina.ai/legal points to the
-    // Elastic customer DPA for Jina products.
-    dpaUrl: 'https://www.elastic.co/pdf/v100623-0-elastic-customer-dpa.pdf'
-  },
-  {
     id: 'staan',
     name: 'Staan (European Search Perspective SAS)',
-    purpose: 'Web search for the AI writing assistant (the search query is sent for every user, including users with their own AI provider), via a proprietary European search index (EU-only routing)',
+    purpose: 'Web search for the AI writing assistant, via a proprietary European search index (EU-only routing), and reading single web pages the AI is asked to open (fetch-URL tool). The search query or the page URL is sent for every user, including users with their own AI provider',
     location: 'eu',
     transferMechanism: 'intra_eu',
     dpfCertified: false,

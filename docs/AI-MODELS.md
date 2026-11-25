@@ -4,11 +4,11 @@ Which models power markoto's AI features, why, and which models we recommend if 
 
 markoto routes every AI call through one gateway (LiteLLM), so each model below is a configuration choice, not a code dependency.
 
-**Who provides which model.** Chat (the writing agent), image generation and voice transcription are **bring your own key** (see [Bring your own key](#bring-your-own-key)): each user connects their own OpenAI-compatible provider, or uses a default the instance operator configured. The hosted markoto SaaS configures one: a monthly [free AI allowance](#free-ai-allowance-hosted) for chat on DeepSeek V4.1 Flash served by Mistral in the EU (Mistral Large 4 for plans with the strong model); image generation and transcription stay bring-your-own-key there. Embeddings, web search (Staan) and page fetching (Jina Reader) are always provided by the platform (or, for embeddings on a self-hosted instance, by the operator, see [Embeddings](#embeddings)); they are never per-user.
+**Who provides which model.** Chat (the writing agent), image generation and voice transcription are **bring your own key** (see [Bring your own key](#bring-your-own-key)): each user connects their own OpenAI-compatible provider, or uses a default the instance operator configured. The hosted markoto SaaS configures one: a monthly [free AI allowance](#free-ai-allowance-hosted) for chat on DeepSeek V4.1 Flash served by Mistral in the EU (Mistral Large 4 for plans with the strong model); image generation and transcription stay bring-your-own-key there. Embeddings (Mistral), web search and page fetching (both Staan) are always provided by the platform (or, for embeddings on a self-hosted instance, by the operator, see [Embeddings](#embeddings)); they are never per-user.
 
 ## Bundled models (operator defaults)
 
-These are the deployments that ship in `deploy/config/litellm/config.yaml`. A self-hoster can make them the instance defaults (`NUXT_AI_DEFAULT_CHAT_MODEL=mistral-small-2603`, `NUXT_AI_DEFAULT_IMAGE_MODEL=flux-3-image-klein`, `NUXT_AI_DEFAULT_TRANSCRIBE_MODEL=voxtral-mini-transcribe`); calls then run on the operator's Mistral / BFL keys and debit each user's AI Points budget. The platform-provided rows (embeddings, page extraction, web search) are always active. The data path of these bundled providers stays inside the EU: Mistral AI (Paris), Jina AI (Berlin), Staan (European Search Perspective SAS) and Black Forest Labs (EU-pinned endpoint).
+These are the deployments that ship in `deploy/config/litellm/config.yaml`. A self-hoster can make them the instance defaults (`NUXT_AI_DEFAULT_CHAT_MODEL=mistral-small-2603`, `NUXT_AI_DEFAULT_IMAGE_MODEL=flux-3-image-klein`, `NUXT_AI_DEFAULT_TRANSCRIBE_MODEL=voxtral-mini-transcribe`); calls then run on the operator's Mistral / BFL keys and debit each user's AI Points budget. The platform-provided rows (embeddings, page extraction, web search) are always active. The data path of these bundled providers stays inside the EU: Mistral AI (Paris), Staan (European Search Perspective SAS) and Black Forest Labs (EU-pinned endpoint).
 
 **Mistral is EU-only.** Every Mistral deployment (chat, fallbacks, transcription) and the live-dictation WebSocket on the operator's key go to Mistral's EU regional endpoint `api.eu.mistral.ai` (inference in EU / EFTA data centres; the default `api.mistral.ai` makes no location commitment). Mistral bills regional inference at 1.1x list on every token type; the prices below are those EU prices (list in brackets), and they are what `deploy/config/litellm/config.yaml` charges to budgets. A user's own Mistral key runs on whichever Mistral host the user configured.
 
@@ -24,8 +24,8 @@ These are the deployments that ship in `deploy/config/litellm/config.yaml`. A se
 | Fallback of the hosted chat default and of `markoto-worker-strong` | Z.ai GLM-5.3 Flash served by Mistral (`zai-glm-5-3-flash`) | $0.165 in / $0.55 out per M tokens, cached input $0.033 (list $0.15 / $0.50 / $0.03) | 1M context, function calling, vision, reasoning (`reasoning_effort: low`). The hosted chat default until 2026-11 |
 | Voice prompt (one-shot transcription) | Voxtral Mini Transcribe 2 (`voxtral-mini-2602`) | $0.0033 per audio minute (list $0.003) | GA |
 | Live dictation | Voxtral Mini Transcribe Realtime (`voxtral-mini-transcribe-realtime-2602`) | $0.0066 per audio minute (list $0.006) | GA, WebSocket streaming |
-| Knowledge-base embeddings | Jina `jina-embeddings-v5-text-nano` | about $0.02-0.05 per M tokens (verify) | 768 dimensions, 8K context |
-| Web page extraction | Jina Reader | billed in output tokens from a shared Jina balance, about $0.05 per M; charged to users as a flat $0.001 per fetch | See [Web search and page fetch](#web-search-and-page-fetch-charged-to-the-ai-budget) |
+| Knowledge-base embeddings | Mistral Embed (`mistral-embed`, Mistral id `mistral-embed-2312`), EU endpoint | $0.11 per M tokens (list $0.10) | 1024 dimensions (fixed), 8,192 input tokens |
+| Web page extraction | Staan Fetch (`/v1/fetch`) | EUR 0.50 per 1,000 URLs (failed URLs not billed); charged to users as a flat $0.001 per fetch | See [Web search and page fetch](#web-search-and-page-fetch-charged-to-the-ai-budget) |
 | Web search | Staan ("Web Search for AI") | EUR 4 per 1,000 requests; charged to users as $0.005 per search | See [Web search and page fetch](#web-search-and-page-fetch-charged-to-the-ai-budget) |
 | Image generation | Black Forest Labs FLUX 3 Image Klein (`flux-3-image-klein`), EU endpoint | $0.009 per 1024x1024 image, $0.014 up to about 4 MP | BFL rewrites the prompt before generating |
 
@@ -79,13 +79,13 @@ DeepSeek V4.1 Flash on Mistral has reasoning off: Mistral's chat API takes `reas
 
 Live dictation uses `voxtral-mini-transcribe-realtime-2602` through the Mistral SDK realtime client. Realtime 3 costs 33% more ($0.008 vs $0.006 per minute list), is in preview, and Mistral does not document a protocol change. Decision: keep. The billing tick (`voxtral-realtime-tick`) charges $0.0066 per 60 s, the EU price (1.1 x $0.006). If Realtime 3 is adopted later, update the tick price and verify the SDK accepts the new id.
 
-### Embeddings: keep Jina v5 text nano
+### Embeddings: Mistral Embed (since 2026-11-25)
 
-Source: [Jina embeddings](https://jina.ai/embeddings/). The v5 family is current. May 2026 added v5-omni models (multimodal: images, audio, video, PDF). `v5-omni-nano` is also 768-dimensional, but multimodal input is not used by markoto and switching models forces a re-embed of every stored chunk, so there is no reason to change. No deprecations are announced. The price in our config ($0.02 per M) could not be confirmed from Jina's own pages (third-party sources quote about $0.05 per M on paid top-ups), so treat spend estimates for embeddings as approximate.
+Knowledge-base embeddings moved from Jina `jina-embeddings-v5-text-nano` (768 dimensions) to Mistral `mistral-embed`, to drop a sub-processor: Mistral already processes every other platform-paid AI request. The deployment is pinned to the dated id `mistral-embed-2312` and to Mistral's EU endpoint `api.eu.mistral.ai` (1.1x list, $0.11 per M tokens). The output has 1024 dimensions and cannot be reduced, so the app sends neither `dimensions` nor a task hint; inputs are cut to 8,000 UTF-8 bytes, below the 8,192-token limit in every script. LiteLLM's native Mistral path records spend from `usage.prompt_tokens` (verified through the proxy), so no custom handler is needed. Moving from 768 to 1024 dimensions needs one re-embed of stored files, see [Re-embedding](#re-embedding).
 
-### Page extraction and search: unchanged
+### Page extraction and search: Staan
 
-Jina Reader and Staan are unchanged. We found no deprecation notices. Staan lists its prices on [staan.ai](https://staan.ai/#pricing): EUR 2 per 1,000 requests for "Web Search" and EUR 4 per 1,000 for "Web Search for AI" (checked 2026-11).
+Page extraction moved from Jina Reader to [Staan Fetch](https://docs.staan.ai/docs/fetch.md) on 2026-11-25, so web search and page fetching share one provider and one key (`STAAN_API_KEY`). Fetch lives on Staan's `/v1` API (`POST https://api.staan.ai/v1/fetch`; `/v2/fetch` answers 404), while search uses `/v2/search/web`. Staan lists its prices on [staan.ai](https://staan.ai/#pricing): EUR 2 per 1,000 requests for "Web Search", EUR 4 per 1,000 for "Web Search for AI" and EUR 0.50 per 1,000 URLs for "Fetch" (checked 2026-11).
 
 ### Image generation: FLUX 3 Image Klein
 
@@ -95,9 +95,9 @@ Calls go to `api.eu.bfl.ai`, BFL's EU endpoint (routing limited to its EU cluste
 
 ## Web search and page fetch: charged to the AI budget
 
-`web_search` (Staan) and `fetch_url` (Jina Reader) are provided by the platform, also for users who brought their own chat key. Each call has two halves:
+`web_search` (Staan search) and `fetch_url` (Staan Fetch) are provided by the platform, also for users who brought their own chat key. Each call has two halves:
 
-- **Upstream call** (Staan search / Jina Reader): the app calls it with the operator's key. Right before, it charges the call to the caller's AI budget: one completion on a billing-only model (`web-search-tick` / `web-fetch-tick`, `WebToolTickProvider` in `deploy/config/litellm/custom_handlers.py`) with the caller's virtual key (`server/utils/ai/webToolCharge.ts`). It appears in LiteLLM spend under `feature:web-search` / `feature:web-fetch` and in AI Points like every other AI call.
+- **Upstream call** (Staan search / Staan Fetch): the app calls it with the operator's key. Right before, it charges the call to the caller's AI budget: one completion on a billing-only model (`web-search-tick` / `web-fetch-tick`, `WebToolTickProvider` in `deploy/config/litellm/custom_handlers.py`) with the caller's virtual key (`server/utils/ai/webToolCharge.ts`). It appears in LiteLLM spend under `feature:web-search` / `feature:web-fetch` and in AI Points like every other AI call.
 - **Synthesis** (summarising the results, or answering `fetch_url`'s `question`): runs on the session's [worker model](#worker-model), tagged `feature:utility`. With a BYOK key the user pays their own provider for those tokens (their "Fast model" if set); with an instance default it debits the budget like any other chat call. With no chat provider the raw results are returned unsynthesised. `fetch_url` with `mode: "extract"` makes no synthesis call: it returns the page Markdown in pages of about 8,000 characters (`page` picks one); each page is a fetch of its own and is charged and counted like one.
 
 **Prices** (`output_cost_per_token` of the tick deployments; each tick reports one token):
@@ -105,22 +105,24 @@ Calls go to `api.eu.bfl.ai`, BFL's EU endpoint (routing limited to its EU cluste
 | Tool | Charged per call | AI Points | Why |
 |---|---|---|---|
 | `web_search` | $0.005 | 5 | Staan "Web Search for AI" lists EUR 4 per 1,000 requests, about $0.0047 per search; rounded up for exchange-rate moves |
-| `fetch_url` | $0.001 | 1 | Jina Reader bills the tokens of the returned page (about $0.05 per M, no per-request minimum). The app caps a page at 8,000 tokens (`X-Token-Budget`), at most about $0.0004 per fetch; the flat price sits above that so a price change or an over-cap page stays covered |
+| `fetch_url` | $0.001 | 1 | Staan Fetch lists EUR 0.50 per 1,000 URLs, about $0.0006 per fetch (failed URLs are not billed); the flat price sits above that so an exchange-rate move or a price change stays covered |
 
 **Who pays.** The tick runs on the virtual key the session already uses, so it lands where every other AI call of that user lands:
 
 - free tier: the user's own allowance and, on the hosted SaaS, the shared [free-tier pool](#free-ai-allowance-hosted);
 - Pro (billing on): the user's own AI Points;
 - Team / Business member inside the workspace: the member's limit and the workspace's pooled budget;
-- own key (BYOK) for chat: still charged, because Staan and Jina are paid by the operator, not by the user's provider.
+- own key (BYOK) for chat: still charged, because Staan is paid by the operator, not by the user's provider.
 
-**Used up.** The proxy refuses the tick before Staan / Jina are called, and the tool answers 402 with the same code and text as other AI calls: `ai/free-allowance-exhausted` (shared pool), `ai/budget-exhausted` (own AI Points), or the workspace's team-budget / member-limit text. In the editor the AI gets a tool error; on a platform-paid chat model the next turn is refused by the same budget and the session ends with the usual message. Over MCP the tool call fails with that error.
+**Used up.** The proxy refuses the tick before Staan is called, and the tool answers 402 with the same code and text as other AI calls: `ai/free-allowance-exhausted` (shared pool), `ai/budget-exhausted` (own AI Points), or the workspace's team-budget / member-limit text. In the editor the AI gets a tool error; on a platform-paid chat model the next turn is refused by the same budget and the session ends with the usual message. Over MCP the tool call fails with that error.
 
 **Not charged when.** Any other failure of the tick (proxy unreachable, a LiteLLM config without the tick models) is logged and the call goes ahead, still bounded by the rate limit below. `NUXT_LITELLM_WEB_SEARCH_TICK_MODEL=` / `NUXT_LITELLM_WEB_FETCH_TICK_MODEL=` (empty) switch charging off; a self-hoster with a custom LiteLLM config should either copy the two tick deployments or set those empty.
 
 Each user also keeps a rate limit shared by `web_search`, `fetch_url`, the in-editor AI and MCP: **30 calls per hour and 100 per day** by default. Tune with `NUXT_WEB_TOOLS_HOURLY_LIMIT` / `NUXT_WEB_TOOLS_DAILY_LIMIT` (`0` = unlimited). Over the limit the tool answers 429 `ai/web-tools-rate-limited` (checked before the charge, so a refused call costs nothing); the editor AI sees a tool error and carries on without web access. The counters live in Valkey and fail open if Valkey is down.
 
-**Self-hosting:** set `STAAN_API_KEY` and/or `JINA_AI_API_KEY` to enable the tools. With a key missing, that tool is not offered to the AI, is not listed over MCP, and `GET /api/ai/availability` reports `webTools.search` / `webTools.fetch` as `false`. (`JINA_AI_API_KEY` is also what the default embeddings use; with `custom-embeddings` it can stay empty.)
+**Self-hosting:** set `STAAN_API_KEY` to enable both tools. Without it, neither tool is offered to the AI or listed over MCP, and `GET /api/ai/availability` reports `webTools.search` / `webTools.fetch` as `false`.
+
+**Page fetch failures** reach the model as a tool result with a fixed sentence, never Staan's own text: the page timed out (Staan allows 20 seconds per page; the app waits at most 30), the site blocks crawlers or needs a sign-in, the page does not exist, the content is not text, or the page has almost no text without JavaScript (`too_short`, the model is told to try another URL or `web_search`). The page Markdown is capped at 50 pages of 8,000 characters (the Staan response body at 4 MB).
 
 The free-tier AI Points budget (`TIER_FREE_LITELLM_BUDGET_USD`) resets monthly with billing off: every virtual key carries LiteLLM's `budget_duration: '30d'`, so no Stripe event is needed.
 
@@ -200,7 +202,7 @@ Both limits are LiteLLM budgets; the app keeps no counters.
 
 - **$0.50 per user**: the `max_budget` of the user's virtual key, reset monthly (`budget_duration: 30d`, which LiteLLM normalises to the 1st of the month, 00:00 UTC).
 - **$500 in total**: every free-tier key belongs to one LiteLLM team, `markoto-free-tier`, with `max_budget = NUXT_FREE_TIER_TOTAL_BUDGET_USD` and the same `30d` reset. LiteLLM checks the key AND the team before each call, so any platform-paid call of a free user draws on the pool: the agent loop, web search and page fetch (the per-call charge and the synthesis), MCP, and (on instances with such defaults) image generation, transcription and dictation ticks. The team id is fixed, so no app-side storage is needed (`server/utils/litellm/freeTierTeam.ts`).
-- **Not in the pool**: BYOK calls (the `byok/*` deployment is zero-cost and LiteLLM skips budget checks for zero-cost models: verified, a BYOK call on a key whose team is exhausted still goes through), paid tiers once billing is on (their keys carry no team), and what the platform pays outside LiteLLM: knowledge-base embeddings (capped by the knowledge file / byte limits). The Staan / Jina Reader half of the web tools is in the pool through its per-call charge.
+- **Not in the pool**: BYOK calls (the `byok/*` deployment is zero-cost and LiteLLM skips budget checks for zero-cost models: verified, a BYOK call on a key whose team is exhausted still goes through), paid tiers once billing is on (their keys carry no team), and what the platform pays outside LiteLLM: knowledge-base embeddings (capped by the knowledge file / byte limits). The Staan half of the web tools is in the pool through its per-call charge.
 - **Membership**: new keys are created in the team; plan changes move keys in and out (`updateUserKeyBudget`); existing keys are reconciled at boot and every 6 h by the `litellm-key-reconcile` sweeper (one `/key/list` read, an update only for keys whose team, budget or reset differ, under the sweep lock), which also brings old keys to a lowered `TIER_FREE_LITELLM_BUDGET_USD`. LiteLLM only moves an existing key into a team its user belongs to, so the user is added as a team member first.
 - **When the pool is used up**: LiteLLM answers `Budget has been exceeded! Team=markoto-free-tier …` (HTTP 422). The app maps it to **402 `ai/free-allowance-exhausted`** (distinct from the per-user `ai/budget-exhausted`): the prompt endpoints refuse up front, the agent loop ends with the same message, and the prompt bar shows "This month's free AI allowance is used up. Add your own key in Settings → AI provider to keep going." with a link to `/settings/ai`. LiteLLM only refuses once spend is strictly above the budget and checks before the call, so concurrent in-flight calls can overshoot the ceiling by a few cents.
 
@@ -379,24 +381,24 @@ Practical tips:
 
 Embeddings power the workspace knowledge base (uploaded files are chunked, embedded and searched with pgvector plus full-text search). They always go through the LiteLLM proxy.
 
-- **Hosted markoto:** we provide the embeddings (Jina `jina-embeddings-v5-text-nano`, 768 dimensions), at no charge to users, and they cannot be changed by users. Nothing in this section applies to the hosted service.
+- **Hosted markoto:** we provide the embeddings (Mistral `mistral-embed` on Mistral's EU endpoint, 1024 dimensions), at no charge to users, and they cannot be changed by users. Nothing in this section applies to the hosted service.
 - **Self-hosted:** the operator of the instance can choose any embedding model and its dimension with environment variables. Same code, only configuration differs. Embeddings are an operator-level setting, billed to whatever key you configure; they are unrelated to per-user bring-your-own-key for chat.
 
 ### Configuration
 
 | Variable | Read by | Default | Meaning |
 |---|---|---|---|
-| `NUXT_LITELLM_EMBEDDINGS_MODEL` | app | `jina-embeddings-v5-text-nano` | LiteLLM model name the app asks for. Set to `custom-embeddings` to use your own provider. |
-| `NUXT_LITELLM_EMBEDDINGS_DIMS` | app | `768` | Output size of the model. Integer, at most **2000**. |
+| `NUXT_LITELLM_EMBEDDINGS_MODEL` | app | `mistral-embed` | LiteLLM model name the app asks for. Set to `custom-embeddings` to use your own provider. |
+| `NUXT_LITELLM_EMBEDDINGS_DIMS` | app | `1024` | Output size of the model. Integer, at most **2000**. |
 | `EMBEDDINGS_UPSTREAM_MODEL` | LiteLLM | `openai/text-embedding-3-small` | Any LiteLLM model id: `openai/<name>` for OpenAI-compatible servers, `mistral/mistral-embed`, `ollama/nomic-embed-text`, ... Only used by `custom-embeddings`. |
 | `EMBEDDINGS_UPSTREAM_API_BASE` | LiteLLM | `https://api.openai.com/v1` | Endpoint of the provider. |
 | `EMBEDDINGS_UPSTREAM_API_KEY` | LiteLLM | empty | Provider key (empty for keyless local servers). |
-| `NUXT_LITELLM_EMBEDDINGS_SEND_DIMENSIONS` | app | `auto` | `auto` / `true` / `false`. Whether to send the OpenAI `dimensions` parameter. `auto` = only for Jina models. |
-| `NUXT_LITELLM_EMBEDDINGS_TASK_HINTS` | app | `auto` | `auto` / `true` / `false`. Whether to send Jina's `task` parameter. `auto` = only for Jina models. |
+| `NUXT_LITELLM_EMBEDDINGS_SEND_DIMENSIONS` | app | `auto` | `auto` / `true` / `false`. Whether to send the OpenAI `dimensions` parameter. `auto` = off. |
+| `NUXT_LITELLM_EMBEDDINGS_TASK_HINTS` | app | `auto` | `auto` / `true` / `false`. Whether to send a `task` retrieval hint (`retrieval.passage` for files, `retrieval.query` for searches), for providers that accept one. `auto` = off. |
 
 The three `EMBEDDINGS_UPSTREAM_*` variables are consumed by the LiteLLM container through `deploy/config/litellm/config.yaml` (`custom-embeddings` entry, `os.environ/...` references), so no Python or YAML needs editing. The compose files give them placeholder defaults because the proxy refuses to start if a referenced variable is undefined. The compose files also forward `EMBEDDINGS_UPSTREAM_MODEL` to the app, where it only labels the stored version tag (`custom/openai/text-embedding-3-small:1536`) so that a later model change is detectable.
 
-`dimensions` is off by default for non-Jina models on purpose: most models reject it (LiteLLM answers 400 for OpenAI-compatible models other than `text-embedding-3-*`). Turn it on only to shrink a model that supports reduced sizes, for example `text-embedding-3-large` at 1536. If the model's native output size already equals `NUXT_LITELLM_EMBEDDINGS_DIMS`, leave it off. In every case the app checks that the returned vector has exactly `NUXT_LITELLM_EMBEDDINGS_DIMS` entries and fails with a message naming the variable if not.
+`dimensions` is off by default on purpose: most models reject it (LiteLLM answers 400 for OpenAI-compatible models other than `text-embedding-3-*`). Turn it on only to shrink a model that supports reduced sizes, for example `text-embedding-3-large` at 1536. If the model's native output size already equals `NUXT_LITELLM_EMBEDDINGS_DIMS`, leave it off. In every case the app checks that the returned vector has exactly `NUXT_LITELLM_EMBEDDINGS_DIMS` entries and fails with a message naming the variable if not.
 
 The 2000 limit is pgvector's maximum for an HNSW index on a `vector` column. Models with larger native output (for example `text-embedding-3-large` at 3072) need a reduced size via `SEND_DIMENSIONS=true` or are not usable.
 
@@ -423,16 +425,6 @@ EMBEDDINGS_UPSTREAM_MODEL=openai/text-embedding-3-large
 EMBEDDINGS_UPSTREAM_API_KEY=sk-...
 ```
 
-Mistral `mistral-embed`, 1024 dimensions:
-
-```
-NUXT_LITELLM_EMBEDDINGS_MODEL=custom-embeddings
-NUXT_LITELLM_EMBEDDINGS_DIMS=1024
-EMBEDDINGS_UPSTREAM_MODEL=mistral/mistral-embed
-EMBEDDINGS_UPSTREAM_API_BASE=https://api.mistral.ai/v1
-EMBEDDINGS_UPSTREAM_API_KEY=...
-```
-
 Local Ollama `nomic-embed-text`, 768 dimensions, Ollama running on the Docker host:
 
 ```
@@ -444,13 +436,13 @@ EMBEDDINGS_UPSTREAM_API_BASE=http://host.docker.internal:11434
 
 The self-host compose maps `host.docker.internal` to the Docker host for the LiteLLM service; elsewhere add `extra_hosts: ["host.docker.internal:host-gateway"]` to it. Any other OpenAI-compatible server (vLLM, llama.cpp, LocalAI) works with `openai/<served-name>` and its `/v1` base URL.
 
-Jina (the default): leave all of the above unset, or set `NUXT_LITELLM_EMBEDDINGS_MODEL=jina-embeddings-v5-text-nano` explicitly. `JINA_AI_API_KEY` is required either way, because `fetch_url` uses Jina Reader.
+Mistral Embed (the default): leave all of the above unset, or set `NUXT_LITELLM_EMBEDDINGS_MODEL=mistral-embed` and `NUXT_LITELLM_EMBEDDINGS_DIMS=1024` explicitly. It needs `MISTRAL_API_KEY` (read by the LiteLLM container) and calls Mistral's EU endpoint.
 
 The verified path: LiteLLM v1.106.4 resolves `os.environ/...` for `model`, `api_base` and `api_key`, forwards `dimensions` for `text-embedding-3-*`, and does not send it when the app leaves it out.
 
 ### What happens when you change the model or dimension
 
-At startup, after migrations, the app compares the dimension of the knowledge vector column (default `vector(768)`) with `NUXT_LITELLM_EMBEDDINGS_DIMS`, under a Postgres advisory lock so several instances cannot race:
+At startup, after migrations, the app compares the dimension of the knowledge vector column (the migrations create `vector(768)`) with `NUXT_LITELLM_EMBEDDINGS_DIMS`, under a Postgres advisory lock so several instances cannot race:
 
 - **Same size:** nothing happens.
 - **No vectors stored yet** (fresh install, or nothing was uploaded): the column is retyped and the HNSW index recreated in one transaction. A fresh self-hosted install just sets the variables and starts.
@@ -487,8 +479,8 @@ Expect one embeddings request per chunk (a chunk is about 800 characters, roughl
 - Mistral third-party open models announcement (2026-08-11): https://mistral.ai/news/regional-inference-open-models-new-compute/
 - Mistral prompt caching: https://docs.mistral.ai/studio-api/conversations/advanced/prompt-caching
 - Mistral training opt-out (API): https://help.mistral.ai/en/articles/347614-can-i-opt-out-of-my-input-or-output-data-being-used-for-training
-- Jina embeddings: https://jina.ai/embeddings/
-- Jina API pricing: https://jina.ai/api-dashboard/pricing
+- Staan Fetch API: https://docs.staan.ai/docs/fetch.md
+- Staan pricing: https://staan.ai/#pricing
 - BFL pricing docs: https://docs.bfl.ai/quick_start/pricing
 - OpenRouter tool-calling listing: https://openrouter.ai/models?supported_parameters=tools&order=top-weekly
 - Third-party OpenAI price summary: https://morphllm.com/openai-api-pricing

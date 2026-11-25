@@ -61,8 +61,8 @@
 // the model developers receive no data). The Terms (v4) now point to the
 // privacy policy for the current models instead of naming one: wording
 // only, no TOS bump.
-export const PRIVACY_VERSION = 15
-export const PRIVACY_EFFECTIVE_DATE = '2026-11-18'
+export const PRIVACY_VERSION = 16
+export const PRIVACY_EFFECTIVE_DATE = '2026-11-25'
 
 // v2 (2026-10-26): free-only service, BYOK responsibilities, as-is/discontinuation clauses.
 // v3 (2026-11-03): anonymous documents, acceptable-use section, DSA

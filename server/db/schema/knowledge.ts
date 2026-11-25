@@ -33,7 +33,7 @@ export const workspaceKnowledge = pgTable('workspace_knowledge', {
   errorMessage: text('error_message'),
   chunkCount: integer('chunk_count').notNull().default(0),
   tokenCount: integer('token_count').notNull().default(0),
-  // Key like `jina/jina-embeddings-v5-text-nano:768`, so chunks produced
+  // Key like `mistral/mistral-embed:1024`, so chunks produced
   // with an old model/dim can be detected and re-embedded.
   embeddingVersion: text('embedding_version').notNull(),
   uploaderId: integer('uploader_id').references(() => users.id, { onDelete: 'set null' }),
@@ -58,8 +58,11 @@ export const workspaceKnowledgeChunks = pgTable('workspace_knowledge_chunks', {
   chunkIndex: integer('chunk_index').notNull(),
   content: text('content').notNull(),
   tokens: integer('tokens').notNull(),
-  // 768 dims = Jina v5-text-nano native. pgvector caps HNSW at 2000
-  // dims; larger models would need IVFFlat (slower, worse recall).
+  // The migrations pin 768 dims (the original hosted model); the column is
+  // retyped at boot to NUXT_LITELLM_EMBEDDINGS_DIMS (default 1024,
+  // `mistral-embed`) by server/db/embeddingColumn.ts. Never change it here.
+  // pgvector caps HNSW at 2000 dims; larger models would need IVFFlat
+  // (slower, worse recall).
   embedding: vector('embedding', { dimensions: 768 }),
   // Full-text side of hybrid search; fused with vector similarity via
   // Reciprocal Rank Fusion in `searchKnowledge`.

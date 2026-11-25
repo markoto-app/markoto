@@ -123,7 +123,7 @@ describe('deploy paths ↔ compose', () => {
     const passed = new Set([...read('.github/workflows/deploy.yml').matchAll(/^\s+([A-Z][A-Z0-9_]{2,}): \$\{\{/gm)].map(m => m[1]!))
     // Fixed for markoto.app by render-env.sh's defaults: the BYOK provider
     // allowlist, the platform AI defaults (aliases, no own endpoints) and the
-    // Jina embeddings. Other operators use install.sh, not this workflow.
+    // Mistral embeddings. Other operators use install.sh, not this workflow.
     const fixedForHosted = new Set([
       'NUXT_AI_BYOK_ALLOWED_BASE_URLS', 'NUXT_AI_BYOK_ALLOW_PRIVATE_URLS',
       'NUXT_AI_DEFAULT_CHAT_API_KEY', 'NUXT_AI_DEFAULT_CHAT_BASE_URL',

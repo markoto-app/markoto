@@ -23,7 +23,7 @@ const REQUIRED = [
   'POSTGRES_USER', 'POSTGRES_PASSWORD', 'POSTGRES_DB', 'VALKEY_PASSWORD',
   'NUXT_S3_ENDPOINT', 'NUXT_S3_ACCESS_KEY', 'NUXT_S3_SECRET_KEY', 'NUXT_S3_BUCKET',
   'LITELLM_MASTER_KEY', 'LITELLM_SALT_KEY',
-  'JINA_AI_API_KEY', 'STAAN_API_KEY', 'MISTRAL_API_KEY', 'BFL_API_KEY',
+  'STAAN_API_KEY', 'MISTRAL_API_KEY', 'BFL_API_KEY',
   'BACKUP_GPG_PASSPHRASE', 'DOMAIN', 'ACME_EMAIL', 'REGISTRY', 'IMAGE_TAG',
   'NUXT_MARKITDOWN_API_SECRET', 'NUXT_LEGAL_CONTROLLER_ADDRESS', 'NUXT_LEGAL_REPRESENTED_BY',
   'NUXT_PUBLISH_PAGES_HOST'
@@ -199,7 +199,7 @@ describe('hosted .env shape (infra/render-env.sh defaults)', () => {
     expect(out.stdout).toContain('\nNUXT_FREE_TIER_TOTAL_BUDGET_USD=0\n')
   })
 
-  it('keeps the hosted embeddings (empty overrides = Jina default in compose)', () => {
+  it('keeps the hosted embeddings (empty overrides = mistral-embed default in compose)', () => {
     expect(vars.get('NUXT_LITELLM_EMBEDDINGS_MODEL')).toBe('')
     expect(vars.get('NUXT_LITELLM_EMBEDDINGS_DIMS')).toBe('')
   })

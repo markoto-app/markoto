@@ -67,7 +67,7 @@ export function useAiAvailability() {
   /** The platform has voice / images, but not on the plan that pays here. */
   const transcriptionLocked = computed(() => state.value?.transcription.locked === 'plan')
   const imageLocked = computed(() => state.value?.image.locked === 'plan')
-  /** Operator has Staan / Jina keys; null snapshot → assume available. */
+  /** Operator has a Staan key; null snapshot → assume available. */
   const webSearchAvailable = computed(() => state.value === null || state.value.webTools.search)
   const pageFetchAvailable = computed(() => state.value === null || state.value.webTools.fetch)
   /**

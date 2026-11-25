@@ -47,10 +47,10 @@ Ces transferts reposent sur le Data Privacy Framework UE-États-Unis et le Swiss
 
 ## Fonctionnalités d'IA
 
-L'assistant d'écriture, la saisie vocale, la recherche web, la récupération de pages et la génération d'images passent tous par la propre passerelle d'IA de markoto vers des fournisseurs établis dans l'UE : Mistral AI (France ; centres de données dans l'UE et l'AELE) pour le texte et la voix, Jina AI (Allemagne) pour la recherche dans la base de connaissances et la lecture de pages web, Staan (France) pour la recherche web et Black Forest Labs pour les images (région UE dédiée).
+L'assistant d'écriture, la saisie vocale, la recherche web, la récupération de pages et la génération d'images passent tous par la propre passerelle d'IA de markoto vers des fournisseurs établis dans l'UE : Mistral AI (France ; centres de données dans l'UE et l'AELE) pour le texte, la voix et la recherche dans la base de connaissances, Staan (France) pour la recherche web et la lecture de pages web, et Black Forest Labs pour les images (région UE dédiée).
 
 - **Rien n'est envoyé à un fournisseur d'IA si vous n'utilisez pas l'IA.** Le contenu d'un document n'est envoyé que lorsque vous utilisez l'assistant ou téléversez des fichiers dans la base de connaissances d'un espace de travail. L'IA demande un compte ; les visiteurs anonymes ne peuvent pas l'utiliser.
-- **Pas d'entraînement sur votre contenu.** markoto n'entraîne pas de modèles. Jina AI et Staan indiquent ne pas utiliser les données des requêtes pour l'entraînement ; auprès de Mistral AI et de Black Forest Labs, markoto a exercé son droit d'opposition à l'entraînement (opt-out).
+- **Pas d'entraînement sur votre contenu.** markoto n'entraîne pas de modèles. Staan indique ne pas utiliser les données des requêtes pour l'entraînement ; auprès de Mistral AI et de Black Forest Labs, markoto a exercé son droit d'opposition à l'entraînement (opt-out).
 - **Votre propre fournisseur, votre choix.** Si vous connectez votre propre fournisseur d'IA sous Paramètres › Fournisseur d'IA, vos requêtes d'IA vont à ce fournisseur, dans le cadre de votre propre accord avec lui. Il n'est alors pas un sous-traitant ultérieur de markoto, et le lieu du traitement dépend du fournisseur choisi.
 - **Les requêtes et les appels d'outils** sont conservés 90 jours pour l'examen des abus, puis supprimés.
 

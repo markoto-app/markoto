@@ -234,9 +234,9 @@ describe('resolution order: own key → instance default → unavailable', () =>
     const u = await byokUser()
     const full: { webTools: { search: boolean, fetch: boolean } } = await (await (await loggedInClient(u.id)).get('/api/ai/availability')).json()
     expect(full.webTools).toEqual({ search: true, fetch: true })
-    // Twin boots without STAAN_API_KEY: search is unavailable, fetch is not.
-    const partial: { webTools: { search: boolean, fetch: boolean } } = await (await (await loggedInClient(u.id, undefined, TEST_BILLING_OFF_BASE_URL)).get('/api/ai/availability')).json()
-    expect(partial.webTools).toEqual({ search: false, fetch: true })
+    // Twin boots without STAAN_API_KEY: both tools run on Staan, so neither is offered.
+    const none: { webTools: { search: boolean, fetch: boolean } } = await (await (await loggedInClient(u.id, undefined, TEST_BILLING_OFF_BASE_URL)).get('/api/ai/availability')).json()
+    expect(none.webTools).toEqual({ search: false, fetch: false })
   })
 
   it('SaaS: no instance defaults → AI entry points answer 409 ai/provider-missing', async () => {

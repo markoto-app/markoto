@@ -1073,8 +1073,9 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
 
 export const expect = baseExpect
 
-// Require the live AI upstream to be wired. AI flows drive Mistral / Jina / BFL through the LiteLLM proxy.
-// The proxy reads `MISTRAL_API_KEY`, `JINA_AI_API_KEY`, `BFL_API_KEY` inside its container; for the
+// Require the live AI upstream to be wired. AI flows drive Mistral / BFL through the LiteLLM proxy and
+// Staan (web search + page fetch) from the app. The proxy reads `MISTRAL_API_KEY`, `BFL_API_KEY` inside its
+// container, the app reads `STAAN_API_KEY`; for the
 // host-spawned flow test stack they're passed in via `flows-ephemeral.ts`. Either every upstream is wired
 // or the flow can't make a real call, so there is no useful "partial" state.
 //
@@ -1083,7 +1084,7 @@ export const expect = baseExpect
 // the AI keys so these flows skip there; the release/staging full-suite run wires the keys so they execute.
 // Locally they run whenever the keys are in `.env`.
 export function requireLiveAi(): void {
-  const required = ['MISTRAL_API_KEY', 'JINA_AI_API_KEY', 'BFL_API_KEY'] as const
+  const required = ['MISTRAL_API_KEY', 'BFL_API_KEY', 'STAAN_API_KEY'] as const
   const missing = required.filter(k => !process.env[k])
   test.skip(
     missing.length > 0,

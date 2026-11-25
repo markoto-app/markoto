@@ -59,17 +59,16 @@ beforeEach(() => {
   useLitellmForUser.mockClear()
   litellmCompletion.mockClear()
   process.env.STAAN_API_KEY = 'staan-test-key'
-  process.env.JINA_AI_API_KEY = 'jina-test-key'
   delete process.env.NUXT_AI_BYOK_ALLOWED_BASE_URLS
   delete process.env.NUXT_AI_BYOK_ALLOW_PRIVATE_URLS
 })
 
-/** Staan returns a search envelope; Jina Reader returns page markdown. */
-function stubFetch(kind: 'staan' | 'jina') {
+/** Staan search returns a search envelope; Staan Fetch returns page markdown. */
+function stubFetch(kind: 'staan' | 'fetch') {
   const body = kind === 'staan'
     ? { web: { results: [{ title: 'T', url: 'https://example.com', snippet: 'S' }] } }
-    : { data: { content: '# Page\n\nBody text.', title: 'Page' } }
-  vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, status: 200, json: async () => body })))
+    : { results: [{ url: 'https://example.com/', title: 'Page', content: '# Page\n\nBody text.' }], errors: [] }
+  vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify(body), { status: 200 })))
 }
 
 function lastBody(): Record<string, unknown> {
@@ -118,7 +117,7 @@ describe('web_search synthesis billing key', () => {
 
 describe('fetch_url synthesis billing key', () => {
   it('uses the caller virtual key when provided', async () => {
-    stubFetch('jina')
+    stubFetch('fetch')
     await fetchUrl(undefined, '', 'https://example.com', neverAbort, { virtualKey: 'sk-user-456', chatProvider: aliasProvider })
     expect(useLitellmForUser).toHaveBeenCalledWith('sk-user-456')
     expect(useLitellmAdmin).not.toHaveBeenCalled()
@@ -126,7 +125,7 @@ describe('fetch_url synthesis billing key', () => {
   })
 
   it('falls back to the master key when no virtual key is passed', async () => {
-    stubFetch('jina')
+    stubFetch('fetch')
     await fetchUrl(undefined, '', 'https://example.com', neverAbort, { chatProvider: aliasProvider })
     expect(useLitellmAdmin).toHaveBeenCalled()
     expect(useLitellmForUser).not.toHaveBeenCalled()
@@ -136,14 +135,16 @@ describe('fetch_url synthesis billing key', () => {
   // reader that parses "\" differently from WHATWG could fetch another host
   // than the one the guard checked.
   it('forwards the parsed URL the guard checked, not the raw input', async () => {
-    stubFetch('jina')
+    stubFetch('fetch')
     await fetchUrl(undefined, '', 'https://allowed.example\\@internal.example/', neverAbort, { chatProvider: null })
     const fetchMock = vi.mocked(fetch)
-    expect(fetchMock.mock.calls[0]?.[0]).toBe('https://r.jina.ai/https://allowed.example/@internal.example/')
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('https://api.staan.ai/v1/fetch')
+    const sent = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)) as { urls: string[] }
+    expect(sent.urls).toEqual(['https://allowed.example/@internal.example/'])
   })
 
   it('returns the page text without an LLM call when no chat provider is configured', async () => {
-    stubFetch('jina')
+    stubFetch('fetch')
     const out = await fetchUrl(undefined, '', 'https://example.com', neverAbort, { chatProvider: null })
     expect(litellmCompletion).not.toHaveBeenCalled()
     expect(out.text).toContain('Body text.')
@@ -166,7 +167,7 @@ describe('web-tool synthesis on the worker model', () => {
   })
 
   it('fetch_url extracts on the worker, tagged feature:utility', async () => {
-    stubFetch('jina')
+    stubFetch('fetch')
     await fetchUrl(undefined, '', 'https://example.com', neverAbort, { virtualKey: 'sk-user-1', chatProvider: aliasProvider, workerProvider: worker })
     const [body] = synthesisBodies()
     expect(body?.model).toBe('markoto-worker')
@@ -174,7 +175,7 @@ describe('web-tool synthesis on the worker model', () => {
   })
 
   it('a BYOK fast model runs with the chat provider\'s clientside credentials', async () => {
-    stubFetch('jina')
+    stubFetch('fetch')
     const fast = { ...byokProvider, model: 'gpt-5.4-nano' }
     await fetchUrl(undefined, '', 'https://example.com', neverAbort, { virtualKey: 'sk-user-1', chatProvider: byokProvider, workerProvider: fast })
     const [body] = synthesisBodies()
@@ -182,7 +183,7 @@ describe('web-tool synthesis on the worker model', () => {
   })
 
   it('an explicit null worker means no synthesis, even with a chat provider', async () => {
-    stubFetch('jina')
+    stubFetch('fetch')
     const out = await fetchUrl(undefined, '', 'https://example.com', neverAbort, { chatProvider: aliasProvider, workerProvider: null })
     expect(synthesisBodies()).toEqual([])
     expect(out.text).toContain('Body text.')
@@ -191,11 +192,11 @@ describe('web-tool synthesis on the worker model', () => {
 
 describe('fetch_url question and extract modes', () => {
   function stubPage(content: string) {
-    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ data: { content, title: 'Long page' } }) })))
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ results: [{ url: 'https://example.com/', title: 'Long page', content }], errors: [] }), { status: 200 })))
   }
 
   it('question: the extractor is asked the question and the answer is labelled', async () => {
-    stubFetch('jina')
+    stubFetch('fetch')
     litellmCompletion.mockImplementationOnce(async () => ({ choices: [{ message: { content: JSON.stringify({ summary: 'It opened in 1999.', images: [] }) } }] }))
     const out = await fetchUrl(undefined, '', 'https://example.com', neverAbort, { chatProvider: aliasProvider }, { question: 'When did it open?' })
     const messages = lastBody().messages as Array<{ role: string, content: string }>
@@ -235,7 +236,7 @@ describe('fetch_url question and extract modes', () => {
   })
 
   it('extract: a short page is one page', async () => {
-    stubFetch('jina')
+    stubFetch('fetch')
     const out = await fetchUrl(undefined, '', 'https://example.com', neverAbort, {}, { mode: 'extract' })
     expect(out.text).toContain('Part 1 of 1. This is the last page.')
     expect(out.text).toContain('# Page\n\nBody text.')

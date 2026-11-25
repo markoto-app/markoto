@@ -17,7 +17,7 @@ const log = useLogger('web-tools')
 
 // Charging the web tools to the AI budget.
 //
-// `web_search` (Staan) and `fetch_url` (Jina Reader) are plain HTTP calls the
+// `web_search` (Staan search) and `fetch_url` (Staan Fetch) are plain HTTP calls the
 // app makes with the operator's keys, so LiteLLM never sees them. Right
 // before each upstream call we send ONE completion on a billing-only tick
 // model (`web-search-tick` / `web-fetch-tick`, custom_handlers.py
@@ -30,7 +30,7 @@ const log = useLogger('web-tools')
 // Same pattern as the live-dictation voice tick (`dictation/voiceTicks.ts`).
 //
 // The tick always bills the virtual key, also under BYOK: the user's own
-// key pays the synthesis step, but Staan / Jina are paid by the operator.
+// key pays the synthesis step, but Staan is paid by the operator.
 //
 // Failure policy: a budget refusal stops the call (typed 402, below).
 // Anything else (proxy down, a self-hosted config without the tick
