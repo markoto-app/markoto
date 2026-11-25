@@ -9,7 +9,7 @@ keywords:
   - geteilter markdown editor
 # Menu label once reviewed (group + order come from the English page).
 navLabel: "Gemeinsam bearbeiten"
-updated: '2026-11-04'
+updated: '2026-11-25'
 # Machine draft, not yet read by a native speaker: noindex, no hreflang,
 # not in the sitemap (shared/seo/marketing.ts). Review status: the operator runbook, kept outside this repository.
 reviewed: false
@@ -67,13 +67,16 @@ Ein Workspace enthält die Dokumente eines Teams. Du lädst Personen per E-Mail 
 
 Dokumente ausserhalb eines Workspace werden per Link geteilt. Die Eigentümerin oder der Eigentümer wählt einen von vier Modi: privat, alle mit dem Link können bearbeiten, alle mit dem Link können lesen, oder mit Passwort geschützt. Siehe die Dokumentation zu [Teilen](/docs/sharing) und [Workspaces](/docs/workspaces) (auf Englisch).
 
+## Vorschlagen statt bearbeiten
+
+Wechsle von **Bearbeiten** zu **Vorschlagen**, und deine Änderungen erscheinen als Vorschläge: Ergänzungen unterstrichen, Löschungen durchgestrichen. Wer das Dokument bearbeitet, nimmt jeden Vorschlag an oder lehnt ihn ab, und zu jedem Vorschlag gibt es einen kurzen Antwortverlauf. Die Eigentümerin oder der Eigentümer kann von allen Vorschläge verlangen, etwa wenn eine Kundin oder ein Betreuer einen Entwurf prüft. Siehe [Änderungen vorschlagen und prüfen](/docs/collaborate/suggestions) (auf Englisch).
+
 ## Die KI arbeitet sichtbar mit
 
 Bearbeitet der KI-Assistent ein Dokument, tritt er bei wie eine weitere Person: Sein Cursor und seine Änderungen erscheinen für alle live, im Rot von markoto, und seine Bearbeitungen stehen im Verlauf wie die aller anderen. Was er geändert hat, kannst du wiederherstellen. Die KI braucht ein Konto; auf markoto.app läuft sie mit einem kleinen monatlichen Kontingent oder mit [deinem eigenen KI-Anbieter](/docs/ai/provider).
 
 ## Was es nicht kann
 
-- **Kein Änderungsmodus.** Es gibt keine nachverfolgten Änderungen zum Annehmen oder Ablehnen. Wer Bearbeitungsrecht hat, ändert den Text direkt, und der Verlauf bewahrt jede Version.
 - **Kein Offline-Modus.** Ein Dokument braucht zum Öffnen eine Verbindung. Bricht sie beim Tippen kurz ab, ist das kein Problem: deine Änderungen werden synchronisiert, sobald du wieder online bist.
 - **Markdown, keine Textverarbeitung.** Alle bearbeiten den Markdown-Quelltext; die Seitenvorschau steht daneben.
 
@@ -97,7 +100,7 @@ items:
   - q: Sehe ich, wer was geändert hat?
     a: Ja. Der Tab Aktivität listet jede Änderung mit Person und Zeitpunkt, zeigt den Diff und kann das Dokument auf den Stand vor jeder Änderung zurücksetzen.
   - q: Gibt es einen Änderungsmodus zum Nachverfolgen?
-    a: Nein. Bearbeitungen gehen direkt in den Text. Der Verlauf bewahrt jede Version, sodass sich eine Änderung nachträglich prüfen und rückgängig machen lässt.
+    a: Ja. Im Modus Vorschlagen werden deine Änderungen zu Vorschlägen, welche die Personen mit Bearbeitungsrecht annehmen oder ablehnen, und die Eigentümerin oder der Eigentümer kann von allen Vorschläge verlangen. Zudem bewahrt der Verlauf jede Version, sodass sich jede Änderung nachträglich prüfen und rückgängig machen lässt.
   - q: Können wir markoto selbst hosten?
     a: Ja. markoto lässt sich mit Docker Compose und einem Skript auf einem Linux-Server installieren, mit Anmeldung über deinen eigenen OpenID-Connect-Anbieter.
 ---

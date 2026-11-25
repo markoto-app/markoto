@@ -7,7 +7,7 @@ keywords:
   - obsidian collaboration
   - obsidian publish alternative
   - obsidian real-time collaboration
-updated: '2026-11-04'
+updated: '2026-11-25'
 navGroup: compare
 navLabel: markoto vs Obsidian
 navOrder: 50
@@ -48,7 +48,7 @@ Many people use both: Obsidian for their own notes, markoto when a note becomes 
 
 ## Prices
 
-On markoto.app the free plan has no price but has limits (for example 30 days of history and 3 members per workspace); paid plans are planned but not launched ([pricing](/pricing)). Self-hosted instances have no plan limits. Obsidian's app is free; Sync costs $4 per user a month billed annually ($5 monthly), Sync Plus $8 ($10 monthly), and Publish $8 per site a month billed annually ($10 monthly). Prices checked on the date below.
+On markoto.app the free plan has no price but has limits (for example 30 days of history and 3 members per workspace); Pro lifts them for 9 euros or Swiss francs a month (90 a year), and Team and Business cost 12 and 20 a month per seat for a workspace ([pricing](/pricing)). Self-hosted instances have no plan limits. Obsidian's app is free; Sync costs $4 per user a month billed annually ($5 monthly), Sync Plus $8 ($10 monthly), and Publish $8 per site a month billed annually ($10 monthly). Prices checked on the date below.
 
 ## Who should pick which
 
@@ -72,7 +72,7 @@ items:
   - q: Can I open my Obsidian vault in markoto?
     a: Not as a vault. You can import single Markdown files or paste their text into a document.
   - q: Is markoto free?
-    a: Yes. markoto.app is free, including live collaboration and PDF export. Paid plans with higher limits are planned but not launched. Self-hosting is free too.
+    a: Yes. markoto.app has a free plan, including live collaboration and PDF export. Paid plans (Pro for one person, Team and Business per seat for a workspace) raise the limits. Self-hosting is free too.
   - q: Is markoto open source?
     a: markoto is source-available under the Functional Source License (FSL-1.1). Each release becomes Apache-2.0 two years after it is published. Obsidian is proprietary.
 ---

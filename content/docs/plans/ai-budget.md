@@ -3,7 +3,7 @@ title: AI Points and what happens when you run out
 description: AI Points are a monthly allowance that only applies when the instance pays for the AI. Calls on your own provider never use them.
 category: plans
 order: 4
-updated: '2026-11-15'
+updated: '2026-11-25'
 ---
 
 # AI Points and what happens when you run out
@@ -16,7 +16,7 @@ operator set a default model with their own provider key.
 - **Using your own provider** ([Settings → AI provider](/docs/ai/provider)): your provider bills you directly and **nothing that runs on it counts against AI Points**. There is no markoto-side cap on your own key.
 - **Using an operator-paid default** (common on self-hosted instances): each person has a monthly allowance, set by the operator. It refills every 30 days.
 - **Web search and page reading** are always paid for by the instance, so they use AI Points for everyone, also with your own provider: [a web search](/docs/ai/web-search) is 5 points, [reading a page](/docs/ai/fetch-url) 1 point. When the points are used up, the AI carries on without the web.
-- **On markoto.app** the writing assistant runs on the [free AI allowance](/docs/ai/overview#the-free-ai-allowance-on-markotoapp) until you connect your own provider: 500 AI Points a month, refilled at the start of each month, while the shared monthly pool lasts.
+- **On markoto.app** the writing assistant runs on the [free AI allowance](/docs/ai/overview#the-free-ai-allowance-on-markotoapp) until you connect your own provider: 500 AI Points a month on the free plan, refilled at the start of each month, while the shared monthly pool lasts. Pro and the Team and Business plans include a larger monthly allowance (see the [pricing page](/pricing)).
 
 The points meter in the top bar only appears when something you can do is
 operator-paid. If you have both your own keys and an operator default, the
@@ -35,7 +35,7 @@ would have answered. What you can do:
 - On markoto.app the free allowance can also end for everyone at once when the shared monthly pool is used up; the AI bar then says *"This month's free AI allowance is used up"*. It comes back with the monthly refill, and your own provider keeps working in the meantime.
 - **Connect your own provider** for the writing assistant; it is unaffected by the cap.
 - **Ask the instance operator** to raise the allowance (the free AI budget in the [self-hosting guide](https://github.com/markoto-app/markoto/blob/main/docs/SELF-HOSTING.md#limits) on a self-hosted instance).
-- On markoto.app, paid plans with larger allowances are **coming soon** ([plans](/docs/plans/limits)). Where paid plans are live, the AI bar shows an Upgrade button.
+- **Upgrade** to a plan with a larger allowance: on markoto.app, Pro and the Team and Business workspace plans ([plans](/docs/plans/limits)). The AI bar shows an Upgrade button.
 
 ## Not the same as the safety limits
 

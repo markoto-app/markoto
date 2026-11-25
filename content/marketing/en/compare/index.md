@@ -8,7 +8,7 @@ keywords:
   - overleaf alternative markdown
   - obsidian alternative
   - typora alternative
-updated: '2026-11-19'
+updated: '2026-11-25'
 navGroup: compare
 navLabel: All comparisons
 navOrder: 0
@@ -38,7 +38,7 @@ Overleaf is the right tool for LaTeX and journal templates; markoto suits people
 
 ## Google Docs
 
-Google Docs wins on familiarity, suggesting mode and offline use; markoto keeps the text as Markdown, lays it out with print themes, and can be self-hosted or used on EU infrastructure.
+Google Docs wins on familiarity, the Workspace around it and offline use; markoto keeps the text as Markdown, lays it out with print themes, and can be self-hosted or used on EU infrastructure.
 
 [markoto vs Google Docs: the full comparison](/compare/google-docs)
 
@@ -68,7 +68,7 @@ Scrivener is a desktop app for long projects, with a corkboard, research beside 
 
 ## What markoto doesn't do
 
-So you can rule it out quickly: markoto has no slide mode, no GitHub or Git sync, no citation styles beyond its six built-in ones, no suggestion or track-changes mode, no offline editing and no end-to-end encryption. It is source-available under the Functional Source License (FSL-1.1, Apache-2.0 two years after each release), not OSI open source.
+So you can rule it out quickly: markoto has no slide mode, no GitHub or Git sync, no citation styles beyond its six built-in ones, no offline editing and no end-to-end encryption. It is source-available under the Functional Source License (FSL-1.1, Apache-2.0 two years after each release), not OSI open source.
 
 ::cta{title="Try it with your own Markdown." secondary-label="Read the docs" secondary-to="/docs"}
 Free on markoto.app, no sign-up needed.

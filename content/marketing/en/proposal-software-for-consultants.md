@@ -7,7 +7,7 @@ keywords:
   - client proposal pdf
   - branded proposal template
   - proposal builder markdown
-updated: '2026-11-19'
+updated: '2026-11-25'
 navGroup: use-cases
 navLabel: Consultants and agencies
 navOrder: 110
@@ -50,7 +50,7 @@ captions:
 ---
 ::
 
-> **Availability.** On markoto.app the brand kit, with locked designs and workspace templates, is part of the Team and Business plans, which are coming soon. On a self-hosted instance every workspace has it.
+> **Availability.** On markoto.app the brand kit, with locked designs and workspace templates, is part of the Team and Business plans. On a self-hosted instance every workspace has it.
 
 Without a brand kit you can still make a design of your own: set fonts, colours, margins, header, footer and cover in the document theme, and save it as a preset that appears in every new document you create. A workspace admin can set a saved design as the workspace default, so a blank document in that workspace starts with it.
 
@@ -65,7 +65,7 @@ Download the PDF and send it, or share the document in the way that suits the cl
 - **Read-only link.** The client reads it in the browser, with no account. A password can protect the link.
 - **Published web page.** A snapshot of the proposal at its own address that anyone with the link can read, with your design, on a phone too. Click **Update page** to publish a new version at the same address. Publishing is included in every plan.
 - **Expiry and no download.** Where your plan includes link settings, the link can stop working on a date, and you can turn off download and print for people with the link.
-- **Your own domain.** A published page can be shown on your domain, such as `proposals.example.com`, where your plan includes it (Pro and up on markoto.app, once plans launch).
+- **Your own domain.** A published page can be shown on your domain, such as `proposals.example.com`, where your plan includes it (Pro and up on markoto.app).
 
 ::flow-strip{id="publish-a-document-as-a-web-page" frames="05,06"}
 ---
@@ -100,7 +100,7 @@ markoto.app stores documents in France and uses EU-based providers for AI. It is
 ---
 items:
   - q: Can I use my own fonts and logo?
-    a: Yes. A workspace's brand kit holds your font files (static TrueType, WOFF or WOFF2, one file per weight and style) and logos. On markoto.app the brand kit is part of the Team and Business plans, which are coming soon; on a self-hosted instance every workspace has it. A logo is also an upload you can put on the cover with an account.
+    a: Yes. A workspace's brand kit holds your font files (static TrueType, WOFF or WOFF2, one file per weight and style) and logos. On markoto.app the brand kit is part of the Team and Business plans; on a self-hosted instance every workspace has it. A logo is also an upload you can put on the cover with an account.
   - q: How do I make every proposal look the same?
     a: Set a workspace design and lock it, so every document in the workspace uses it. Authors fill in only the cover text. Without a brand kit you can save your own theme as a preset and start every document from it.
   - q: Can the client comment on the proposal?

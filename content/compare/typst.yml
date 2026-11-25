@@ -26,9 +26,9 @@ rows:
       checked: '2026-11-04'
   - feature: Price
     markoto:
-      value: Free on markoto.app; paid plans not launched yet
+      value: Free plan; Pro 9 a month, Team 12 and Business 20 per seat a month (EUR or CHF)
       source: /docs/plans/limits
-      checked: '2026-11-04'
+      checked: '2026-11-25'
     competitor:
       value: Free; Pro $7.99 per month (less with annual billing)
       source: https://typst.app/pricing/

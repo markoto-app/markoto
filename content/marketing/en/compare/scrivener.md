@@ -7,7 +7,7 @@ keywords:
   - scrivener alternative browser
   - scrivener alternative markdown
   - novel writing software comparison
-updated: '2026-11-19'
+updated: '2026-11-25'
 navGroup: compare
 navLabel: markoto vs Scrivener
 navOrder: 80
@@ -69,7 +69,7 @@ items:
   - q: Does markoto have a corkboard or a binder?
     a: No. You structure a book with headings, and the AI can move or swap chapters on request.
   - q: Is markoto free?
-    a: Yes. markoto.app is free, with no sign-up needed to start, and PDF export and comments are included. Paid plans with higher limits are planned but not launched.
+    a: Yes. markoto.app has a free plan, with no sign-up needed to start, and PDF export and comments are included. Paid plans (Pro for one person, Team and Business per seat for a workspace) raise the limits.
 ---
 ::
 

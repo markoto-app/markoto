@@ -3,13 +3,13 @@ title: Brand kit of a workspace
 description: Upload your organisation's fonts and logos, lock the workspace design for every document, and give members templates to start from.
 category: workspace-admin
 order: 1
-updated: '2026-11-10'
+updated: '2026-11-25'
 ---
 
 # Brand kit of a workspace
 
 > **Availability.** On markoto.app the brand kit is part of the **Team** and
-> **Business** plans (coming soon). On a self-hosted instance every workspace
+> **Business** plans. On a self-hosted instance every workspace
 > has it.
 
 Workspace admins find the **Brand kit** tab on the workspace page. It holds

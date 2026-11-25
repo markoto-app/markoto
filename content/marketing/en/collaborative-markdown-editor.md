@@ -6,7 +6,7 @@ keywords:
   - real-time markdown collaboration
   - shared markdown editor
   - markdown editor for teams
-updated: '2026-11-04'
+updated: '2026-11-25'
 navGroup: use-cases
 navLabel: Collaborative editing
 navOrder: 30
@@ -64,13 +64,16 @@ A workspace holds a team's documents. You invite people by email, and they join 
 
 Documents outside a workspace are shared by link. The owner picks one of four modes: private, anyone with the link can edit, anyone with the link can view, or protected by a password. See the [sharing docs](/docs/sharing) and [workspace docs](/docs/workspaces).
 
+## Suggest instead of editing
+
+Switch from **Editing** to **Suggesting**, and your changes show up as proposals: additions underlined, deletions struck through. The people who edit the document accept or reject each one, and every suggestion can have a short reply thread. The owner can require suggestions from everyone, for example when a client or a supervisor reviews a draft. See [suggest and review changes](/docs/collaborate/suggestions).
+
 ## The AI is a collaborator you can see
 
 When the AI assistant edits a document, it joins like another person: its cursor and its changes show up live for everyone, in markoto's red, and its edits are in the history like anyone else's. You can restore what it changed. The AI needs an account; on markoto.app it runs on a small monthly allowance or on [your own AI provider](/docs/ai/provider).
 
 ## What it doesn't do
 
-- **No suggestion mode.** There are no tracked changes to accept or reject. People with edit access change the text directly, and the history keeps every version.
 - **No offline mode.** A document needs a connection to open. A short drop while you type is fine: your edits sync when you're back.
 - **Markdown, not a word processor.** Everyone edits the Markdown source; the paged preview sits next to it.
 
@@ -94,7 +97,7 @@ items:
   - q: Can I see who changed what?
     a: Yes. The Activity tab lists every change with the author and time, shows the diff, and can restore the document to how it was before any change.
   - q: Is there a suggestion or track-changes mode?
-    a: No. Edits go straight into the text. The history keeps every version, so a change can be reviewed and undone afterwards.
+    a: Yes. In Suggesting mode your changes become proposals that the people who edit the document accept or reject, and the owner can require suggestions from everyone. The history also keeps every version, so any change can be reviewed and undone afterwards.
   - q: Can we host it ourselves?
     a: Yes. markoto installs on a Linux server with Docker Compose and one script, with sign-in through your own OpenID Connect provider.
 ---

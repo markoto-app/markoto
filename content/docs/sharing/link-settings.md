@@ -3,13 +3,13 @@ title: Link expiry and view-only links
 description: Let a share link stop working on a date, stop people from downloading or printing a document, and see how often the link was opened.
 category: sharing
 order: 3
-updated: '2026-11-10'
+updated: '2026-11-25'
 ---
 
 # Link expiry and view-only links
 
 > **Availability.** On markoto.app link settings are part of the **Pro**,
-> **Team** and **Business** plans (coming soon). On a self-hosted instance
+> **Team** and **Business** plans. On a self-hosted instance
 > every document has them.
 
 When a document is shared by link (anyone can view, anyone can edit, or with

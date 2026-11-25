@@ -9,7 +9,7 @@ keywords:
   - markdown en ligne
 # Menu label once reviewed (group + order come from the English page).
 navLabel: "Éditeur Markdown en ligne"
-updated: '2026-11-04'
+updated: '2026-11-25'
 # Machine draft, not yet read by a native speaker: noindex, no hreflang,
 # not in the sitemap (shared/seo/marketing.ts). Review status: the operator runbook, kept outside this repository.
 reviewed: false
@@ -87,7 +87,6 @@ Le document est du Markdown pur, et **Fichier › Exporter › Markdown** le té
 
 - **Pas de mode hors ligne.** L'éditeur a besoin d'une connexion pour ouvrir un document. Une courte coupure pendant la frappe ne pose pas de problème : vos modifications se synchronisent à votre retour.
 - **Vous modifiez la source.** La partie gauche est du texte Markdown avec une barre d'outils, pas un traitement de texte. L'aperçu n'est pas modifiable.
-- **Pas de mode suggestion.** Toute personne ayant le droit de modifier change le texte directement. Chaque modification est conservée dans l'historique avec son diff et peut être restaurée.
 - **Pas d'application de bureau.** markoto fonctionne dans le navigateur, sur ordinateur comme sur téléphone.
 
 Vous comparez des éditeurs ? Voyez markoto face à [HackMD](/compare/hackmd) et [HedgeDoc](/compare/hedgedoc) (en anglais).

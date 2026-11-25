@@ -10,7 +10,7 @@ keywords:
   - angebotsvorlage markdown
 # Menu label once reviewed (group + order come from the English page).
 navLabel: "Beratung und Agenturen"
-updated: '2026-11-19'
+updated: '2026-11-25'
 # Machine draft, not yet read by a native speaker: noindex, no hreflang,
 # not in the sitemap (shared/seo/marketing.ts). Review status: the operator runbook, kept outside this repository.
 reviewed: false
@@ -53,7 +53,7 @@ captions:
 ---
 ::
 
-> **Verfügbarkeit.** Auf markoto.app gehört das Brand-Kit mit gesperrten Designs und Workspace-Vorlagen zu den Tarifen Team und Business, die bald erscheinen. Auf einer selbst gehosteten Instanz hat jeder Workspace es.
+> **Verfügbarkeit.** Auf markoto.app gehört das Brand-Kit mit gesperrten Designs und Workspace-Vorlagen zu den Tarifen Team und Business. Auf einer selbst gehosteten Instanz hat jeder Workspace es.
 
 Auch ohne Brand-Kit kannst du ein eigenes Design bauen: Stelle Schriften, Farben, Ränder, Kopfzeile, Fusszeile und Deckblatt im Dokument-Theme ein und speichere es als Vorlage, die in jedem neuen Dokument von dir erscheint. Eine Workspace-Admin kann ein gespeichertes Design als Standard des Workspace festlegen, sodass ein leeres Dokument in diesem Workspace damit beginnt.
 
@@ -68,7 +68,7 @@ Lade das PDF herunter und schick es, oder teile das Dokument so, wie es dem Kund
 - **Nur-Lesen-Link.** Der Kunde liest es im Browser, ohne Konto. Ein Passwort kann den Link schützen.
 - **Veröffentlichte Webseite.** Eine Momentaufnahme des Angebots unter einer eigenen Adresse, die alle mit dem Link lesen können, mit deinem Design, auch auf dem Handy. Klicke auf **Seite aktualisieren**, um unter derselben Adresse eine neue Version zu veröffentlichen. Das Veröffentlichen ist in jedem Tarif enthalten.
 - **Ablaufdatum und kein Download.** Wo dein Tarif Link-Einstellungen enthält, kann der Link an einem Datum ablaufen, und du kannst Download und Druck für Personen mit dem Link ausschalten.
-- **Deine eigene Domain.** Eine veröffentlichte Seite kann unter deiner Domain erscheinen, etwa `proposals.example.com`, wo dein Tarif das enthält (Pro und höher auf markoto.app, sobald die Tarife starten).
+- **Deine eigene Domain.** Eine veröffentlichte Seite kann unter deiner Domain erscheinen, etwa `proposals.example.com`, wo dein Tarif das enthält (Pro und höher auf markoto.app).
 
 ::flow-strip{id="publish-a-document-as-a-web-page" frames="05,06"}
 ---
@@ -103,7 +103,7 @@ markoto.app speichert Dokumente in Frankreich und nutzt für die KI Anbieter aus
 ---
 items:
   - q: Kann ich meine eigenen Schriften und mein Logo verwenden?
-    a: Ja. Das Brand-Kit eines Workspace enthält deine Schriftdateien (statisches TrueType, WOFF oder WOFF2, eine Datei pro Schnitt und Stil) und Logos. Auf markoto.app gehört das Brand-Kit zu den Tarifen Team und Business, die bald erscheinen; auf einer selbst gehosteten Instanz hat jeder Workspace es. Ein Logo ist auch ein Upload, den du mit einem Konto auf das Deckblatt setzen kannst.
+    a: Ja. Das Brand-Kit eines Workspace enthält deine Schriftdateien (statisches TrueType, WOFF oder WOFF2, eine Datei pro Schnitt und Stil) und Logos. Auf markoto.app gehört das Brand-Kit zu den Tarifen Team und Business; auf einer selbst gehosteten Instanz hat jeder Workspace es. Ein Logo ist auch ein Upload, den du mit einem Konto auf das Deckblatt setzen kannst.
   - q: Wie sieht jedes Angebot gleich aus?
     a: Lege ein Workspace-Design fest und sperre es, damit jedes Dokument im Workspace es verwendet. Autorinnen und Autoren füllen nur den Text des Deckblatts aus. Ohne Brand-Kit kannst du dein eigenes Theme als Vorlage speichern und jedes Dokument damit beginnen.
   - q: Kann der Kunde das Angebot kommentieren?

@@ -1,16 +1,15 @@
 ---
 title: Team and Business for a workspace
-description: How a workspace admin buys Team or Business per seat, adds seats, sees the shared AI budget and sets member limits. Only where paid plans are live.
+description: How a workspace admin buys Team or Business per seat, adds seats, sees the shared AI budget and sets member limits.
 category: plans
 order: 3
-updated: '2026-11-14'
+updated: '2026-11-25'
 ---
 
 # Team and Business for a workspace
 
-> **Availability.** Paid plans are **coming soon** on markoto.app and never
-> exist on self-hosted instances. This page describes how Team and Business
-> work where paid plans are switched on.
+> **Availability.** Team and Business are on sale on markoto.app.
+> Self-hosted instances have no paid plans.
 
 Team and Business are bought for a **workspace**, not for a person. You pay
 per seat, and everyone in the workspace gets the plan inside it: the plan's
@@ -29,7 +28,9 @@ at least one seat for everyone already in the workspace, including people
 you have invited who haven't accepted yet. Tick the box that accepts the
 [Paid Plans Terms](/legal/paid-terms); **Continue to payment** then opens
 Stripe Checkout; the invoice names the workspace, and you become its
-billing admin. Where Stripe Managed Payments is switched on (as planned for markoto.app), Stripe is the seller of record and issues the invoices, charges the VAT and handles refunds.
+billing admin. On markoto.app you buy from **Link**, a Stripe company, which
+sells the plan as merchant of record: it issues the invoices, charges the
+VAT and handles refunds.
 
 ## Seats
 
@@ -56,11 +57,8 @@ edits an open document of the workspace uses their own budget too.
 
 ## Extra AI Points
 
-If the workspace needs more AI in a month, an admin can buy extra AI Points
-on the Billing tab (10, 25 or 50 in the workspace's currency for 10,000,
-25,000 or 50,000 AI Points, after ticking the Paid Plans Terms box). They are
-used only after the month's points are spent, and they expire 12 months
-after purchase. The tab shows what's left of each purchase.
+Buying extra AI Points for a workspace on top of the month's budget is not
+available on markoto.app yet.
 
 ## Storage
 

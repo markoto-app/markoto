@@ -7,7 +7,7 @@ keywords:
   - typst vs markdown
   - typst markdown
   - typst web app alternative
-updated: '2026-11-19'
+updated: '2026-11-25'
 navGroup: compare
 navLabel: markoto vs Typst
 navOrder: 70
@@ -30,7 +30,7 @@ Both turn plain text into well-set PDF pages, and both have a web app where seve
 
 - **Layout control.** Typst is a programming language for documents: you can define functions, loop over data, compute values and build any layout a template author can imagine. markoto gives you themes, a theme editor and custom CSS, but you can't script the document.
 - **Citation styles.** Typst reads BibLaTeX `.bib` and Hayagriva files and formats citations in any CSL style. markoto reads BibTeX and CSL JSON too, but formats only its six built-in styles (APA, Chicago author-date, Harvard, IEEE, Vancouver, DIN 1505-2).
-- **Templates.** Typst Universe, its package collection, has templates for journal and conference papers, theses, reports, CVs and posters. markoto has a handful of templates and eight print themes.
+- **Templates.** Typst Universe, its package collection, has templates for journal and conference papers, theses, reports, CVs and posters. markoto has about twenty document templates and eighteen print themes.
 - **Slides.** Typst has presentation templates, and Pro adds a presentation mode in the web app. markoto makes documents, not slide decks.
 - **Offline and local.** The Typst compiler runs on your own computer from the command line, and its source is open. markoto runs only in the browser and needs a connection.
 - **More output formats.** PDF, PNG and SVG, and HTML as an experiment. markoto exports PDF and Markdown.
@@ -51,7 +51,7 @@ Both turn plain text into well-set PDF pages, and both have a web app where seve
 
 ## Prices
 
-On markoto.app the free plan has no price but has limits (for example 30 days of history and 3 members per workspace); paid plans are planned but not launched ([pricing](/pricing)). Self-hosted instances have no plan limits. Typst's web app is free with limits; Pro costs $7.99 a month, less with annual billing. See [Typst's pricing page](https://typst.app/pricing/) for the current annual price.
+On markoto.app the free plan has no price but has limits (for example 30 days of history and 3 members per workspace); Pro lifts them for 9 euros or Swiss francs a month (90 a year), and Team and Business cost 12 and 20 a month per seat for a workspace ([pricing](/pricing)). Self-hosted instances have no plan limits. Typst's web app is free with limits; Pro costs $7.99 a month, less with annual billing. See [Typst's pricing page](https://typst.app/pricing/) for the current annual price.
 
 ## Who should pick which
 
@@ -77,7 +77,7 @@ items:
   - q: Where do the two services store data?
     a: markoto.app stores data with OVHcloud in France. Typst states that its web app stores data in a data centre in Germany.
   - q: Is markoto free?
-    a: Yes. markoto.app is free, including comments, history, collaboration and PDF export. Paid plans with higher limits are planned but not launched. Self-hosting is free too.
+    a: Yes. markoto.app has a free plan, including comments, history, collaboration and PDF export. Paid plans (Pro for one person, Team and Business per seat for a workspace) raise the limits. Self-hosting is free too.
 ---
 ::
 

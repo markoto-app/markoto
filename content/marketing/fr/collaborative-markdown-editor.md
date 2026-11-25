@@ -9,7 +9,7 @@ keywords:
   - édition collaborative markdown
 # Menu label once reviewed (group + order come from the English page).
 navLabel: "Édition collaborative"
-updated: '2026-11-04'
+updated: '2026-11-25'
 # Machine draft, not yet read by a native speaker: noindex, no hreflang,
 # not in the sitemap (shared/seo/marketing.ts). Review status: the operator runbook, kept outside this repository.
 reviewed: false
@@ -67,13 +67,16 @@ Un espace de travail regroupe les documents d'une équipe. Vous invitez des pers
 
 Les documents hors d'un espace de travail se partagent par lien. Le propriétaire choisit l'un des quatre modes : privé, modifiable par toute personne disposant du lien, lisible par toute personne disposant du lien, ou protégé par mot de passe. Voir la documentation sur le [partage](/docs/sharing) et les [espaces de travail](/docs/workspaces) (en anglais).
 
+## Suggérer au lieu de modifier
+
+Passez du mode **Modification** au mode **Suggestion**, et vos modifications apparaissent comme des propositions : les ajouts soulignés, les suppressions barrées. Les personnes qui modifient le document acceptent ou rejettent chacune d'elles, et chaque suggestion peut recevoir une courte discussion. Le propriétaire peut exiger des suggestions de tout le monde, par exemple quand un client ou un directeur de thèse relit un brouillon. Voir [suggérer et relire des modifications](/docs/collaborate/suggestions) (en anglais).
+
 ## L'IA, un collaborateur que vous voyez
 
 Quand l'assistant IA modifie un document, il le rejoint comme une autre personne : son curseur et ses modifications apparaissent en direct pour tout le monde, dans le rouge de markoto, et ses modifications figurent dans l'historique comme celles des autres. Vous pouvez restaurer ce qu'il a changé. L'IA demande un compte ; sur markoto.app, elle fonctionne avec une petite allocation mensuelle ou avec [votre propre fournisseur d'IA](/docs/ai/provider).
 
 ## Ce qu'il ne fait pas
 
-- **Pas de mode suggestion.** Il n'y a pas de modifications suivies à accepter ou refuser. Les personnes qui ont le droit de modifier changent le texte directement, et l'historique conserve chaque version.
 - **Pas de mode hors ligne.** Un document a besoin d'une connexion pour s'ouvrir. Une courte coupure pendant la frappe ne pose pas de problème : vos modifications se synchronisent à votre retour.
 - **Du Markdown, pas un traitement de texte.** Tout le monde modifie la source Markdown ; l'aperçu paginé se trouve à côté.
 
@@ -97,7 +100,7 @@ items:
   - q: Puis-je voir qui a changé quoi ?
     a: Oui. L'onglet Activité liste chaque modification avec son auteur et sa date, affiche le diff et peut remettre le document dans l'état où il était avant n'importe quelle modification.
   - q: Existe-t-il un mode suggestion ou de suivi des modifications ?
-    a: Non. Les modifications vont directement dans le texte. L'historique conserve chaque version, ce qui permet de relire et d'annuler une modification après coup.
+    a: Oui. En mode Suggestion, vos modifications deviennent des propositions que les personnes qui modifient le document acceptent ou rejettent, et le propriétaire peut exiger des suggestions de tout le monde. L'historique conserve en plus chaque version, ce qui permet de relire et d'annuler n'importe quelle modification après coup.
   - q: Pouvons-nous l'héberger nous-mêmes ?
     a: Oui. markoto s'installe sur un serveur Linux avec Docker Compose et un seul script, avec une connexion par votre propre fournisseur OpenID Connect.
 ---

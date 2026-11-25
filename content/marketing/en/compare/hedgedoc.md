@@ -6,7 +6,7 @@ keywords:
   - hedgedoc alternative
   - self-hosted markdown editor
   - hedgedoc pdf export
-updated: '2026-11-04'
+updated: '2026-11-25'
 navGroup: compare
 navLabel: markoto vs HedgeDoc
 navOrder: 20
@@ -38,7 +38,7 @@ HedgeDoc and markoto are both real-time collaborative Markdown editors you can r
 
 - **PDF export.** markoto renders a paged PDF on the server, with print themes, cover page, headers, footers and page numbers. HedgeDoc removed its PDF export for security reasons and suggests the browser's print function; its FAQ names HedgeDoc 2.1 as the earliest version to bring it back.
 - **Paged preview and themes.** markoto shows A4 or Letter pages as you type. Themes set fonts, colours, margins and columns, and can be saved and shared in a workspace.
-- **A hosted option.** If you don't want to run a server, markoto.app is free and stores your data in the EU (OVHcloud, France).
+- **A hosted option.** If you don't want to run a server, markoto.app has a free plan and stores your data in the EU (OVHcloud, France).
 - **Workspaces and comments.** Teams share documents in workspaces with admin, editor and viewer roles, and discuss passages in comment threads.
 - **AI writing assistant.** markoto's assistant edits the document, answers in comments and can use files uploaded to a workspace. Self-hosters choose the AI provider, including local models.
 - **Import.** markoto converts DOCX, PDF, PPTX, XLSX, HTML and EPUB into Markdown.

@@ -17,9 +17,9 @@ rows:
       checked: '2026-11-04'
   - feature: Price
     markoto:
-      value: Free on markoto.app; paid plans not launched yet
+      value: Free plan; Pro 9 a month, Team 12 and Business 20 per seat a month (EUR or CHF)
       source: /docs/plans/limits
-      checked: '2026-11-04'
+      checked: '2026-11-25'
     competitor:
       value: $14.99 one-time, up to 3 devices; 15-day free trial
       source: https://store.typora.io/
@@ -98,9 +98,9 @@ rows:
       checked: '2026-11-04'
   - feature: Themes
     markoto:
-      value: Seven print presets, theme editor, custom CSS per document
+      value: Eighteen print presets, theme editor, custom CSS per document
       source: /docs/themes
-      checked: '2026-11-04'
+      checked: '2026-11-25'
     competitor:
       value: CSS themes, with a community theme gallery
       source: https://theme.typora.io/

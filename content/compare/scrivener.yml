@@ -18,9 +18,9 @@ rows:
       checked: '2026-11-19'
   - feature: Price
     markoto:
-      value: Free on markoto.app; paid plans not launched yet
+      value: Free plan; Pro 9 a month, Team 12 and Business 20 per seat a month (EUR or CHF)
       source: /docs/plans/limits
-      checked: '2026-11-19'
+      checked: '2026-11-25'
     competitor:
       value: Paid licence per platform, listed in its store; the iOS app is US$23.99
       source: https://www.literatureandlatte.com/store/scrivener

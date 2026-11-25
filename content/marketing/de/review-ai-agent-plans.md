@@ -9,7 +9,7 @@ keywords:
   - ki spezifikation mit kommentaren prüfen
 # Menu label once reviewed (group + order come from the English page).
 navLabel: "Agenten-Pläne prüfen"
-updated: '2026-11-19'
+updated: '2026-11-25'
 # Machine draft, not yet read by a native speaker: noindex, no hreflang,
 # not in the sitemap (shared/seo/marketing.ts). Review status: the operator runbook, kept outside this repository.
 reviewed: false
@@ -62,7 +62,7 @@ Cursor und andere Clients nehmen dieselbe URL und denselben Header. Die Seite zu
 
 ## Was du vorher wissen solltest
 
-- **Schreiben braucht Schreibzugriff.** Im kostenlosen Tarif von markoto.app ist der MCP-Server nur lesend (100 Werkzeugaufrufe pro Tag): Ein Agent kann ein Dokument und seine Kommentare lesen, aber weder den Plan anlegen noch antworten. Schreibzugriff über MCP ist eine Funktion der Bezahltarife, sobald die Tarife starten. Auf einer selbst gehosteten Instanz funktioniert der ganze Ablauf heute, ohne Tageslimit.
+- **Schreiben braucht Schreibzugriff.** Im kostenlosen Tarif von markoto.app ist der MCP-Server nur lesend (100 Werkzeugaufrufe pro Tag): Ein Agent kann ein Dokument und seine Kommentare lesen, aber weder den Plan anlegen noch antworten. Schreibzugriff über MCP gehört zu den Bezahltarifen (ab Pro). Auf einer selbst gehosteten Instanz funktioniert der ganze Ablauf heute, ohne Tageslimit.
 - **Der Agent bekommt keine Benachrichtigung.** Der MCP-Server beantwortet Werkzeugaufrufe und schickt nichts von sich aus. Sag dem Agenten, er solle die Kommentare lesen, wenn die Prüfung fertig ist.
 - **Prüfende brauchen Bearbeitungsrechte zum Kommentieren.** Teile das Dokument mit einem Workspace oder mit einem Link mit Bearbeitungsrechten. Ein Nur-Lesen-Link kann den Plan lesen, aber nicht kommentieren.
 - **Das Modell des Agenten ist deines.** Er denkt in deinem MCP-Client, mit dessen eigenen Bestätigungseinstellungen. markoto verlangt nicht, dass du jeden Werkzeugaufruf bestätigst.
@@ -93,7 +93,7 @@ items:
   - q: Kann mein Agent die Kommentare lesen, die mein Team hinterlässt?
     a: Ja. Das Werkzeug read_comments liefert jeden Thread eines Dokuments mit seinem verankerten Zeilenbereich, dem Status erledigt, den Kommentartexten und den Antworten. Es braucht den Scope documents:read.
   - q: Kann der Agent auf einen Kommentar antworten und ihn schliessen?
-    a: Ja, mit reply_to_comment und resolve_comment, die documents:write brauchen. Auf markoto.app hat der kostenlose Tarif nur lesendes MCP, Schreiben braucht also einen Bezahltarif, sobald die Tarife starten, oder eine selbst gehostete Instanz.
+    a: Ja, mit reply_to_comment und resolve_comment, die documents:write brauchen. Auf markoto.app hat der kostenlose Tarif nur lesendes MCP, Schreiben braucht also einen Bezahltarif (ab Pro) oder eine selbst gehostete Instanz.
   - q: Welche Agenten funktionieren?
     a: Jeder MCP-Client, der sich über HTTP mit einem Authorization-Header mit einem entfernten Server verbinden kann, zum Beispiel Claude Code, Claude Desktop und Cursor oder deine eigenen Skripte.
   - q: Wird der Agent benachrichtigt, wenn jemand kommentiert?

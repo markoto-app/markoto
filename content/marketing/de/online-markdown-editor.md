@@ -9,7 +9,7 @@ keywords:
   - markdown live vorschau
 # Menu label once reviewed (group + order come from the English page).
 navLabel: "Markdown-Editor online"
-updated: '2026-11-04'
+updated: '2026-11-25'
 # Machine draft, not yet read by a native speaker: noindex, no hreflang,
 # not in the sitemap (shared/seo/marketing.ts). Review status: the operator runbook, kept outside this repository.
 reviewed: false
@@ -87,7 +87,6 @@ Das Dokument ist reines Markdown, und **Datei › Exportieren › Markdown** lä
 
 - **Kein Offline-Modus.** Um ein Dokument zu öffnen, braucht der Editor eine Verbindung. Bricht sie beim Tippen kurz ab, ist das kein Problem: deine Änderungen werden synchronisiert, sobald du wieder online bist.
 - **Du bearbeitest den Quelltext.** Links steht Markdown-Text mit einer Werkzeugleiste, keine Textverarbeitungsansicht. Die Vorschau lässt sich nicht bearbeiten.
-- **Kein Änderungsmodus.** Alle mit Bearbeitungsrecht ändern den Text direkt. Jede Änderung bleibt im Verlauf mit Diff erhalten und lässt sich wiederherstellen.
 - **Keine Desktop-App.** markoto läuft im Browser, auf dem Computer oder auf dem Handy.
 
 Du vergleichst Editoren? Sieh markoto neben [HackMD](/compare/hackmd) und [HedgeDoc](/compare/hedgedoc) (auf Englisch).
