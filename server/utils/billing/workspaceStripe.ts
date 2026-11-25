@@ -151,66 +151,11 @@ export function seatChangeError(e: unknown, workspaceId: string): Error {
 }
 
 /**
- * A second subscription for a workspace that already has a live one (two
- * admins, or two tabs, each completed a Checkout). Cancel it at once and
- * refund what its first invoice took, the workspace keeps the first
- * subscription. Safe to repeat (a webhook retry): a cancelled
- * subscription is not cancelled again, and each refund carries an
- * idempotency key per payment. A refund that fails is reported (error
- * level) for a manual refund instead of failing the webhook.
- */
-export async function cancelDuplicateWorkspaceSubscription(stripe: Stripe, sub: Stripe.Subscription, workspaceId: string): Promise<{ refunded: number }> {
-  if (sub.status !== 'canceled' && sub.status !== 'incomplete_expired') {
-    await stripe.subscriptions.cancel(sub.id, { prorate: false, invoice_now: false })
-  }
-  let refunded = 0
-  const invoiceId = typeof sub.latest_invoice === 'string' ? sub.latest_invoice : sub.latest_invoice?.id ?? null
-  try {
-    for (const paymentIntent of invoiceId ? await paidInvoicePaymentIntents(stripe, invoiceId) : []) {
-      await stripe.refunds.create(
-        { payment_intent: paymentIntent, metadata: { reason: 'duplicate_workspace_subscription', workspace_id: workspaceId, subscription_id: sub.id } },
-        { idempotencyKey: `markoto-duplicate-subscription-refund-${paymentIntent}` }
-      )
-      refunded++
-    }
-  } catch (e) {
-    log.error('refund of a duplicate subscription failed: refund it manually', { subscriptionId: sub.id, workspaceId, err: e })
-    Sentry.captureException(e, { level: 'error', tags: { component: 'billing', event: 'duplicate_subscription_refund_failed', workspaceId } })
-  }
-  const msg = `[workspaceStripe] duplicate subscription ${sub.id} for workspace ${workspaceId} cancelled, ${refunded} payment(s) refunded`
-  log.warn('duplicate subscription cancelled', { subscriptionId: sub.id, workspaceId, refunded })
-  Sentry.captureMessage(msg, { level: 'warning', tags: { component: 'billing', event: 'duplicate_subscription_cancelled', workspaceId } })
-  return { refunded }
-}
-
-/**
- * The payment intents that paid an invoice. Since basil (pinned) they are
- * listed under Invoice Payments; acacia named it on the invoice
- * (`payment_intent`, only set once paid), kept for a webhook endpoint
- * that still renders the older version.
- */
-async function paidInvoicePaymentIntents(stripe: Stripe, invoiceId: string): Promise<string[]> {
-  const invoice = await stripe.invoices.retrieve(invoiceId)
-  if ('payment_intent' in invoice) {
-    const pi: unknown = invoice.payment_intent
-    const id = typeof pi === 'string' ? pi : pi && typeof pi === 'object' && 'id' in pi && typeof pi.id === 'string' ? pi.id : null
-    return id && invoice.status === 'paid' ? [id] : []
-  }
-  const ids: string[] = []
-  for await (const payment of stripe.invoicePayments.list({ invoice: invoiceId, status: 'paid' })) {
-    const pi = payment.payment.payment_intent
-    const id = typeof pi === 'string' ? pi : pi?.id
-    if (id) ids.push(id)
-  }
-  return ids
-}
-
-/**
  * Expire the workspace customer's other open Checkout Sessions before a
  * new one is created, so only the newest can still be paid (two admins,
  * or two tabs, would otherwise each buy a subscription). The webhook
  * still cancels a duplicate that slips through
- * (`cancelDuplicateWorkspaceSubscription`).
+ * (`cancelDuplicateSubscription`).
  */
 export async function expireOpenWorkspaceCheckouts(stripe: Stripe, customerId: string): Promise<number> {
   let expired = 0

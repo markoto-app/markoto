@@ -5,6 +5,7 @@ import { bootstrapAdminFromEnv } from '../../utils/auth/adminBootstrap'
 import { githubVerifiedEmail, type GitHubEmailEntry } from '../../utils/auth/oauthEmail'
 import type { EventHandler } from 'h3'
 import { captureOAuthSignup, rememberOAuthClick } from '../../utils/analytics/adConversions'
+import { loginLandingPath, rememberLoginReturn } from '../../utils/auth/loginReturn'
 
 // The GitHub OAuth leg of nuxt-auth-utils: without `?code` it redirects to
 // GitHub; with it, the module verifies `state` and exchanges the code
@@ -57,8 +58,7 @@ const oauth: EventHandler = defineOAuthGitHubEventHandler({
     // A new account: Google Ads conversion (when the sign-in link carried a
     // click id) and `?signed_up=` for the client's cookieless sign-up event.
     if (outcome === 'inserted') await captureOAuthSignup(event, userId)
-    const target = outcome === 'merged' ? '/?linked=github' : outcome === 'inserted' ? '/?signed_up=github' : '/'
-    return sendRedirect(event, target)
+    return sendRedirect(event, await loginLandingPath(event, 'github', outcome))
   }
 })
 
@@ -69,6 +69,8 @@ export default defineApiHandler({
     // Start leg (a redirect to the provider carrying `state`): park the
     // sign-in link's ad click id under that state. A no-op on the callback.
     await rememberOAuthClick(event)
+    // And the page the sign-in link asked to come back to.
+    await rememberLoginReturn(event)
     return result
   }
 })

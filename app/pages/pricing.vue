@@ -7,10 +7,7 @@ import {
   PAID_PLAN_NAMES,
   TOPUP_PACKS,
   TOPUP_VALIDITY_MONTHS,
-  defaultCurrencyForLocale,
   isPerSeatPlan,
-  type BillingInterval,
-  type Currency,
   type PaidPlanName
 } from '~~/shared/config/pricing'
 import { pricingStructuredData, type FaqItem, type PricingOffer } from '~~/shared/seo/structuredData'
@@ -47,8 +44,7 @@ definePageMeta({ layout: 'marketing' })
 
 const { t, locale, localeProperties } = useI18n()
 const { loggedIn } = useUserSession()
-// Login starts at the first configured OAuth provider (null when none).
-const { primaryLoginPath, anonDocTtlDays, marketingSite, siteUrl } = useInstanceConfig()
+const { anonDocTtlDays, marketingSite, siteUrl } = useInstanceConfig()
 const { billingEnabled, plansComingSoon, topupsEnabled } = useBillingMode()
 
 // Shared queries: fetched during the server render (cookies forwarded) and
@@ -60,11 +56,9 @@ await Promise.all([tiersQuery.refresh(), pricesQuery.refresh()])
 const TIERS = computed(() => tiersQuery.data.value ?? DEFAULT_TIERS)
 const PRICE_TABLE = computed(() => pricesQuery.data.value?.prices ?? DEFAULT_PLAN_PRICES)
 
-// Currency + billing interval the visitor looks at. EUR on the server
-// render; after mount a Swiss browser locale (de-CH, fr-CH, …) switches
-// to CHF. Both are switchable on the page.
-const currency = ref<Currency>('eur')
-const interval = ref<BillingInterval>('month')
+// Billing period, currency, Teams plan + seats: switchable on the page,
+// kept across a sign-in from here (`usePricingSelection`).
+const { currency, interval, teamPlan, seats, signInPath } = usePricingSelection()
 const CURRENCY = computed(() => currency.value.toUpperCase())
 /** Prices in the selected currency + interval (free = 0). */
 const PRICES = computed<Record<PlanName, number>>(() => {
@@ -81,9 +75,6 @@ const intervalItems = computed(() => [
   { label: t('pricing.interval.month'), value: 'month' as const },
   { label: t('pricing.interval.year'), value: 'year' as const }
 ])
-// Team / Business: a seat count for the total (minimum 3, the smallest
-// workspace subscription).
-const seats = ref(MIN_WORKSPACE_SEATS)
 function seatTotal(plan: PlanName): string {
   const total = PRICES.value[plan] * seats.value
   return t(interval.value === 'year' ? 'pricing.seatTotalYear' : 'pricing.seatTotalMonth', {
@@ -119,8 +110,6 @@ function paidPlanFor(value: string | number | undefined): PaidPlanName | undefin
 }
 
 // The Teams card: Team or Business, the same seat stepper for both.
-type TeamPlanName = 'team' | 'business'
-const teamPlan = ref<TeamPlanName>('team')
 const teamPlanItems = [
   { label: PAID_DISPLAY.team, value: 'team' as const },
   { label: PAID_DISPLAY.business, value: 'business' as const }
@@ -131,7 +120,6 @@ watch(() => billing.value?.plan, (plan) => {
 }, { immediate: true })
 
 onMounted(() => {
-  currency.value = defaultCurrencyForLocale(globalThis.navigator?.language)
   // The page always read the plan fresh; a snapshot loaded earlier by the
   // topbar is re-read (a first load is already under way otherwise).
   if (billing.value) void refreshBilling()
@@ -206,7 +194,7 @@ const paidTermsAccepted = ref(false)
 async function onChangePlan(plan: PlanName): Promise<void> {
   if (!billingEnabled.value) return
   if (!loggedIn.value) {
-    globalThis.location.href = primaryLoginPath.value ?? '/'
+    globalThis.location.href = signInPath.value ?? '/'
     return
   }
   if (plan === 'free' || checkoutLoading.value) return
@@ -469,8 +457,8 @@ usePageStructuredData(() => {
                 {{ t('pricing.downgrade') }}
               </UButton>
               <UButton
-                v-else-if="!loggedIn && primaryLoginPath"
-                :to="primaryLoginPath"
+                v-else-if="!loggedIn && signInPath"
+                :to="signInPath"
                 external
                 block
                 color="neutral"

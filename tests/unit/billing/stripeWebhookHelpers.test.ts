@@ -44,7 +44,9 @@ function buildDbStub() {
       from: vi.fn(() => ({
         where: vi.fn(() => ({
           limit: vi.fn().mockResolvedValue([{ id: 42 }]),
-          orderBy: vi.fn().mockResolvedValue([])
+          orderBy: vi.fn().mockResolvedValue([]),
+          // The checkout's locked read of the tracked subscription: none yet.
+          for: vi.fn().mockResolvedValue([{ subscriptionId: null }])
         })),
         orderBy: vi.fn().mockResolvedValue([])
       }))

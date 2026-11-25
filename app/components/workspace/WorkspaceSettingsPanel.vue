@@ -110,10 +110,11 @@ async function persist(theme: DocTheme | null) {
       <button
         type="button"
         data-testid="workspace-default-theme-clear"
-        class="w-full text-left rounded-md border p-3 transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+        class="w-full text-left rounded-md border p-3 transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-inverted"
         :class="isClearActive
-          ? 'border-primary bg-primary/5'
-          : 'border-default bg-default hover:border-default/80 hover:bg-default/80'"
+          ? 'border-inverted bg-elevated/40'
+          : 'border-default bg-default hover:bg-elevated/50'"
+        :aria-pressed="isClearActive"
         :disabled="saving"
         @click="persist(null)"
       >
@@ -128,7 +129,7 @@ async function persist(theme: DocTheme | null) {
           <UIcon
             v-if="isClearActive"
             name="i-lucide-check"
-            class="size-3.5 text-primary ml-auto"
+            class="size-3.5 text-default ml-auto"
           />
         </div>
         <p class="text-xs text-muted leading-snug">

@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { resetDb, testDb } from '../integration/setup/db'
 import { createUser } from '../integration/setup/fixtures'
 import { sys } from '../helpers/access'
-import { endUserSubscription, findTrackedUserSubscription } from '../../server/repos/userBilling'
+import { endUserSubscription, findTrackedUserSubscription, lockTrackedSubscriptionOfUser, updateUserBilling } from '../../server/repos/userBilling'
+import { withTransaction } from '../../server/db/client'
 
 // A customer can hold two personal subscriptions (a double checkout, an
 // old one support cleans up). Only the one the user row tracks ends the
@@ -70,5 +71,45 @@ describe('findTrackedUserSubscription', () => {
     await testDb().query('UPDATE users SET stripe_subscription_id = NULL WHERE id = $1', [id])
     expect(await findTrackedUserSubscription(sys(), CUSTOMER)).toBeNull()
     expect(await findTrackedUserSubscription(sys(), 'cus_unknown')).toBeNull()
+  })
+})
+
+describe('lockTrackedSubscriptionOfUser', () => {
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  it('reads the tracked subscription, or null when the row tracks none or is gone', async () => {
+    const tracked = await proUser('sub_tracked')
+    const none = (await createUser()).id
+    expect(await lockTrackedSubscriptionOfUser(sys(), undefined, tracked)).toBe('sub_tracked')
+    expect(await lockTrackedSubscriptionOfUser(sys(), undefined, none)).toBeNull()
+    expect(await lockTrackedSubscriptionOfUser(sys(), undefined, 999_999)).toBeNull()
+  })
+
+  it('two checkouts of one user bind one after the other: the second sees what the first bound', async () => {
+    const id = await proUser(null, 'free')
+    let releaseFirst: () => void = () => {}
+    const firstMayCommit = new Promise<void>((resolve) => {
+      releaseFirst = resolve
+    })
+    let firstLocked: () => void = () => {}
+    const firstHoldsLock = new Promise<void>((resolve) => {
+      firstLocked = resolve
+    })
+
+    const first = withTransaction(async (tx) => {
+      expect(await lockTrackedSubscriptionOfUser(sys(), tx, id)).toBeNull()
+      firstLocked()
+      await firstMayCommit
+      await updateUserBilling(sys(), { where: { id }, set: { stripeSubscriptionId: 'sub_first' } }, tx)
+    })
+    await firstHoldsLock
+    const second = withTransaction(async tx => lockTrackedSubscriptionOfUser(sys(), tx, id))
+    // The second read waits on the first transaction's row lock.
+    await new Promise(resolve => setTimeout(resolve, 100))
+    releaseFirst()
+    await first
+    expect(await second).toBe('sub_first')
   })
 })

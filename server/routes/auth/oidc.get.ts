@@ -19,6 +19,7 @@ import { oidcSignInQuery } from '~~/shared/api/sso'
 import { useEnv } from '~~/shared/env/load'
 import { nodeEnv } from '~~/shared/env/runtime'
 import { useLogger } from '../../utils/platform/logger'
+import { loginLandingPath, rememberLoginReturn } from '../../utils/auth/loginReturn'
 
 const log = useLogger('auth-oidc')
 
@@ -78,6 +79,8 @@ export default defineApiHandler({
         path: '/auth/oidc',
         maxAge: OIDC_FLOW_MAX_AGE_SECONDS
       })
+      // The page the sign-in link asked to come back to, under this state.
+      await rememberLoginReturn(event, url.searchParams.get('state'))
       return sendRedirect(event, url.href)
     }
 
@@ -126,7 +129,6 @@ export default defineApiHandler({
       e: await getSessionEpoch(userId),
       v: SESSION_VERSION
     })
-    const target = outcome === 'merged' ? '/?linked=oidc' : outcome === 'inserted' ? '/?signed_up=oidc' : '/'
-    return sendRedirect(event, target)
+    return sendRedirect(event, await loginLandingPath(event, 'oidc', outcome))
   }
 })
