@@ -1,9 +1,16 @@
 <script setup lang="ts">
+const props = defineProps<{
+  /** Page to come back to after signing in; the current page when unset. */
+  returnTo?: string
+}>()
 const { t } = useAreaI18n()
+const route = useRoute()
+const backTo = (): string => props.returnTo ?? route.fullPath
 // Only providers with complete credentials are offered, an
 // unconfigured one would end in a server error. A self-hosted instance
-// without any login provider is anonymous-only.
-const { loginOptions } = useLoginOptions()
+// without any login provider is anonymous-only. Every button returns to
+// `backTo()` after signing in.
+const { loginOptions } = useLoginOptions({ returnTo: backTo })
 const { workspaceSso } = useInstanceConfig()
 
 // "Sign in with your organisation": a work email → the SSO link of
@@ -19,7 +26,6 @@ function openSso(): void {
 const ssoEmail = ref('')
 const ssoBusy = ref(false)
 const ssoError = ref<string | null>(null)
-const route = useRoute()
 
 async function continueWithSso(): Promise<void> {
   if (!ssoEmail.value.trim() || ssoBusy.value) return
@@ -28,7 +34,7 @@ async function continueWithSso(): Promise<void> {
   try {
     const res = await apiFetch('/api/auth/sso/discover', {
       method: 'post',
-      body: { email: ssoEmail.value, returnTo: route.fullPath }
+      body: { email: ssoEmail.value, returnTo: backTo() }
     })
     globalThis.location.href = res.loginUrl
   } catch (e) {

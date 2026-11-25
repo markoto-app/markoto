@@ -138,6 +138,7 @@ export interface AuditEventShapes {
     after: { accessMode: AccessMode, moderationRestricted?: true }
     metadata?: ModerationReason & { guestSharesRemoved?: number }
   }
+  'doc.adopted': { before: { ownerId: null }, after: { ownerId: number, accessMode: AccessMode }, metadata: { anonTermsVersion: number | null } }
   'doc.moderation_restriction_lifted': { before: { restrictedAt: string }, metadata: { reportId: string, note: string | null } }
   'doc.shared': { before: { access: 'view' | 'edit' } | null, after: { access: 'view' | 'edit' }, metadata: { affectedUserId: number } }
   'doc.unshared': { metadata: { affectedUserId: number } }

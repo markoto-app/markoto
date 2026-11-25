@@ -43,6 +43,7 @@
 // Reads the typed env (shared/env); tests pass an env-shaped record.
 
 import { resolveBillingMode } from './billingMode'
+import { loginReturnFrom, withLoginReturn } from '../utils/security/loginReturn'
 import { useEnv } from '../env/load'
 import type { RawEnv } from '../env/define'
 import { EMPTY_INSTANCE_BRAND, resolveInstanceBrand, type InstanceBrand } from './instanceBrand'
@@ -233,7 +234,11 @@ export function resolveWorkspaceSsoAvailable(source?: RawEnv): boolean {
   return Object.values(tiers).some(caps => caps.sso)
 }
 
-/** Path that starts the sign-in flow for a provider. */
-export function loginPath(provider: LoginProvider): string {
-  return `/auth/${provider}`
+/**
+ * Path that starts the sign-in flow for a provider. `returnTo`: the page to
+ * come back to afterwards (a route's `fullPath`); the home page and
+ * anything that is not a path of this site are left out.
+ */
+export function loginPath(provider: LoginProvider, returnTo?: string | null): string {
+  return withLoginReturn(`/auth/${provider}`, returnTo ? loginReturnFrom(returnTo) : null)
 }

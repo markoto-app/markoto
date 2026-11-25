@@ -97,25 +97,26 @@ describe('rememberLoginReturn + loginLandingPath', () => {
 
   it('a returning user comes back to the parked page, once', async () => {
     await rememberLoginReturn(start('/pricing?interval=year'))
-    expect(await loginLandingPath(callback(), 'github', 'updated')).toBe('/pricing?interval=year')
-    expect(await loginLandingPath(callback(), 'github', 'updated')).toBe('/')
+    expect(await loginLandingPath(callback(), 'github', 'updated')).toBe('/pricing?interval=year&signed_in=1')
+    expect(await loginLandingPath(callback(), 'github', 'updated')).toBe('/?signed_in=1')
   })
 
   it('a new account carries signed_up on the parked page or the home page', async () => {
     await rememberLoginReturn(start('/pricing?interval=year'))
-    expect(await loginLandingPath(callback(), 'github', 'inserted')).toBe('/pricing?interval=year&signed_up=github')
-    expect(await loginLandingPath(callback(), 'github', 'inserted')).toBe('/?signed_up=github')
+    expect(await loginLandingPath(callback(), 'github', 'inserted')).toBe('/pricing?interval=year&signed_up=github&signed_in=1')
+    expect(await loginLandingPath(callback(), 'github', 'inserted')).toBe('/?signed_up=github&signed_in=1')
   })
 
-  it('a merged account always lands on the home page that explains the merge', async () => {
-    await rememberLoginReturn(start('/pricing'))
-    expect(await loginLandingPath(callback(), 'google', 'merged')).toBe('/?linked=google')
+  it('a merged account comes back too, marked so the client explains the merge', async () => {
+    await rememberLoginReturn(start('/d/abc'))
+    expect(await loginLandingPath(callback(), 'google', 'merged')).toBe('/d/abc?linked=google&signed_in=1')
+    expect(await loginLandingPath(callback(), 'google', 'merged')).toBe('/?linked=google&signed_in=1')
   })
 
   it('another sign-in attempt (another state) does not get the page', async () => {
     await rememberLoginReturn(start('/pricing'))
-    expect(await loginLandingPath(callback('st-2'), 'github', 'updated')).toBe('/')
-    expect(await loginLandingPath(event('/auth/github?code=c'), 'github', 'updated')).toBe('/')
+    expect(await loginLandingPath(callback('st-2'), 'github', 'updated')).toBe('/?signed_in=1')
+    expect(await loginLandingPath(event('/auth/github?code=c'), 'github', 'updated')).toBe('/?signed_in=1')
   })
 
   it('parks nothing for an unsafe path, without a redirect, or with the state given by the caller', async () => {
@@ -125,13 +126,13 @@ describe('rememberLoginReturn + loginLandingPath', () => {
     expect(valkey.set).not.toHaveBeenCalledWith(expect.anything(), '//evil.example', expect.anything(), expect.anything())
     expect(store.size).toBe(0)
     await rememberLoginReturn(event('/auth/oidc?return=%2Fpricing'), 'oidc-state')
-    expect(await loginLandingPath(event('/auth/oidc?code=c&state=oidc-state'), 'oidc', 'updated')).toBe('/pricing')
+    expect(await loginLandingPath(event('/auth/oidc?code=c&state=oidc-state'), 'oidc', 'updated')).toBe('/pricing?signed_in=1')
   })
 
   it('without Valkey the sign-in still works and lands on the home page', async () => {
     valkey.fail = true
     await rememberLoginReturn(start('/pricing'))
-    expect(await loginLandingPath(callback(), 'github', 'updated')).toBe('/')
+    expect(await loginLandingPath(callback(), 'github', 'updated')).toBe('/?signed_in=1')
     expect(logs.find('warn', 'could not park the sign-in return path')).toBeTruthy()
     expect(logs.find('warn', 'could not read the sign-in return path')).toBeTruthy()
   })

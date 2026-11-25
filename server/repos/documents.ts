@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, lt, sql, type SQL } from 'drizzle-orm'
+import { and, desc, eq, gte, inArray, isNull, lt, sql, type SQL } from 'drizzle-orm'
 import type { SuggestionPolicy } from '~~/shared/utils/suggestions/record'
 import type { DocTheme } from '~~/shared/types/theme'
 import type { AudienceKind } from '~~/shared/audiences'
@@ -464,6 +464,54 @@ export async function listInactiveAnonymousDocIds(_by: SystemActor, cutoff: Date
     .select({ docId: documents.docId })
     .from(documents)
     .where(and(isNull(documents.ownerId), isNull(documents.workspaceId), lt(documents.lastActive, cutoff)))
+}
+
+/** A document that changed hands from an anonymous browser to an account. */
+export interface AdoptedDoc {
+  docId: string
+  title: string
+  accessMode: AccessMode
+  anonTermsVersion: number | null
+}
+
+/**
+ * Hand the anonymous documents a browser created (its creator-key hash) to
+ * the account that just signed in there: owner set, the anonymous-creation
+ * fields cleared. Only documents that are still ownerless and in no
+ * workspace, active since `activeSince` (older ones are about to be swept),
+ * newest first, at most `limit`. The access mode stays as it is, so links
+ * already shared keep working. Repeating the call changes nothing: an
+ * adopted row no longer matches.
+ */
+export async function adoptAnonymousDocs(
+  self: UserScope,
+  creatorKeyHash: string,
+  opts: { limit: number, activeSince: Date | null }
+): Promise<AdoptedDoc[]> {
+  const stillAnonymous = and(
+    eq(documents.anonCreatorKeyHash, creatorKeyHash),
+    isNull(documents.ownerId),
+    isNull(documents.workspaceId)
+  )
+  return useDatabase().transaction(async (tx) => {
+    // Locked, so two tabs signing in at once can't both adopt a row (the
+    // second waits, then finds it owned and skips it).
+    const candidates = await tx
+      .select({ id: documents.id, anonTermsVersion: documents.anonTermsVersion })
+      .from(documents)
+      .where(opts.activeSince ? and(stillAnonymous, gte(documents.lastActive, opts.activeSince)) : stillAnonymous)
+      .orderBy(desc(documents.lastActive))
+      .limit(opts.limit)
+      .for('update', { skipLocked: true })
+    if (candidates.length === 0) return []
+    const termsById = new Map(candidates.map(c => [c.id, c.anonTermsVersion]))
+    const rows = await tx
+      .update(documents)
+      .set({ ownerId: self.userId, anonCreatorKeyHash: null, anonTermsVersion: null, anonTermsAcceptedAt: null })
+      .where(and(inArray(documents.id, [...termsById.keys()]), stillAnonymous))
+      .returning({ id: documents.id, docId: documents.docId, title: documents.title, accessMode: documents.accessMode })
+    return rows.map(r => ({ docId: r.docId, title: r.title, accessMode: r.accessMode, anonTermsVersion: termsById.get(r.id) ?? null }))
+  })
 }
 
 /** One row of a paginated document list (explorer, AI and MCP list tools). */

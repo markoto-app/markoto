@@ -125,7 +125,18 @@ describe('::cta with a template ("Use this template")', () => {
     expect(created.bodies[0]).toMatchObject({ templateId: 'demo', themePreset: 'markoto' })
   })
 
-  it('a plain ::cta keeps the dialog default (demo)', async () => {
+  it('a plain ::cta creates the Demo document at once for a first-time visitor', async () => {
+    localStorage.removeItem('markoto-created-first-doc')
+    const mounted = await mountSuspended(Cta, { props: { title: 'Try it' } })
+    wrappers.push(mounted)
+    await mounted.find('button').trigger('click')
+    await vi.waitFor(() => expect(created.bodies).toHaveLength(1))
+    expect(created.bodies[0]).toMatchObject({ templateId: 'demo', audience: 'casual' })
+    expect(document.body.querySelector('[data-testid="newdoc-section-template"]')).toBeNull()
+  })
+
+  it('a plain ::cta keeps the dialog default (demo) for a visitor who wrote here before', async () => {
+    localStorage.setItem('markoto-created-first-doc', '1')
     const mounted = await mountSuspended(Cta, { props: { title: 'Try it' } })
     wrappers.push(mounted)
     expect(mounted.find('[data-testid="cta-start-writing"]').exists()).toBe(true)
@@ -133,6 +144,7 @@ describe('::cta with a template ("Use this template")', () => {
     await flushPromises()
     await vi.waitFor(() => expect(document.body.querySelector('[data-testid="newdoc-section-template"]')).not.toBeNull())
     await expand('template')
-    expect(el('[data-testid="newdoc-template-card-demo"]').getAttribute('aria-pressed')).toBe('true')
+    // Blank for a returning visitor: the dialog's own rule.
+    expect(el('[data-testid="newdoc-template-card-blank"]').getAttribute('aria-pressed')).toBe('true')
   })
 })

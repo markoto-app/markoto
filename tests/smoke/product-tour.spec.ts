@@ -48,10 +48,12 @@ test('logged-out home page shows the product tour when the instance enables it',
   await expect(tour.getByRole('heading', { level: 2, name: 'Write Markdown, get paged documents.' })).toBeAttached()
   await expect(page.getByTestId('tour-self-host')).toHaveAttribute('href', '/docs/self-hosting')
 
-  // The CTA still creates a document, like the plain hero's button. Only
-  // once the page has hydrated: before that the server-rendered button has
-  // no handler (the app replays such a click, see earlyClicks.ts, but the
-  // gate checks the dialog, not the race).
+  // The CTA still creates a document. A first-time visitor skips the
+  // new-document dialog: the dialog that shows is the anonymous gate (terms
+  // + bot check) before the Demo document. Only once the page has hydrated:
+  // before that the server-rendered button has no handler (the app replays
+  // such a click, see earlyClicks.ts, but the gate checks the dialog, not
+  // the race).
   await waitForHydration(page)
   await page.getByTestId('tour-start-writing').click()
   await expect(page.getByRole('dialog')).toBeVisible()

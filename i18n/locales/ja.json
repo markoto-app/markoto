@@ -31,7 +31,9 @@
     "linkedTitle": "アカウントを連携しました",
     "linkedDescription": "{provider}ログインが既存のアカウントに連携されました。今後はどちらのプロバイダーでもサインインできます。",
     "reauthTitle": "もう一度サインイン",
-    "reauthAction": "サインインし直す"
+    "reauthAction": "サインインし直す",
+    "adoptedTitle": "このブラウザーで作成した {n} 件のドキュメントがあなたのものになりました",
+    "adoptedDescription": "ドキュメント一覧に表示されます。共有設定は変わらないため、リンクを知っている人は引き続き開けます。"
   },
   "editor": {
     "untitled": "無題",
@@ -1113,7 +1115,9 @@
     "alt": {
       "anon": "アカウントなしで書く",
       "selfHost": "markoto をセルフホスト"
-    }
+    },
+    "signUpTitle": "{plan} に登録",
+    "signUpDescription": "アカウントを作成するかサインインしてください。完了後、このページに戻ります。"
   },
   "topbar": {
     "planBadge": "プラン：{plan}",
@@ -1135,7 +1139,9 @@
       "knowledgeStorage": "ナレッジストレージ",
       "workspaces": "所有するワークスペース",
       "unlimited": "無制限"
-    }
+    },
+    "creditsLeftPct": "残り {pct}%",
+    "creditsBadgeLabel": "AI ポイント: 今月の残り {left} / {total}"
   },
   "theme": {
     "title": "ドキュメントテーマ",

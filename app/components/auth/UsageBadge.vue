@@ -62,6 +62,13 @@ const pctRemaining = computed(() => {
   return Math.max(0, Math.min(100, Math.round(fillRatio.value * 100)))
 })
 
+// The badge shows what is LEFT ("99% left"); the label spells out the
+// points for screen readers and the hover title.
+const badgeLabel = computed(() => t('topbar.creditsBadgeLabel', {
+  left: planPointsRemaining.value.toLocaleString(locale.value),
+  total: pointsTotal.value.toLocaleString(locale.value)
+}))
+
 const barColor = computed(() => {
   const pct = pctRemaining.value
   // Brand tokens only: ink while there is enough, the error colour when
@@ -180,7 +187,8 @@ function onManage(): void {
     <button
       type="button"
       class="usage-badge hidden sm:flex items-center gap-2 pl-2.5 pr-3 py-1 rounded-full border border-default bg-default/60 backdrop-blur-sm transition-colors hover:bg-muted/40 cursor-pointer"
-      :aria-label="t('credits.title')"
+      :aria-label="badgeLabel"
+      :title="badgeLabel"
       data-testid="usage-badge"
     >
       <span
@@ -196,8 +204,11 @@ function onManage(): void {
           :style="{ width: pctRemaining + '%' }"
         />
       </span>
-      <span class="text-xs tabular-nums text-muted min-w-[2.25rem] text-right">
-        {{ pctRemaining }}%
+      <span
+        class="text-xs tabular-nums text-muted whitespace-nowrap text-right"
+        data-testid="usage-badge-pct"
+      >
+        {{ t('topbar.creditsLeftPct', { pct: pctRemaining }) }}
       </span>
     </button>
 
@@ -223,7 +234,7 @@ function onManage(): void {
               <span data-testid="usage-badge-points-remaining">{{ planPointsRemaining.toLocaleString(locale) }}</span>
               <span class="text-muted font-normal">/ {{ pointsTotal.toLocaleString(locale) }}</span>
             </span>
-            <span class="tabular-nums">{{ pctRemaining }}%</span>
+            <span class="tabular-nums">{{ t('topbar.creditsLeftPct', { pct: pctRemaining }) }}</span>
           </div>
           <div class="relative h-2 w-full rounded-full bg-muted/30 overflow-hidden">
             <div

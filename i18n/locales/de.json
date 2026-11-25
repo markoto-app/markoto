@@ -31,7 +31,9 @@
     "linkedTitle": "Konten verknüpft",
     "linkedDescription": "Deine {provider}-Anmeldung ist jetzt mit deinem bestehenden Konto verbunden. Ab sofort kannst du dich mit beiden Anbietern anmelden.",
     "reauthTitle": "Erneut anmelden",
-    "reauthAction": "Erneut anmelden"
+    "reauthAction": "Erneut anmelden",
+    "adoptedTitle": "{n} Dokument aus diesem Browser gehört jetzt dir | {n} Dokumente aus diesem Browser gehören jetzt dir",
+    "adoptedDescription": "Du findest es bei deinen Dokumenten. Die Freigabe bleibt, wie sie war: Wer den Link hat, kann es weiterhin öffnen. | Du findest sie bei deinen Dokumenten. Die Freigabe bleibt, wie sie war: Wer einen Link hat, kann sie weiterhin öffnen."
   },
   "editor": {
     "untitled": "Unbenannt",
@@ -1113,7 +1115,9 @@
     "alt": {
       "anon": "Ohne Konto schreiben",
       "selfHost": "Selbst hosten"
-    }
+    },
+    "signUpTitle": "Für {plan} registrieren",
+    "signUpDescription": "Erstelle dein Konto oder melde dich an. Danach kommst du hierher zurück und schliesst ab."
   },
   "topbar": {
     "planBadge": "Tarif: {plan}",
@@ -1135,7 +1139,9 @@
       "knowledgeStorage": "Wissensspeicher",
       "workspaces": "Eigene Workspaces",
       "unlimited": "unbegrenzt"
-    }
+    },
+    "creditsLeftPct": "{pct}% übrig",
+    "creditsBadgeLabel": "KI-Punkte: {left} von {total} diesen Monat übrig"
   },
   "theme": {
     "title": "Dokumentdesign",

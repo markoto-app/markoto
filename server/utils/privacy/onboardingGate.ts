@@ -31,8 +31,10 @@ export function onboardingIncomplete(state: OnboardingState): boolean {
 // the cookie banner (layered above the gate), leaving (account deletion + its cancel), taking
 // their data with them (export), withdrawing waitlist consent from an
 // email link, reporting illegal content (DSA Art.16: anyone may notify,
-// accepting our terms is not a precondition), and the non-session
-// surfaces (webhooks, internal, test).
+// accepting our terms is not a precondition), keeping the documents they
+// wrote without an account in this browser before signing up (created
+// under the Terms they accepted then; `docs/adopt` only transfers them),
+// and the non-session surfaces (webhooks, internal, test).
 const EXEMPT_PATHS: RegExp[] = [
   /^\/api\/user\/onboarding-accept$/,
   /^\/api\/_auth\/session$/,
@@ -43,6 +45,7 @@ const EXEMPT_PATHS: RegExp[] = [
   /^\/api\/user\/export$/,
   /^\/api\/waitlist\/(?:confirm|unsubscribe)$/,
   /^\/api\/abuse-reports$/,
+  /^\/api\/docs\/adopt$/,
   /^\/api\/webhooks\//,
   /^\/api\/internal\//,
   /^\/api\/_internal\//,

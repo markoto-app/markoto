@@ -58,7 +58,7 @@ const PRICE_TABLE = computed(() => pricesQuery.data.value?.prices ?? DEFAULT_PLA
 
 // Billing period, currency, Teams plan + seats: switchable on the page,
 // kept across a sign-in from here (`usePricingSelection`).
-const { currency, interval, teamPlan, seats, signInPath } = usePricingSelection()
+const { currency, interval, teamPlan, seats, signInPath, returnPath } = usePricingSelection()
 const CURRENCY = computed(() => currency.value.toUpperCase())
 /** Prices in the selected currency + interval (free = 0). */
 const PRICES = computed<Record<PlanName, number>>(() => {
@@ -191,10 +191,13 @@ const checkoutLoading = ref<PlanName | null>(null)
 // The Paid Plans Terms box: required for every purchase.
 const paidTermsAccepted = ref(false)
 
+// Signed out, "Sign up" on a paid plan opens the sign-in choice for it.
+const signInFor = ref<PlanName | null>(null)
+
 async function onChangePlan(plan: PlanName): Promise<void> {
   if (!billingEnabled.value) return
   if (!loggedIn.value) {
-    globalThis.location.href = signInPath.value ?? '/'
+    signInFor.value = plan
     return
   }
   if (plan === 'free' || checkoutLoading.value) return
@@ -711,5 +714,9 @@ usePageStructuredData(() => {
         :current="isCurrent('free')"
       />
     </div>
+    <LazyPricingSignUpModal
+      v-model:plan="signInFor"
+      :return-to="returnPath"
+    />
   </div>
 </template>

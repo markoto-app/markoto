@@ -1,6 +1,6 @@
 import { defaultCurrencyForLocale, type BillingInterval, type Currency } from '~~/shared/config/pricing'
 import { MIN_WORKSPACE_SEATS } from '~~/shared/config/workspaceSeats'
-import { withLoginReturn } from '~~/shared/utils/security/loginReturn'
+import { loginPath } from '~~/shared/config/instance'
 import { PRICING_SELECTION_KEYS, pricingPathFor, pricingSelectionFromQuery, type PricingSelection } from '~/utils/billing/pricing'
 
 /**
@@ -14,7 +14,7 @@ import { PRICING_SELECTION_KEYS, pricingPathFor, pricingSelectionFromQuery, type
  */
 export function usePricingSelection() {
   const route = useRoute()
-  const { primaryLoginPath } = useInstanceConfig()
+  const { loginProviders } = useInstanceConfig()
   const linked = pricingSelectionFromQuery(route.query)
   const currency = ref<Currency>(linked.currency ?? 'eur')
   const interval = ref<BillingInterval>(linked.interval ?? 'month')
@@ -24,11 +24,15 @@ export function usePricingSelection() {
 
   /** What a plain `/pricing` shows this browser (EUR until mounted). */
   const localeCurrency = ref<Currency>('eur')
-  const signInPath = computed(() => {
-    if (!primaryLoginPath.value) return null
+  /** This page with the current choice: where a sign-in from here returns to. */
+  const returnPath = computed(() => {
     const selection: PricingSelection = { interval: interval.value, currency: currency.value, teamPlan: teamPlan.value, seats: seats.value }
     const defaults: PricingSelection = { interval: 'month', currency: localeCurrency.value, teamPlan: 'team', seats: MIN_WORKSPACE_SEATS }
-    return withLoginReturn(primaryLoginPath.value, pricingPathFor(route.path, selection, defaults))
+    return pricingPathFor(route.path, selection, defaults)
+  })
+  const signInPath = computed(() => {
+    const first = loginProviders.value[0]
+    return first ? loginPath(first, returnPath.value) : null
   })
 
   onMounted(() => {
@@ -41,5 +45,5 @@ export function usePricingSelection() {
     }
   })
 
-  return { currency, interval, teamPlan, seats, signInPath }
+  return { currency, interval, teamPlan, seats, signInPath, returnPath }
 }

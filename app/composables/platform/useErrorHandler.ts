@@ -168,6 +168,7 @@ function useErrorHandlerImpl() {
 
   const { user } = useUserSession()
   const { primaryLoginPath } = useInstanceConfig()
+  const errorRouter = useRouter()
 
   /**
    * Sensitive actions (account deletion, data export, AI provider changes)
@@ -180,7 +181,7 @@ function useErrorHandlerImpl() {
     // An SSO session re-authenticates through its workspace's IdP, so there is no provider link.
     const sessionProvider = user.value?.provider
     const provider: LoginProvider | undefined = sessionProvider === 'sso' ? undefined : sessionProvider
-    const target = provider ? loginPath(provider) : primaryLoginPath.value
+    const target = provider ? loginPath(provider, errorRouter.currentRoute.value.fullPath) : primaryLoginPath.value
     toast.add({
       title: t('auth.reauthTitle'),
       description: extracted.message,

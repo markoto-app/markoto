@@ -37,6 +37,11 @@ export const AUDIT_ABUSE_NOTICE_RECORDED = 'abuse.notice_recorded'
 // `scope_id` the document id; metadata: the report the restriction came
 // from and the admin's note.
 export const AUDIT_DOC_MODERATION_RESTRICTION_LIFTED = 'doc.moderation_restriction_lifted'
+// A signed-in user took over the anonymous documents their browser had
+// created (the creator-key cookie matched). `scope` doc, `scope_id` the
+// document id, the user is the actor; `after`: owner + the unchanged
+// access mode; metadata: the Terms version accepted at anonymous creation.
+export const AUDIT_DOC_ADOPTED = 'doc.adopted'
 
 // Platform-admin grants. Granted via the env allowlist bootstrap
 // or (forthcoming) via an admin-management UI; revoked the same way.

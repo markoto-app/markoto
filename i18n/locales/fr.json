@@ -31,7 +31,9 @@
     "linkedTitle": "Comptes liés",
     "linkedDescription": "Votre connexion {provider} est désormais associée à votre compte existant. Vous pouvez vous connecter avec l'un ou l'autre fournisseur à partir de maintenant.",
     "reauthTitle": "Reconnectez-vous",
-    "reauthAction": "Se reconnecter"
+    "reauthAction": "Se reconnecter",
+    "adoptedTitle": "{n} document de ce navigateur vous appartient désormais | {n} documents de ce navigateur vous appartiennent désormais",
+    "adoptedDescription": "Vous le trouverez parmi vos documents. Son partage ne change pas : toute personne disposant du lien peut toujours l'ouvrir. | Vous les trouverez parmi vos documents. Leur partage ne change pas : toute personne disposant d'un lien peut toujours les ouvrir."
   },
   "editor": {
     "untitled": "Sans titre",
@@ -1113,7 +1115,9 @@
     "alt": {
       "anon": "Écrire sans compte",
       "selfHost": "Auto-héberger markoto"
-    }
+    },
+    "signUpTitle": "S'inscrire à {plan}",
+    "signUpDescription": "Créez votre compte ou connectez-vous. Vous revenez ensuite ici pour terminer."
   },
   "topbar": {
     "planBadge": "Forfait : {plan}",
@@ -1135,7 +1139,9 @@
       "knowledgeStorage": "Stockage des connaissances",
       "workspaces": "Vos espaces de travail",
       "unlimited": "illimité"
-    }
+    },
+    "creditsLeftPct": "{pct} % restants",
+    "creditsBadgeLabel": "Points IA : {left} sur {total} restants ce mois-ci"
   },
   "theme": {
     "title": "Thème du document",

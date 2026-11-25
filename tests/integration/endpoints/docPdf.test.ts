@@ -1,7 +1,7 @@
 // Integration tests for GET /api/docs/:docId/pdf, the user-facing PDF
 // download endpoint that hits the REAL Playwright renderer container,
 // drives the print page through paged.js, captures bytes, caches in S3,
-// and 302s to a presigned URL.
+// and streams the PDF from the app's own origin.
 //
 // Why real (no stub): the previous stub recorded HTTP calls and uploaded
 // canned bytes, but couldn't catch:
@@ -100,7 +100,7 @@ beforeAll(async () => {
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
       const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
-      if (res.status === 302) {
+      if (res.status === 200) {
         console.info(`[docPdf] warm-up render ok (attempt ${attempt})`)
         return
       }
@@ -125,37 +125,39 @@ describe('GET /api/docs/:docId/pdf: real renderer', () => {
     // call through, the rendering failure is clean.
     const SHORT = '# hello\n\nworld\n'
 
-    it('anonymous gets 302 on open-edit', async () => {
+    it('anonymous gets the PDF on open-edit', async () => {
       const owner = await createUser()
       const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
       await insertYjsRow(doc.docId, SHORT)
 
       const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
 
-      expect(res.status).toBe(302)
-      const location = res.headers.get('location')!
-      expect(location).toContain(`renders/${doc.docId}/`)
-      expect(location).toContain('document.pdf')
-      expect(location).toMatch(/response-content-disposition=attachment/i)
-      // Neither the redirect nor the PDF bytes may land in a shared cache.
+      expect(res.status).toBe(200)
+      // Streamed from the app: no redirect to a storage URL.
+      expect(res.headers.get('location')).toBeNull()
+      expect(res.headers.get('content-type')).toBe('application/pdf')
+      expect(res.headers.get('content-disposition')).toMatch(/^attachment; filename="/)
+      expect(res.headers.get('x-content-type-options')).toBe('nosniff')
+      // The PDF bytes may not land in a shared cache.
       expect(res.headers.get('cache-control')).toBe('private, no-store')
-      expect(location).toMatch(/response-cache-control=private%2C%20no-store/i)
+      const bytes = new Uint8Array(await res.arrayBuffer())
+      expect(new TextDecoder().decode(bytes.slice(0, 5))).toBe('%PDF-')
+      expect(Number(res.headers.get('content-length'))).toBe(bytes.length)
 
       await wipeRendersFor(doc.docId)
     }, 60_000)
 
-    it('?response=json answers the same presigned URL as JSON (no redirect, no-store)', async () => {
+    it('?inline=1 serves the same PDF for display in the tab', async () => {
       const owner = await createUser()
       const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
       await insertYjsRow(doc.docId, SHORT)
 
-      const res = await anonClient().get(`/api/docs/${doc.docId}/pdf?response=json`)
+      const res = await anonClient().get(`/api/docs/${doc.docId}/pdf?inline=1`)
 
       expect(res.status).toBe(200)
       expect(res.headers.get('cache-control')).toBe('private, no-store')
-      const { url } = await res.json() as { url: string }
-      expect(url).toContain(`renders/${doc.docId}/`)
-      expect(url).toMatch(/response-content-disposition=attachment/i)
+      expect(res.headers.get('content-disposition')).toMatch(/^inline; filename="/)
+      expect(new TextDecoder().decode(new Uint8Array(await res.arrayBuffer()).slice(0, 5))).toBe('%PDF-')
 
       await wipeRendersFor(doc.docId)
     }, 60_000)
@@ -188,25 +190,25 @@ describe('GET /api/docs/:docId/pdf: real renderer', () => {
       const doc = await createDoc({ ownerId: owner.id, accessMode: 'private' })
       await insertYjsRow(doc.docId, SHORT)
       const res = await (await loggedInClient(owner.id)).get(`/api/docs/${doc.docId}/pdf`)
-      expect(res.status).toBe(302)
+      expect(res.status).toBe(200)
       // The print page replays the stored log; it never opens the document
       // on the sync server, so no baseline is seeded for it.
       for (const key of allSyncStateKeys(doc.docId)) expect(await getValkeyKey(key)).toBeNull()
       await wipeRendersFor(doc.docId)
     }, 60_000)
 
-    it('owner gets 302 on private', async () => {
+    it('owner gets the PDF on private', async () => {
       const owner = await createUser()
       const doc = await createDoc({ ownerId: owner.id, accessMode: 'private' })
       await insertYjsRow(doc.docId, SHORT)
       const client = await loggedInClient(owner.id)
 
       const res = await client.get(`/api/docs/${doc.docId}/pdf`)
-      expect(res.status).toBe(302)
+      expect(res.status).toBe(200)
       await wipeRendersFor(doc.docId)
     }, 60_000)
 
-    it('workspace viewer gets 302 on private workspace doc', async () => {
+    it('workspace viewer gets the PDF on private workspace doc', async () => {
       const admin = await createUser()
       const viewer = await createUser()
       const ws = await createWorkspace(admin.id)
@@ -220,7 +222,7 @@ describe('GET /api/docs/:docId/pdf: real renderer', () => {
 
       const client = await loggedInClient(viewer.id)
       const res = await client.get(`/api/docs/${doc.docId}/pdf`)
-      expect(res.status).toBe(302)
+      expect(res.status).toBe(200)
       await wipeRendersFor(doc.docId)
     }, 60_000)
   })
@@ -232,7 +234,7 @@ describe('GET /api/docs/:docId/pdf: real renderer', () => {
       const snapId = await insertYjsRow(doc.docId, multiPageBody())
 
       const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
-      expect(res.status).toBe(302)
+      expect(res.status).toBe(200)
 
       // S3 has a real PDF at the snapshot-keyed path.
       const pdfKey = `renders/${doc.docId}/${snapId}/document.pdf`
@@ -279,7 +281,7 @@ describe('GET /api/docs/:docId/pdf: real renderer', () => {
       const snapId = await insertYjsRow(doc.docId, multiPageBody())
 
       const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
-      expect(res.status).toBe(302)
+      expect(res.status).toBe(200)
       const manifest = JSON.parse(new TextDecoder().decode(
         await fetchRenderBytes(`renders/${doc.docId}/${snapId}/manifest.json`)
       )) as { pageCount: number }
@@ -307,7 +309,7 @@ describe('GET /api/docs/:docId/pdf: real renderer', () => {
       const snapId = await insertYjsRow(doc.docId, abstract + multiPageBody() + multiPageBody().replace('# Test fixture', '# Second part'))
 
       const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
-      expect(res.status).toBe(302)
+      expect(res.status).toBe(200)
       const manifest = JSON.parse(new TextDecoder().decode(
         await fetchRenderBytes(`renders/${doc.docId}/${snapId}/manifest.json`)
       )) as { pageCount: number }
@@ -336,7 +338,7 @@ describe('GET /api/docs/:docId/pdf: real renderer', () => {
       const snapId = await insertYjsRow(doc.docId, '# Fonts\n\nBody text in Termes, **bold too**.\n\n```js\nconst answer = 42\n```\n')
 
       const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
-      expect(res.status).toBe(302)
+      expect(res.status).toBe(200)
       const pdf = new TextDecoder('latin1').decode(await fetchRenderBytes(`renders/${doc.docId}/${snapId}/document.pdf`))
       // Each font dictionary: its /Subtype and /BaseFont.
       const fonts = [...pdf.matchAll(/\/Subtype\s*\/(\w+)[^>]*?\/BaseFont\s*\/([\w+-]+)|\/BaseFont\s*\/([\w+-]+)[^>]*?\/Subtype\s*\/(\w+)/g)]
@@ -373,7 +375,7 @@ describe('GET /api/docs/:docId/pdf: real renderer', () => {
       expect((await client.put(`/api/workspaces/${ws.workspaceId}/brand/lock`, { locked: true })).status).toBe(200)
 
       const res = await client.get(`/api/docs/${doc.docId}/pdf`)
-      expect(res.status).toBe(302)
+      expect(res.status).toBe(200)
       const pdfKey = (await listRenderKeys(doc.docId)).find(k => k.endsWith('/document.pdf'))!
       expect(pdfKey).toMatch(new RegExp(`^renders/${doc.docId}/${snapId}-[a-f0-9]{16}/document\\.pdf$`))
       const pdf = new TextDecoder('latin1').decode(await fetchRenderBytes(pdfKey))
@@ -386,7 +388,7 @@ describe('GET /api/docs/:docId/pdf: real renderer', () => {
 
       // Unlocking renders the document's own design again, a new cache entry.
       expect((await client.put(`/api/workspaces/${ws.workspaceId}/brand/lock`, { locked: false })).status).toBe(200)
-      expect((await client.get(`/api/docs/${doc.docId}/pdf`)).status).toBe(302)
+      expect((await client.get(`/api/docs/${doc.docId}/pdf`)).status).toBe(200)
       const pdfs = (await listRenderKeys(doc.docId)).filter(k => k.endsWith('/document.pdf'))
       expect(pdfs.length).toBe(2)
       await wipeRendersFor(doc.docId)
@@ -408,7 +410,7 @@ describe('GET /api/docs/:docId/pdf: real renderer', () => {
       const snapId = await insertYjsRow(doc.docId, fixture)
 
       const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
-      expect(res.status).toBe(302)
+      expect(res.status).toBe(200)
       const manifest: unknown = JSON.parse(new TextDecoder().decode(
         await fetchRenderBytes(`renders/${doc.docId}/${snapId}/manifest.json`)
       ))
@@ -444,7 +446,7 @@ describe('GET /api/docs/:docId/pdf: real renderer', () => {
       const fixture = readFileSync(resolve(fileURLToPath(new URL('../../fixtures/theme-shots/business-report.md', import.meta.url))), 'utf8')
       const snapId = await insertYjsRow(doc.docId, fixture)
       const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
-      expect(res.status).toBe(302)
+      expect(res.status).toBe(200)
       const manifest: unknown = JSON.parse(new TextDecoder().decode(
         await fetchRenderBytes(`renders/${doc.docId}/${snapId}/manifest.json`)
       ))
@@ -492,7 +494,7 @@ describe('GET /api/docs/:docId/pdf: real renderer', () => {
       const fixture = readFileSync(resolve(fileURLToPath(new URL('../../fixtures/theme-shots/memo.md', import.meta.url))), 'utf8')
       const snapId = await insertYjsRow(doc.docId, fixture)
       const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
-      expect(res.status).toBe(302)
+      expect(res.status).toBe(200)
       const manifest: unknown = JSON.parse(new TextDecoder().decode(
         await fetchRenderBytes(`renders/${doc.docId}/${snapId}/manifest.json`)
       ))
@@ -525,7 +527,7 @@ describe('GET /api/docs/:docId/pdf: real renderer', () => {
       const fixture = readFileSync(resolve(fileURLToPath(new URL('../../fixtures/theme-shots/tech-docs.md', import.meta.url))), 'utf8')
       const snapId = await insertYjsRow(doc.docId, fixture)
       const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
-      expect(res.status).toBe(302)
+      expect(res.status).toBe(200)
       const manifest: unknown = JSON.parse(new TextDecoder().decode(
         await fetchRenderBytes(`renders/${doc.docId}/${snapId}/manifest.json`)
       ))
@@ -576,7 +578,7 @@ describe('GET /api/docs/:docId/pdf: real renderer', () => {
       const fixture = readFileSync(resolve(fileURLToPath(new URL('../../fixtures/theme-shots/design-doc.md', import.meta.url))), 'utf8')
       const snapId = await insertYjsRow(doc.docId, fixture)
       const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
-      expect(res.status).toBe(302)
+      expect(res.status).toBe(200)
       const manifest: unknown = JSON.parse(new TextDecoder().decode(
         await fetchRenderBytes(`renders/${doc.docId}/${snapId}/manifest.json`)
       ))
@@ -618,7 +620,7 @@ describe('GET /api/docs/:docId/pdf: real renderer', () => {
       const snapId = await insertYjsRow(doc.docId, fixture)
 
       const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
-      expect(res.status).toBe(302)
+      expect(res.status).toBe(200)
       const manifest: unknown = JSON.parse(new TextDecoder().decode(
         await fetchRenderBytes(`renders/${doc.docId}/${snapId}/manifest.json`)
       ))
@@ -657,7 +659,7 @@ describe('GET /api/docs/:docId/pdf: real renderer', () => {
       const snapId = await insertYjsRow(doc.docId, fixture)
 
       const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
-      expect(res.status).toBe(302)
+      expect(res.status).toBe(200)
       const manifest: unknown = JSON.parse(new TextDecoder().decode(
         await fetchRenderBytes(`renders/${doc.docId}/${snapId}/manifest.json`)
       ))
@@ -698,7 +700,7 @@ describe('GET /api/docs/:docId/pdf: real renderer', () => {
       const snapId = await insertYjsRow(doc.docId, fixture)
 
       const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
-      expect(res.status).toBe(302)
+      expect(res.status).toBe(200)
       const manifest: unknown = JSON.parse(new TextDecoder().decode(
         await fetchRenderBytes(`renders/${doc.docId}/${snapId}/manifest.json`)
       ))
@@ -738,7 +740,7 @@ describe('GET /api/docs/:docId/pdf: real renderer', () => {
       const snapId = await insertYjsRow(doc.docId, '# Fonts and math\n\nBody text in Lora, *in italics too*.\n\n$$\\int_0^1 x^2 \\, dx = \\frac{1}{3}$$\n\n```js\nconst answer = 42\n```\n')
 
       const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
-      expect(res.status).toBe(302)
+      expect(res.status).toBe(200)
       const pdf = new TextDecoder('latin1').decode(await fetchRenderBytes(`renders/${doc.docId}/${snapId}/document.pdf`))
       const fontNames = [...pdf.matchAll(/\/(?:BaseFont|FontName)\s*\/([\w+-]+)/g)].map(m => m[1] ?? '')
       expect(fontNames.some(n => /Lora/i.test(n)), fontNames.join(', ')).toBe(true)
@@ -765,7 +767,7 @@ describe('GET /api/docs/:docId/pdf: real renderer', () => {
       const snapId = await insertYjsRow(doc.docId, fixture)
 
       const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
-      expect(res.status).toBe(302)
+      expect(res.status).toBe(200)
       const manifest: unknown = JSON.parse(new TextDecoder().decode(
         await fetchRenderBytes(`renders/${doc.docId}/${snapId}/manifest.json`)
       ))
@@ -803,7 +805,7 @@ describe('GET /api/docs/:docId/pdf: real renderer', () => {
       const fixture = readFileSync(resolve(fileURLToPath(new URL('../../fixtures/theme-shots/api-reference.md', import.meta.url))), 'utf8')
       const snapId = await insertYjsRow(doc.docId, fixture)
       const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
-      expect(res.status).toBe(302)
+      expect(res.status).toBe(200)
       const manifest: unknown = JSON.parse(new TextDecoder().decode(
         await fetchRenderBytes(`renders/${doc.docId}/${snapId}/manifest.json`)
       ))
@@ -845,7 +847,7 @@ describe('GET /api/docs/:docId/pdf: real renderer', () => {
       const snapId = await insertYjsRow(doc.docId, fixture)
 
       const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
-      expect(res.status).toBe(302)
+      expect(res.status).toBe(200)
       const manifest: unknown = JSON.parse(new TextDecoder().decode(
         await fetchRenderBytes(`renders/${doc.docId}/${snapId}/manifest.json`)
       ))
@@ -885,7 +887,7 @@ describe('GET /api/docs/:docId/pdf: real renderer', () => {
       const snapId = await insertYjsRow(doc.docId, fixture)
 
       const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
-      expect(res.status).toBe(302)
+      expect(res.status).toBe(200)
       const manifest: unknown = JSON.parse(new TextDecoder().decode(
         await fetchRenderBytes(`renders/${doc.docId}/${snapId}/manifest.json`)
       ))
@@ -924,7 +926,7 @@ describe('GET /api/docs/:docId/pdf: real renderer', () => {
       const fixture = readFileSync(resolve(fileURLToPath(new URL('../../fixtures/theme-shots/one-pager.md', import.meta.url))), 'utf8')
       const snapId = await insertYjsRow(doc.docId, fixture)
       const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
-      expect(res.status).toBe(302)
+      expect(res.status).toBe(200)
       const manifest: unknown = JSON.parse(new TextDecoder().decode(
         await fetchRenderBytes(`renders/${doc.docId}/${snapId}/manifest.json`)
       ))
@@ -958,7 +960,7 @@ describe('GET /api/docs/:docId/pdf: real renderer', () => {
       const snapId = await insertYjsRow(doc.docId, fixture)
 
       const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
-      expect(res.status).toBe(302)
+      expect(res.status).toBe(200)
       const manifest: unknown = JSON.parse(new TextDecoder().decode(
         await fetchRenderBytes(`renders/${doc.docId}/${snapId}/manifest.json`)
       ))
@@ -999,7 +1001,7 @@ describe('GET /api/docs/:docId/pdf: real renderer', () => {
       const snapId = await insertYjsRow(doc.docId, fixture)
 
       const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
-      expect(res.status).toBe(302)
+      expect(res.status).toBe(200)
       const manifest: unknown = JSON.parse(new TextDecoder().decode(
         await fetchRenderBytes(`renders/${doc.docId}/${snapId}/manifest.json`)
       ))
@@ -1042,7 +1044,7 @@ describe('GET /api/docs/:docId/pdf: real renderer', () => {
         await testDb().query('UPDATE documents SET theme = $1 WHERE doc_id = $2', [JSON.stringify(preset.theme), doc.docId])
         const snapId = await insertYjsRow(doc.docId, body)
         const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
-        expect(res.status, preset.id).toBe(302)
+        expect(res.status, preset.id).toBe(200)
         const pdf = new TextDecoder('latin1').decode(await fetchRenderBytes(`renders/${doc.docId}/${snapId}/document.pdf`))
         const fonts = [...pdf.matchAll(/\/Subtype\s*\/(\w+)[^>]*?\/BaseFont\s*\/([\w+-]+)|\/BaseFont\s*\/([\w+-]+)[^>]*?\/Subtype\s*\/(\w+)/g)]
           .map(m => `${m[2] ?? m[3] ?? ''}:${m[1] ?? m[4] ?? ''}`)
@@ -1060,14 +1062,13 @@ describe('GET /api/docs/:docId/pdf: real renderer', () => {
 
       // Warm.
       const first = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
-      expect(first.status).toBe(302)
+      expect(first.status).toBe(200)
       const beforeKeys = (await listRenderKeys(doc.docId)).sort()
       expect(beforeKeys.length).toBeGreaterThan(0)
 
       // Second call should hit the cache: same key set, no new objects.
       const second = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
-      expect(second.status).toBe(302)
-      expect(second.headers.get('location')).toContain('document.pdf')
+      expect(second.status).toBe(200)
 
       const afterKeys = (await listRenderKeys(doc.docId)).sort()
       expect(afterKeys).toEqual(beforeKeys)
@@ -1087,9 +1088,8 @@ describe('GET /api/docs/:docId/pdf: real renderer', () => {
       await insertYjsRow(doc.docId, '# Quarterly\n\nbody.\n')
 
       const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
-      expect(res.status).toBe(302)
-      const location = res.headers.get('location')!
-      expect(decodeURIComponent(location)).toContain('My Quarterly Report 2026.pdf')
+      expect(res.status).toBe(200)
+      expect(res.headers.get('content-disposition')).toContain('filename="My Quarterly Report 2026.pdf"')
 
       await wipeRendersFor(doc.docId)
     }, 60_000)
@@ -1104,8 +1104,8 @@ describe('GET /api/docs/:docId/pdf: real renderer', () => {
       await insertYjsRow(doc.docId, '# x\n\nbody.\n')
 
       const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
-      expect(res.status).toBe(302)
-      const decoded = decodeURIComponent(res.headers.get('location')!)
+      expect(res.status).toBe(200)
+      const decoded = res.headers.get('content-disposition')!
       expect(decoded).not.toMatch(/filename="[^"]*[/:"\\?<>][^"]*"/)
       expect(decoded).toMatch(/filename="[^"]+\.pdf"/)
 
@@ -1120,15 +1120,15 @@ describe('GET /api/docs/:docId/pdf: real renderer', () => {
       const snap1 = await insertYjsRow(doc.docId, '# v1\n\nfirst version.\n')
 
       const r1 = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
-      expect(r1.status).toBe(302)
-      expect(r1.headers.get('location')).toContain(`renders/${doc.docId}/${snap1}/`)
+      expect(r1.status).toBe(200)
+      expect((await listRenderKeys(doc.docId)).some(k => k.includes(`/${snap1}/`))).toBe(true)
 
       const snap2 = await insertYjsRow(doc.docId, '# v2\n\nsecond version with extra content.\n')
       expect(snap2).toBeGreaterThan(snap1)
 
       const r2 = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
-      expect(r2.status).toBe(302)
-      expect(r2.headers.get('location')).toContain(`renders/${doc.docId}/${snap2}/`)
+      expect(r2.status).toBe(200)
+      expect((await listRenderKeys(doc.docId)).some(k => k.includes(`/${snap2}/`))).toBe(true)
 
       // Both renders persisted independently.
       const keys = await listRenderKeys(doc.docId)
@@ -1147,7 +1147,7 @@ describe('GET /api/docs/:docId/pdf: real renderer', () => {
 
       const client = await loggedInClient(owner.id)
       const r = await client.get(`/api/docs/${doc.docId}/pdf`)
-      expect(r.status).toBe(302)
+      expect(r.status).toBe(200)
 
       const beforeDel = await listRenderKeys(doc.docId)
       expect(beforeDel.length).toBeGreaterThan(0)

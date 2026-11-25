@@ -47,13 +47,24 @@ export async function rememberLoginReturn(event: H3Event, state: string | null =
 }
 
 /**
- * Callback leg: where the signed-in browser goes. A merged account keeps
- * `/?linked=<provider>` (the home page explains the merge). Otherwise the
- * parked return path, if any, else `/`; a new account carries
- * `signed_up=<provider>` for the sign-up event either way.
+ * Where a completed sign-in lands: `path` (else `/`) marked for the client.
+ * `signed_in=1` makes it take over this browser's anonymous documents
+ * (`app/plugins/sign-in-return.client.ts` calls `POST /api/docs/adopt`);
+ * `linked=<provider>` explains a merge into an existing account,
+ * `signed_up=<provider>` is the sign-up event of a new account.
+ */
+export function signedInLanding(path: string | null, provider: string, outcome: OAuthUpsertOutcome | 'existing'): string {
+  let landing = path ?? '/'
+  if (outcome === 'merged') landing = appendQueryParam(landing, 'linked', provider)
+  if (outcome === 'inserted') landing = appendQueryParam(landing, 'signed_up', provider)
+  return appendQueryParam(landing, 'signed_in', '1')
+}
+
+/**
+ * Callback leg: where the signed-in browser goes: the parked return path,
+ * if any, else `/`, with the markers of `signedInLanding`.
  */
 export async function loginLandingPath(event: H3Event, provider: string, outcome: OAuthUpsertOutcome): Promise<string> {
-  if (outcome === 'merged') return `/?linked=${provider}`
   const state = getQuery(event).state
   let parked: string | null = null
   if (typeof state === 'string' && state) {
@@ -63,6 +74,5 @@ export async function loginLandingPath(event: H3Event, provider: string, outcome
       log.warn('could not read the sign-in return path', { reason: err instanceof Error ? err.message : String(err) })
     }
   }
-  const landing = parked ?? '/'
-  return outcome === 'inserted' ? appendQueryParam(landing, 'signed_up', provider) : landing
+  return signedInLanding(parked, provider, outcome)
 }

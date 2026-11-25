@@ -46,6 +46,7 @@ The request limits the app and the sync server enforce, with the file each value
 | Workspace invites | 20 per admin per hour, 30 per workspace per hour, at most 50 open invites per workspace, 3 invite emails per address per day | `server/utils/workspaces/workspaceInvites.ts` |
 | Accept an invite link | 20 per user per 10 minutes | `server/api/user/invites/by-token.post.ts` |
 | Log out everywhere | 10 per user per hour | `server/api/user/sessions/revoke.post.ts` |
+| Keep anonymous documents after signing in (`POST /api/docs/adopt`) | 20 per user per 10 minutes; at most 50 documents per call | `server/api/docs/adopt.post.ts`, `server/utils/documents/adoptAnonymous.ts` |
 | Account deletion request / cancel | 5 per user and client per hour | `server/api/user/delete.post.ts`, `server/api/user/delete-cancel.post.ts` |
 | Data export request | 1 per user per day | `server/api/user/export.post.ts` |
 | AI provider save / verify | 20 per user per 10 minutes | `server/api/user/ai-providers/[capability].put.ts` |
