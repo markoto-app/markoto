@@ -25,9 +25,18 @@ const props = withDefaults(defineProps<{
   testidPrefix: string
   /** Show a "My designs" tab (the parent's `before` slot only). */
   savedTab?: boolean
-  /** Two columns for the narrow theme panel, three in the dialog. */
-  columns?: 2 | 3
+  /**
+   * Two columns for the narrow theme panel, three in the dialog, `4` for a
+   * full-width page section (two on a phone, up to four on a wide screen).
+   */
+  columns?: 2 | 3 | 4
 }>(), { selectedId: null, savedTab: false, columns: 3 })
+
+const GRID_COLUMNS = {
+  2: 'grid-cols-2',
+  3: 'grid-cols-2 sm:grid-cols-3',
+  4: 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 sm:gap-3'
+} as const
 
 const emit = defineEmits<{ select: [preset: ThemePreset] }>()
 
@@ -69,7 +78,7 @@ const visible = computed(() => {
     />
     <div
       class="grid gap-2"
-      :class="columns === 2 ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3'"
+      :class="GRID_COLUMNS[columns]"
     >
       <slot
         name="before"

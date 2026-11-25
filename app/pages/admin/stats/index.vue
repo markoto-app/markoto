@@ -10,24 +10,12 @@ import { ADMIN_STATS_TABS, useAdminStatsQuery, type AdminStatsTab } from '~/quer
 definePageMeta({ layout: 'admin' })
 
 const { t } = useI18n()
-const route = useRoute()
-const router = useRouter()
 const { isAdmin } = useAdminGate()
 
 useHead({ title: () => t('adminStats.pageTitle') })
 
-function pick<T extends string>(value: unknown, allowed: readonly T[], fallback: T): T {
-  return typeof value === 'string' && (allowed as readonly string[]).includes(value) ? value as T : fallback
-}
-
-const tab = computed<AdminStatsTab>({
-  get: () => pick(route.query.tab, ADMIN_STATS_TABS, 'overview'),
-  set: v => void router.replace({ query: { ...route.query, tab: v } })
-})
-const range = computed<StatsRange>({
-  get: () => pick(route.query.range, STATS_RANGES, '30'),
-  set: v => void router.replace({ query: { ...route.query, range: v } })
-})
+const tab = useRouteTab<AdminStatsTab>(ADMIN_STATS_TABS, 'overview')
+const range = useRouteQueryChoice<StatsRange>('range', STATS_RANGES, '30')
 
 const { data, error, isLoading } = useAdminStatsQuery(tab, range, isAdmin)
 

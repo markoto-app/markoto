@@ -56,6 +56,15 @@ describe('workspace default-design picker', () => {
     wrapper.unmount()
   })
 
+  it('lays the designs out four to a row on a wide screen, two on a phone', async () => {
+    const wrapper = await mountSuspended(WorkspaceSettingsPanel, { props: { workspaceId: 'ws1', defaultTheme: null } })
+    await flushPromises()
+    const grid = wrapper.find(`[data-testid="workspace-default-theme-preset-${THEME_PRESETS[0]!.id}"]`).element.parentElement!
+    expect(grid.className).toContain('grid-cols-2')
+    expect(grid.className).toContain('lg:grid-cols-4')
+    wrapper.unmount()
+  })
+
   it('highlights the current default even with a different key order', async () => {
     const target = THEME_PRESETS.find(p => p.id === 'business-report')
     if (!target) throw new Error('business-report preset missing')

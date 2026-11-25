@@ -44,6 +44,14 @@ describe('theme panel: design picker', () => {
     wrapper.unmount()
   })
 
+  it('keeps two columns in the narrow editor panel', async () => {
+    const wrapper = await mount()
+    const grid = wrapper.find(`[data-testid="theme-preset-${THEME_PRESETS[0]!.id}"]`).element.parentElement!
+    expect(grid.className.split(/\s+/)).toContain('grid-cols-2')
+    expect(grid.className).not.toMatch(/grid-cols-[34]/)
+    wrapper.unmount()
+  })
+
   it('filters by audience tab', async () => {
     const wrapper = await mount()
     const academic = wrapper.findAll('[data-testid="theme-preset-tabs"] button').find(b => b.text() === 'Academic')
