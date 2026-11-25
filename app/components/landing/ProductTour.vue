@@ -233,6 +233,30 @@ function placeHeroWindow(): void {
 useResizeObserver([heroCopyEl, stageEl, stageWindowEl], placeHeroWindow)
 onMounted(placeHeroWindow)
 
+// The demo video (the /demo page's file) in a lightbox, from the play
+// button over the hero picture. The overlay's code, and with it the video,
+// loads only on demand: warmed when the pointer or focus reaches a play
+// button, mounted on the first click. While it is open the tour's scroll
+// handling pauses (its paging keys would scroll the page behind it, and
+// Space must reach the player).
+const loadDemoOverlay = () => import('./DemoVideoOverlay.vue')
+const DemoVideoOverlay = defineAsyncComponent(loadDemoOverlay)
+const demoMounted = ref(false)
+const demoOpen = ref(false)
+const demoTrigger = shallowRef<HTMLElement | null>(null)
+function warmDemo(): void {
+  loadDemoOverlay().catch(() => {})
+}
+function openDemo(trigger: HTMLElement): void {
+  demoTrigger.value = trigger
+  demoMounted.value = true
+  demoOpen.value = true
+}
+watch(demoOpen, (isOpen) => {
+  if (isOpen) tourScroll.stop()
+  else if (pinnedNow()) tourScroll.start()
+})
+
 const chips = [
   { key: 'byok', icon: 'i-lucide-key-round' },
   { key: 'eu', icon: 'i-lucide-map-pin' },
@@ -314,15 +338,21 @@ const chips = [
               :sizes="HERO_SIZES"
               priority="eager"
             />
+            <LandingDemoPlayButton
+              data-testid="tour-demo-play"
+              @open="openDemo"
+              @warm="warmDemo"
+            />
           </LandingTourFrame>
         </figure>
       </section>
 
-      <!-- The pinned stage (desktop with scroll-driven animations only). -->
+      <!-- The pinned stage (desktop with scroll-driven animations only).
+           Pictures only, hidden from assistive tech, except the hero's
+           play button. -->
       <div
         ref="stageEl"
         class="mk-stage"
-        aria-hidden="true"
       >
         <div
           ref="stageWindowEl"
@@ -334,6 +364,7 @@ const chips = [
                 v-for="(scene, i) in scenes"
                 :key="scene.id"
                 class="mk-stage__layer"
+                aria-hidden="true"
                 :class="{ 'is-first': i === 0, 'is-last': i === scenes.length - 1 }"
                 :style="layerStyle(i)"
               >
@@ -351,12 +382,20 @@ const chips = [
                 v-if="hero"
                 class="mk-stage__hero"
               >
-                <LandingTourVisual
-                  :scene="hero"
-                  :index="-1"
-                  mode="hero"
-                  :sizes="STAGE_SIZES"
-                  priority="high"
+                <div aria-hidden="true">
+                  <LandingTourVisual
+                    :scene="hero"
+                    :index="-1"
+                    mode="hero"
+                    :sizes="STAGE_SIZES"
+                    priority="high"
+                  />
+                </div>
+                <LandingDemoPlayButton
+                  class="mk-play--stage"
+                  data-testid="tour-demo-play-stage"
+                  @open="openDemo"
+                  @warm="warmDemo"
                 />
               </div>
             </LandingTourFrame>
@@ -521,6 +560,12 @@ const chips = [
         </UButton>
       </div>
     </section>
+
+    <DemoVideoOverlay
+      v-if="demoMounted"
+      v-model:open="demoOpen"
+      :return-focus-to="demoTrigger"
+    />
   </div>
 </template>
 

@@ -2460,7 +2460,8 @@
       "title": "{markdown}を、美しく組版。",
       "markdown": "Markdown",
       "cta": "書きはじめる、登録不要",
-      "next": "使い方を見る"
+      "next": "使い方を見る",
+      "watchDemo": "{n} 分のデモを見る"
     },
     "scenes": {
       "write": {

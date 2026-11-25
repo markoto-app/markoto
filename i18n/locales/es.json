@@ -2460,7 +2460,8 @@
       "title": "{markdown}, bien maquetado.",
       "markdown": "Markdown",
       "cta": "Empezar a escribir, sin registro",
-      "next": "Ver cómo funciona"
+      "next": "Ver cómo funciona",
+      "watchDemo": "Ver la demo de {n} minutos"
     },
     "scenes": {
       "write": {

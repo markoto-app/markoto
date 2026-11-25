@@ -2460,7 +2460,8 @@
       "title": "Du {markdown}, joliment mis en page.",
       "markdown": "Markdown",
       "cta": "Commencer à écrire, sans inscription",
-      "next": "Voir comment ça marche"
+      "next": "Voir comment ça marche",
+      "watchDemo": "Voir la démo de {n} minutes"
     },
     "scenes": {
       "write": {

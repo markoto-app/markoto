@@ -2460,7 +2460,8 @@
       "title": "Beautifully rendered {markdown}.",
       "markdown": "Markdown",
       "cta": "Start writing, no sign-up",
-      "next": "See how it works"
+      "next": "See how it works",
+      "watchDemo": "Watch the {n}-minute demo"
     },
     "scenes": {
       "write": {

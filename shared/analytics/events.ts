@@ -25,6 +25,8 @@ export const ANALYTICS_EVENTS = {
   aiFirstUse: 'ai_first_use',
   githubClicked: 'github_clicked',
   selfHostClicked: 'selfhost_clicked',
+  /** The play button over the product page's hero picture (the demo video). */
+  demoVideoOpened: 'demo_video_open',
   /** Server-side count of published-page views: no visitor data, no slug. */
   publishedPageView: 'published_page_view'
 } as const
@@ -50,6 +52,7 @@ export interface AnalyticsEventData {
   ai_first_use: Record<string, never>
   github_clicked: { placement: Placement }
   selfhost_clicked: { placement: Placement }
+  demo_video_open: { placement: Placement }
   published_page_view: Record<string, never>
 }
 
@@ -74,7 +77,9 @@ const CLICK_TARGETS: Record<string, ResolvedEvent> = {
   'footer-github-link': { name: ANALYTICS_EVENTS.githubClicked, data: { placement: 'footer' } },
   'header-self-host-link': { name: ANALYTICS_EVENTS.selfHostClicked, data: { placement: 'header' } },
   'footer-self-host-link': { name: ANALYTICS_EVENTS.selfHostClicked, data: { placement: 'footer' } },
-  'tour-self-host': { name: ANALYTICS_EVENTS.selfHostClicked, data: { placement: 'tour_final' } }
+  'tour-self-host': { name: ANALYTICS_EVENTS.selfHostClicked, data: { placement: 'tour_final' } },
+  'tour-demo-play': { name: ANALYTICS_EVENTS.demoVideoOpened, data: { placement: 'tour_hero' } },
+  'tour-demo-play-stage': { name: ANALYTICS_EVENTS.demoVideoOpened, data: { placement: 'tour_hero' } }
 }
 
 /**
