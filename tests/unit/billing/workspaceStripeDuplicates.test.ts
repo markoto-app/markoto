@@ -6,7 +6,10 @@ import { partial } from '../../helpers/fixtures'
 
 vi.stubGlobal('createError', (input: { statusCode: number, message: string, data?: unknown }) => Object.assign(new Error(input.message), input))
 
-const { cancelDuplicateWorkspaceSubscription, cancelWorkspaceSubscriptionNow, expireOpenWorkspaceCheckouts } = await import('../../../server/utils/billing/workspaceStripe')
+const { cancelWorkspaceSubscriptionNow, expireOpenWorkspaceCheckouts } = await import('../../../server/utils/billing/workspaceStripe')
+const { cancelDuplicateSubscription } = await import('../../../server/utils/billing/duplicateSubscription')
+
+const WS = { kind: 'workspace', workspaceId: 'ws1' } as const
 
 const logs = captureLogs()
 
@@ -43,28 +46,28 @@ function sub(status: string, latestInvoice: string | null = 'in_dup'): Stripe.Su
   return { id: 'sub_dup', status, latest_invoice: latestInvoice } as unknown as Stripe.Subscription
 }
 
-describe('cancelDuplicateWorkspaceSubscription', () => {
+describe('cancelDuplicateSubscription (workspace)', () => {
   it('cancels the duplicate and refunds every paid payment of its first invoice, once per payment', async () => {
     const f = fakeStripe({ payments: [{ payment_intent: 'pi_1' }, {}] })
-    expect(await cancelDuplicateWorkspaceSubscription(f.stripe, sub('active'), 'ws1')).toEqual({ refunded: 1 })
+    expect(await cancelDuplicateSubscription(f.stripe, sub('active'), WS)).toEqual({ refunded: 1 })
     expect(f.cancel).toHaveBeenCalledWith('sub_dup', { prorate: false, invoice_now: false })
     expect(f.listPayments).toHaveBeenCalledWith({ invoice: 'in_dup', status: 'paid' })
     expect(f.refund).toHaveBeenCalledWith(
-      expect.objectContaining({ payment_intent: 'pi_1' }),
+      { payment_intent: 'pi_1', metadata: { reason: 'duplicate_workspace_subscription', workspace_id: 'ws1', subscription_id: 'sub_dup' } },
       { idempotencyKey: 'markoto-duplicate-subscription-refund-pi_1' }
     )
   })
 
   it('a webhook retry does not cancel twice', async () => {
     const f = fakeStripe({ payments: [{ payment_intent: 'pi_1' }] })
-    await cancelDuplicateWorkspaceSubscription(f.stripe, sub('canceled'), 'ws1')
+    await cancelDuplicateSubscription(f.stripe, sub('canceled'), WS)
     expect(f.cancel).not.toHaveBeenCalled()
     expect(f.refund).toHaveBeenCalledTimes(1)
   })
 
   it('on the pinned acacia API the invoice names its payment intent', async () => {
     const f = fakeStripe({ invoice: { id: 'in_dup', status: 'paid', payment_intent: 'pi_acacia' } })
-    expect(await cancelDuplicateWorkspaceSubscription(f.stripe, sub('active'), 'ws1')).toEqual({ refunded: 1 })
+    expect(await cancelDuplicateSubscription(f.stripe, sub('active'), WS)).toEqual({ refunded: 1 })
     expect(f.retrieveInvoice).toHaveBeenCalledWith('in_dup')
     expect(f.listPayments).not.toHaveBeenCalled()
     expect(f.refund).toHaveBeenCalledWith(
@@ -75,15 +78,15 @@ describe('cancelDuplicateWorkspaceSubscription', () => {
 
   it('an unpaid acacia invoice refunds nothing', async () => {
     const f = fakeStripe({ invoice: { id: 'in_dup', status: 'open', payment_intent: 'pi_open' } })
-    expect(await cancelDuplicateWorkspaceSubscription(f.stripe, sub('active'), 'ws1')).toEqual({ refunded: 0 })
+    expect(await cancelDuplicateSubscription(f.stripe, sub('active'), WS)).toEqual({ refunded: 0 })
     expect(f.refund).not.toHaveBeenCalled()
   })
 
   it('a failed refund is reported, not thrown (the cancel stands)', async () => {
     const f = fakeStripe({ payments: [{ payment_intent: 'pi_1' }], refundFails: true })
-    expect(await cancelDuplicateWorkspaceSubscription(f.stripe, sub('active'), 'ws1')).toEqual({ refunded: 0 })
+    expect(await cancelDuplicateSubscription(f.stripe, sub('active'), WS)).toEqual({ refunded: 0 })
     expect(f.cancel).toHaveBeenCalled()
-    expect(logs.find('error')).toMatchObject({ component: 'workspace-stripe', subscriptionId: 'sub_dup', workspaceId: 'ws1' })
+    expect(logs.find('error')).toMatchObject({ component: 'billing', subscriptionId: 'sub_dup', workspaceId: 'ws1' })
   })
 })
 

@@ -71,6 +71,20 @@ export async function applyUserSubscriptionState(_by: SystemActor, tx: TxHandle 
 }
 
 /**
+ * The subscription user `userId` tracks, read with the user row locked
+ * until the webhook's transaction ends: two checkouts of one user that
+ * complete at once are bound one after the other, so the second sees the
+ * subscription the first bound. Null when the row tracks none (or is gone).
+ */
+export async function lockTrackedSubscriptionOfUser(_by: SystemActor, tx: TxHandle | undefined, userId: number): Promise<string | null> {
+  const rows = await executor(tx).select({ subscriptionId: users.stripeSubscriptionId })
+    .from(users)
+    .where(eq(users.id, userId))
+    .for('update')
+  return rows[0]?.subscriptionId ?? null
+}
+
+/**
  * The subscription the customer's user row tracks (`stripe_subscription_id`),
  * or null when the customer maps to no user or the row tracks none.
  */
