@@ -72,8 +72,9 @@ interface StartedFlow {
   flowCookie: string
 }
 
-async function startSignIn(): Promise<StartedFlow> {
-  const res = await fetch(`${TEST_BASE_URL}/auth/oidc`, { redirect: 'manual' })
+async function startSignIn(returnTo?: string): Promise<StartedFlow> {
+  const query = returnTo === undefined ? '' : `?return=${encodeURIComponent(returnTo)}`
+  const res = await fetch(`${TEST_BASE_URL}/auth/oidc${query}`, { redirect: 'manual' })
   expect(res.status).toBe(302)
   const location = res.headers.get('location')
   const flowCookie = cookieValue(res, FLOW_COOKIE)
@@ -89,8 +90,8 @@ async function callback(callbackUrl: string, flowCookie: string | null): Promise
 }
 
 /** Full round trip; returns the callback response. */
-async function signIn(sub: string, claims: Record<string, unknown>): Promise<Response> {
-  const { authorizeUrl, flowCookie } = await startSignIn()
+async function signIn(sub: string, claims: Record<string, unknown>, returnTo?: string): Promise<Response> {
+  const { authorizeUrl, flowCookie } = await startSignIn(returnTo)
   const back = await loginAtIdp(authorizeUrl.href, sub, claims)
   return callback(back, flowCookie)
 }
@@ -211,6 +212,22 @@ describe('GET /auth/oidc: full sign-in against a real IdP', () => {
     const res = await callback(back, second.flowCookie)
     expect(res.status).toBe(401)
     expect(await usersBySubject('mixed-sub')).toEqual([])
+  })
+
+  it('comes back to the page the sign-in link named (a new account carries signed_up)', async () => {
+    const created = await signIn('return-sub', { email: 'return@idp.test', email_verified: true }, '/pricing?interval=year&currency=chf')
+    expect(created.headers.get('location')).toBe('/pricing?interval=year&currency=chf&signed_up=oidc')
+    const again = await signIn('return-sub', { email: 'return@idp.test', email_verified: true }, '/de/pricing?interval=year')
+    expect(again.headers.get('location')).toBe('/de/pricing?interval=year')
+    // Taken once: the next sign-in without a return page lands on the home page.
+    expect((await signIn('return-sub', { email: 'return@idp.test', email_verified: true })).headers.get('location')).toBe('/')
+  })
+
+  it('never returns to another site or a sign-in route', async () => {
+    for (const unsafe of ['//evil.example/pricing', 'https://evil.example/', '/\\evil.example', '/auth/oidc']) {
+      const res = await signIn('unsafe-return-sub', { email: 'unsafe@idp.test', email_verified: true }, unsafe)
+      expect(res.headers.get('location')).toMatch(/^\/(\?signed_up=oidc)?$/)
+    }
   })
 
   it('rejects an IdP error response', async () => {

@@ -64,7 +64,9 @@ export const samlAcsBody = z.object({ SAMLResponse: z.string().optional().catch(
 export const oidcSignInQuery = z.object({
   code: z.unknown().optional(),
   error: z.unknown().optional(),
-  state: z.unknown().optional()
+  state: z.unknown().optional(),
+  // The page to come back to after signing in (checked by `safeLoginReturnPath`).
+  return: z.unknown().optional()
 })
 
 // SCIM (server/routes/scim/v2/**). IdP clients send whatever their vendor
