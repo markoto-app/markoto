@@ -8,6 +8,7 @@ import { useLitellmAdmin, useLitellmForUser } from '../litellmClient'
 import { FEATURE_TAGS, featureMetadata } from '../../litellm/featureTags'
 import { modelRequestParams } from '../../litellm/modelParams'
 import { providerRequestFields, withProviderErrors } from '../../aiProviders/requestFields'
+import { readBodyCapped } from '../../platform/safeFetch'
 import { useEnv } from '~~/shared/env/load'
 import { synthesisProvider, type WebToolSpendContext } from './webSearch'
 
@@ -54,7 +55,24 @@ export interface FetchUrlRequest {
 const FETCH_URL_PAGE_CHARS = 8000
 
 /**
- * URL-fetch sub-call: Jina Reader returns the page as markdown, then the
+ * Longest page Markdown kept from Staan: 50 `extract` pages (the most the
+ * MCP tool lets a caller ask for). The response body itself is read with a
+ * byte cap of its own, so a huge page never sits in memory unbounded.
+ */
+const MAX_PAGE_CHARS = 50 * FETCH_URL_PAGE_CHARS
+const MAX_RESPONSE_BYTES = 4 * 1024 * 1024
+
+/**
+ * Staan Fetch, same vendor and key as `web_search`. Fetch lives on the
+ * `/v1` API (the search endpoint is `/v2/search/web`; `/v2/fetch` answers
+ * 404). Docs: https://docs.staan.ai/docs/fetch.md
+ */
+export const STAAN_FETCH_URL = 'https://api.staan.ai/v1/fetch'
+/** Staan limits a live fetch to 20 s per URL, extraction included; 10 s of transport slack on top. */
+export const STAAN_FETCH_TIMEOUT_MS = 30_000
+
+/**
+ * URL-fetch sub-call: Staan Fetch returns the page as Markdown, then the
  * session's worker model extracts a structured `{summary, images[]}` with
  * `json_schema strict:true` (or answers `question`), or, in `extract` mode,
  * the Markdown is returned in pages.
@@ -72,8 +90,8 @@ export async function fetchUrl(
 
   // Parse once (bare hostnames get https://, length + scheme checked) and
   // forward the PARSED form: the URL the guard checked is byte-for-byte
-  // the URL Jina receives, so a parser difference (backslashes, odd
-  // escapes) can't make Jina fetch a host other than the one checked.
+  // the URL Staan receives, so a parser difference (backslashes, odd
+  // escapes) can't make Staan fetch a host other than the one checked.
   const url = parseToolUrl(rawUrl).href
 
   // SSRF guard. Reject before forwarding to upstream, private CIDRs,
@@ -81,7 +99,7 @@ export async function fetchUrl(
   // records resolve into private space all throw here.
   await assertSafeUrl(url)
 
-  // Platform-paid Jina Reader call, counted and charged to the AI budget
+  // Platform-paid Staan Fetch call, counted and charged to the AI budget
   // only for URLs that passed the SSRF guard, so a rejected URL never
   // burns allowance or AI Points. Every page of an `extract` read is a
   // fetch of its own and is counted like one.
@@ -90,22 +108,118 @@ export async function fetchUrl(
 
   // The `ai` + `model` args are retained on the signature for harness
   // compatibility.
-  return await fetchUrlViaJina(url, signal, spendCtx, request)
+  return await fetchUrlViaStaan(url, signal, spendCtx, request)
 }
 
-// Third-party answers: a mistyped field reads as absent.
+// Staan Fetch response envelope (the fields we consume). Third-party
+// answers: a mistyped field reads as absent, a mistyped entry is dropped.
 const optionalText = z.string().optional().catch(undefined)
-const jinaReaderResponse = z.object({
-  data: z.object({ content: optionalText, title: optionalText }).optional().catch(undefined)
+const staanFetchResponse = z.object({
+  results: z.array(z.object({
+    title: optionalText,
+    content: z.string().nullable().optional().catch(undefined),
+    content_error: optionalText
+  }).nullable().catch(null)).catch([]),
+  errors: z.array(z.object({
+    status: optionalText,
+    http_status: z.number().nullable().optional().catch(undefined)
+  }).nullable().catch(null)).catch([])
 })
 
-// fetch_url 2-call: Jina Reader produces clean markdown of the page; a
+/** Page Markdown from Staan, or the sentence the model gets instead. */
+type StaanPage = { ok: true, title: string, markdown: string } | { ok: false, reason: string }
+
+/**
+ * Model-facing sentences for Staan's per-URL failures. Fixed wording, never
+ * upstream text: the model reads these, and they must tell it what to try.
+ */
+function staanErrorReason(status: string | undefined, httpStatus: number | null | undefined): string {
+  const http = httpStatus ? ` (HTTP ${httpStatus})` : ''
+  switch (status) {
+    case 'timeout':
+      return 'The page took longer than 20 seconds to load. Try again later or use a different URL.'
+    case 'blocked':
+      return 'The site refuses automated access (it blocks crawlers or needs a sign-in). Try a different source, for example via web_search.'
+    case 'not_found':
+      return `The page does not exist${http}. Check the URL.`
+    case 'unsupported':
+      return 'The URL points to content that cannot be read as text (a binary file other than PDF or DOCX, or a page with almost no readable text).'
+    case undefined:
+    default:
+      return `The page could not be fetched${http}.`
+  }
+}
+
+function staanContentErrorReason(contentError: string | undefined): string {
+  if (contentError === 'too_short') {
+    return 'The page has almost no readable text without JavaScript; it probably renders its content with JavaScript. '
+      + 'Try a different URL for the same content (a static, print or documentation version) or use web_search.'
+  }
+  return 'The main content of the page could not be extracted. The page may be empty or mostly navigation.'
+}
+
+function staanHttpReason(status: number): string {
+  if (status === 429) return 'The page fetch service is busy (rate limited). Try again in a moment.'
+  if (status === 401 || status === 403) return 'Page fetching is temporarily unavailable on this instance.'
+  return `The page fetch service returned an error (${status}). Try again later.`
+}
+
+/** One Staan Fetch call for one URL, every failure mapped to a reason. */
+async function fetchPageViaStaan(url: string, signal: AbortSignal): Promise<StaanPage> {
+  const staanKey = useEnv().providers.staanApiKey
+  if (!staanKey) {
+    throw new Error('STAAN_API_KEY not configured (required for fetch_url)')
+  }
+
+  const timeout = AbortSignal.timeout(STAAN_FETCH_TIMEOUT_MS)
+  let res: Response
+  try {
+    res = await fetch(STAAN_FETCH_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${staanKey}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      // One URL per tool call. `include_images` keeps the page's images as
+      // Markdown with absolute URLs, so the extractor can list them.
+      body: JSON.stringify({ urls: [url], format: 'markdown', include_images: true }),
+      signal: AbortSignal.any([signal, timeout])
+    })
+  } catch (err) {
+    // The caller's abort propagates; our own timeout becomes a tool result.
+    if (signal.aborted || !timeout.aborted) throw err
+    return { ok: false, reason: staanErrorReason('timeout', null) }
+  }
+  if (!res.ok) return { ok: false, reason: staanHttpReason(res.status) }
+
+  const bytes = await readBodyCapped(res, MAX_RESPONSE_BYTES)
+  if (!bytes) return { ok: false, reason: 'The page is too large to read.' }
+  let json: unknown
+  try {
+    json = JSON.parse(new TextDecoder().decode(bytes))
+  } catch {
+    return { ok: false, reason: staanHttpReason(502) }
+  }
+  const payload = staanFetchResponse.catch({ results: [], errors: [] }).parse(json)
+
+  const result = payload.results.find(r => r !== null)
+  if (result) {
+    const markdown = (result.content ?? '').slice(0, MAX_PAGE_CHARS)
+    if (!markdown.trim()) return { ok: false, reason: staanContentErrorReason(result.content_error) }
+    return { ok: true, title: result.title ?? '', markdown }
+  }
+  const error = payload.errors.find(e => e !== null)
+  return { ok: false, reason: staanErrorReason(error?.status, error?.http_status) }
+}
+
+// fetch_url 2-call: Staan Fetch produces clean Markdown of the page; a
 // follow-up worker-model chat completion with json_schema strict:true
 // returns the {summary, images[]} contract.
 
 const _FETCH_URL_SYSTEM_PROMPT
   = 'You are a page-content extractor. The user gives you a markdown '
-    + 'rendering of a web page produced by Jina Reader. Return JSON '
+    + 'rendering of a web page. Return JSON '
     + 'matching the provided schema. The summary is 4-8 sentences of '
     + 'factual page content (who/what/when/where/why). The images array '
     + 'is up to 6 hero/figure image URLs from the page (NOT site-chrome '
@@ -113,7 +227,7 @@ const _FETCH_URL_SYSTEM_PROMPT
 
 const _FETCH_URL_QUESTION_SYSTEM_PROMPT
   = 'You are a page-content extractor. The user gives you a question and a '
-    + 'markdown rendering of a web page produced by Jina Reader. Return JSON '
+    + 'markdown rendering of a web page. Return JSON '
     + 'matching the provided schema. The summary answers the question from '
     + 'the page only, in up to 8 sentences, quoting exact figures, names and '
     + 'dates as the page gives them. If the page does not answer the '
@@ -147,55 +261,24 @@ const _FETCH_URL_JSON_SCHEMA = {
   }
 }
 
-async function fetchUrlViaJina(
+async function fetchUrlViaStaan(
   url: string,
   signal: AbortSignal,
   spendCtx: WebToolSpendContext,
   request: FetchUrlRequest
 ): Promise<FetchUrlResult> {
-  const jinaKey = useEnv().providers.jinaApiKey
-  if (!jinaKey) {
-    throw new Error('JINA_AI_API_KEY not configured (required for fetch_url)')
+  // 1) Staan Fetch: returns the page as clean Markdown.
+  const page = await fetchPageViaStaan(url, signal)
+  if (!page.ok) {
+    return { text: `Unable to extract content from ${url}. ${page.reason}`, url, summary: '', images: [] }
   }
-
-  // 1) Jina Reader: returns the page as clean markdown.
-  const readerUrl = `https://r.jina.ai/${url}`
-  const readerRes = await fetch(readerUrl, {
-    headers: {
-      'Authorization': `Bearer ${jinaKey}`,
-      'Accept': 'application/json',
-      // Cap output so we don't pass 40k tokens to the synthesiser.
-      'X-Token-Budget': '8000',
-      // Keep image references verbatim so the extractor can list them.
-      'X-Retain-Images': 'all'
-    },
-    signal
-  })
-  if (!readerRes.ok) {
-    return {
-      text: `Unable to extract content from ${url}. Reader returned ${readerRes.status}.`,
-      url,
-      summary: '',
-      images: []
-    }
-  }
-  const readerPayload = jinaReaderResponse.catch({}).parse(await readerRes.json())
-  const pageMarkdown = readerPayload.data?.content ?? ''
-  const pageTitle = readerPayload.data?.title ?? ''
-
-  if (!pageMarkdown) {
-    return {
-      text: `Unable to extract content from ${url}. The page may be empty or block crawlers.`,
-      url,
-      summary: '',
-      images: []
-    }
-  }
+  const pageMarkdown = page.markdown
+  const pageTitle = page.title
 
   if (request.mode === 'extract') return markdownPage(url, pageTitle, pageMarkdown, request.page ?? 1)
 
   // No chat provider configured: return the extracted page text itself
-  // (truncated): the reader is platform-provided and works without a key.
+  // (truncated): page fetching is platform-provided and works without a key.
   const provider = synthesisProvider(spendCtx)
   if (!provider) {
     const excerpt = pageMarkdown.slice(0, 12000)

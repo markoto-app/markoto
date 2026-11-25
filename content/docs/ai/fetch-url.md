@@ -18,15 +18,16 @@ your prompt and the AI reads the page before it answers.
 ## What just happened
 
 The AI saw a URL in your prompt and fetched the page through a page-reader
-service (Jina Reader). The page is converted to clean text, and the AI
+service (Staan, the same European provider that runs the web search). The page is converted to clean text, and the AI
 summarises it and uses it as the source for its reply. The page is fetched
 by the server, so the site never sees your own address.
 
 ## Good to know
 
 - **Public pages only.** Addresses on private networks, local addresses and non-web schemes (`file:`, `ftp:`) are refused. A page behind a login can't be read; paste the text into your document instead.
-- **It needs to be set up.** Page reading only appears when the instance has a Jina key (the operator adds it on a self-hosted instance, see the [self-hosting guide](https://github.com/markoto-app/markoto/blob/main/docs/SELF-HOSTING.md#ai)). Without one the AI doesn't offer it.
+- **It needs to be set up.** Page reading only appears when the instance has a Staan key (the same key as web search; the operator adds it on a self-hosted instance, see the [self-hosting guide](https://github.com/markoto-app/markoto/blob/main/docs/SELF-HOSTING.md#ai)). Without one the AI doesn't offer it.
 - **Each page uses 1 AI Point.** Reading the page is paid for by the instance, so it counts against your monthly [AI Points](/docs/plans/ai-budget), also when you use your own provider. When your points are used up, the AI tells you and reads no more pages until they refill.
+- **Some pages can't be read.** Sites that block automated visitors or need a sign-in, pages that load their text with JavaScript, and files other than web pages, PDF and Word are refused; the AI tells you and may try another source.
 - **You still need a writing assistant provider** to summarise the page ([what the AI needs](/docs/ai/overview)). Without one, the raw page text comes back.
 - **Shared allowance.** Page reading and web search share a per-person limit, by default 30 calls an hour and 100 a day (on markoto.app's free plan 30 an hour and 20 a day). At most 10 pages per AI session.
 - Scheme-less addresses such as `example.org/page` work; `https://` is assumed.

@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import {
+  DEFAULT_EMBEDDINGS_DIMS,
+  DEFAULT_EMBEDDINGS_MODEL,
   MAX_EMBEDDING_DIMS,
   embeddingRequestParams,
-  isJinaModel,
   parseEmbeddingDims,
   parseTriState,
   resolveRequestShape
@@ -42,29 +43,23 @@ describe('parseTriState', () => {
 })
 
 describe('request parameter selection', () => {
-  it('detects Jina models case-insensitively', () => {
-    expect(isJinaModel('jina-embeddings-v5-text-nano')).toBe(true)
-    expect(isJinaModel('Jina-Embeddings-v3')).toBe(true)
-    expect(isJinaModel('custom-embeddings')).toBe(false)
-    expect(isJinaModel('text-embedding-3-small')).toBe(false)
+  it('the default model (mistral-embed): nothing extra, its 1024-d output is fixed', () => {
+    expect(DEFAULT_EMBEDDINGS_MODEL).toBe('mistral-embed')
+    expect(DEFAULT_EMBEDDINGS_DIMS).toBe(1024)
+    expect(embeddingRequestParams(resolveRequestShape(), 1024, 'RETRIEVAL_DOCUMENT')).toEqual({})
   })
 
-  it('Jina default: task hint + dimensions (unchanged behaviour)', () => {
-    const shape = resolveRequestShape('jina-embeddings-v5-text-nano')
-    expect(embeddingRequestParams(shape, 768, 'RETRIEVAL_DOCUMENT')).toEqual({ task: 'retrieval.passage', dimensions: 768 })
-    expect(embeddingRequestParams(shape, 768, 'RETRIEVAL_QUERY')).toEqual({ task: 'retrieval.query', dimensions: 768 })
-    expect(embeddingRequestParams(shape, 768, 'CLUSTERING').task).toBe('text-matching')
+  it('auto means off, for every model', () => {
+    const shape = resolveRequestShape({ sendDimensions: 'auto', sendTaskHint: 'auto' })
+    expect(shape).toEqual({ sendTaskHint: false, sendDimensions: false })
   })
 
-  it('other models: nothing extra by default', () => {
-    const shape = resolveRequestShape('custom-embeddings')
-    expect(embeddingRequestParams(shape, 1536, 'RETRIEVAL_DOCUMENT')).toEqual({})
-  })
-
-  it('operator overrides win in both directions', () => {
-    const optIn = resolveRequestShape('custom-embeddings', { sendDimensions: 'true', sendTaskHint: 'true' })
+  it('operator opt-in sends the task hint and the dimensions', () => {
+    const optIn = resolveRequestShape({ sendDimensions: 'true', sendTaskHint: 'true' })
     expect(embeddingRequestParams(optIn, 1024, 'RETRIEVAL_QUERY')).toEqual({ task: 'retrieval.query', dimensions: 1024 })
-    const optOut = resolveRequestShape('jina-embeddings-v5-text-nano', { sendDimensions: 'false', sendTaskHint: 'false' })
+    expect(embeddingRequestParams(optIn, 768, 'RETRIEVAL_DOCUMENT')).toEqual({ task: 'retrieval.passage', dimensions: 768 })
+    expect(embeddingRequestParams(optIn, 768, 'CLUSTERING').task).toBe('text-matching')
+    const optOut = resolveRequestShape({ sendDimensions: 'false', sendTaskHint: 'false' })
     expect(embeddingRequestParams(optOut, 768, 'RETRIEVAL_QUERY')).toEqual({})
   })
 })

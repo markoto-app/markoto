@@ -18,7 +18,7 @@ import { useEnv } from '~~/shared/env/load'
  * virtual key the per-call charge (`chargeWebToolCall`) and the
  * synthesis call authenticate WITH, so the call lands on the caller's
  * `max_budget` and a budget-exhausted user's `web_search` / `fetch_url`
- * is refused before Staan / Jina are called. Both production call sites pass it
+ * is refused before Staan is called. Both production call sites pass it
  * (the in-app loop from `billingContext.virtualKey`, MCP from
  * `MetaToolContext.virtualKey`); the admin-key fallback exists only so a
  * key-less harness path doesn't crash.
@@ -86,12 +86,10 @@ export async function webSearch(
 //   web_search → Staan /search/web (staan.ai): the European search index
 //                returns ranked results (title/url/snippet) → worker-model
 //                synthesis compresses them into a cited answer.
-//   fetch_url  → Jina Reader (r.jina.ai) → worker-model synthesis with
-//                json_schema strict:true extracting {summary, images[]}.
-//                Jina stays for the direct-URL-fetch case: the user (or the
-//                model) supplies a specific URL, so there is no Google/Bing
-//                search backend involved: the EU-sovereignty concern that
-//                motivated the Staan swap applies only to search fan-out.
+//   fetch_url  → Staan Fetch (/v1/fetch, same vendor and key) returns the
+//                page as Markdown → worker-model synthesis with
+//                json_schema strict:true extracting {summary, images[]}
+//                (server/utils/ai/tools/fetchUrl.ts).
 //
 // Staan's synthesising /answer endpoint would collapse this to one call but
 // is gated to a higher plan tier (403 on the current key), so we keep our own

@@ -337,7 +337,7 @@ export interface WrapUserOnlyToolOpts<Schema extends ZodRawShape> {
   scope: McpScope
   annotations?: ToolAnnotations
   /**
-   * Optional availability gate (e.g. the operator has no Staan / Jina key
+   * Optional availability gate (e.g. the operator has no Staan key
    * for the web tools). When it returns false the tool is not listed for
    * the client at all. Per-user rate limiting of the web tools lives in the
    * shared handler (`consumeWebToolQuota`), so the in-app loop and MCP

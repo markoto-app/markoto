@@ -82,7 +82,7 @@ export const litellm = defineNamespace({
     embeddingsModel: v({
       name: 'NUXT_LITELLM_EMBEDDINGS_MODEL',
       type: string,
-      default: 'jina-embeddings-v5-text-nano',
+      default: 'mistral-embed',
       doc: 'Embedding model alias for the knowledge base; `custom-embeddings` = the EMBEDDINGS_UPSTREAM_* deployment.',
       services: ['app'],
       scope: 'self-host'
@@ -90,7 +90,7 @@ export const litellm = defineNamespace({
     embeddingsDims: v({
       name: 'NUXT_LITELLM_EMBEDDINGS_DIMS',
       type: int({ min: 1, max: 2000 }),
-      default: 768,
+      default: 1024,
       doc: 'Embedding size (the pgvector column is retyped at boot while empty; else `bun run knowledge:reembed`).',
       services: ['app'],
       scope: 'self-host'
@@ -99,7 +99,7 @@ export const litellm = defineNamespace({
       name: 'NUXT_LITELLM_EMBEDDINGS_SEND_DIMENSIONS',
       type: autoSwitch,
       default: 'auto',
-      doc: 'Send the OpenAI `dimensions` parameter (auto = Jina models only).',
+      doc: 'Send the OpenAI `dimensions` parameter (auto = off; only for models that accept a reduced output size).',
       services: ['app'],
       scope: 'self-host'
     }),
@@ -107,7 +107,7 @@ export const litellm = defineNamespace({
       name: 'NUXT_LITELLM_EMBEDDINGS_TASK_HINTS',
       type: autoSwitch,
       default: 'auto',
-      doc: 'Send Jina\'s `task` parameter (auto = Jina models only).',
+      doc: 'Send a `task` retrieval hint (`retrieval.passage` / `retrieval.query`) for providers that accept one (auto = off).',
       services: ['app'],
       scope: 'self-host'
     }),
@@ -194,23 +194,14 @@ export const litellm = defineNamespace({
 export const providers = defineNamespace({
   name: 'providers',
   title: 'AI provider keys',
-  intro: 'Platform-paid upstreams. MISTRAL / BFL / JINA are read by LiteLLM; JINA (fetch_url), STAAN (web_search) and MISTRAL (live dictation) also by the app.',
+  intro: 'Platform-paid upstreams. MISTRAL / BFL are read by LiteLLM; STAAN (web_search + fetch_url) and MISTRAL (live dictation) also by the app.',
   vars: {
-    jinaApiKey: v({
-      name: 'JINA_AI_API_KEY',
-      example: '',
-      type: string,
-      secret: true,
-      doc: 'Jina: embeddings (proxy) and the fetch_url tool (app). Empty = fetch_url not offered.',
-      services: ['app', 'litellm'],
-      scope: 'both'
-    }),
     mistralApiKey: v({
       name: 'MISTRAL_API_KEY',
       example: '',
       type: string,
       secret: true,
-      doc: 'Mistral (EU endpoint): chat / transcription deployments (proxy) and live dictation on the platform default (app).',
+      doc: 'Mistral (EU endpoint): chat / transcription / knowledge-base embedding deployments (proxy) and live dictation on the platform default (app).',
       services: ['app', 'litellm'],
       scope: 'both'
     }),
@@ -228,7 +219,7 @@ export const providers = defineNamespace({
       example: '',
       type: string,
       secret: true,
-      doc: 'Staan web search for the web_search tool. Empty = web_search not offered.',
+      doc: 'Staan: web search (web_search tool) and page extraction (fetch_url tool). Empty = neither tool is offered.',
       services: ['app'],
       scope: 'both'
     }),

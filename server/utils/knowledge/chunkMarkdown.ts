@@ -16,10 +16,12 @@
  * No third-party splitter: the input is already clean markdown from
  * markitdown, and the logic is small.
  *
- * Tokens are estimated as chars/4, good enough for budgeting and avoids
- * pulling tokenizer deps in. The consuming embedding call (Jina via
- * LiteLLM) has its own hard cap and will truncate if we under-estimate
- * on edge cases (CJK text).
+ * Tokens are estimated without a tokenizer dependency: ASCII as chars/4,
+ * every other character (CJK, Cyrillic, emoji, ...) as one token, so a
+ * chunk at the 1500-token ceiling stays far below the embedding model's
+ * input limit (`mistral-embed`: 8192 tokens) in every script. The
+ * embedding call still cuts any input to 8000 UTF-8 bytes
+ * (`truncateForEmbedding`) as a last line of defence.
  */
 
 export interface ChunkMarkdownOptions {
@@ -52,10 +54,16 @@ export interface Chunk {
   tokens: number
 }
 
-const CHARS_PER_TOKEN = 4
+const ASCII_CHARS_PER_TOKEN = 4
 
 function estimateTokens(text: string): number {
-  return Math.ceil(text.length / CHARS_PER_TOKEN)
+  let ascii = 0
+  let other = 0
+  for (const ch of text) {
+    if ((ch.codePointAt(0) ?? 0) < 0x80) ascii++
+    else other++
+  }
+  return Math.ceil(ascii / ASCII_CHARS_PER_TOKEN) + other
 }
 
 /** Hard-split a single oversized block on paragraph boundaries, with overlap. */
@@ -114,7 +122,7 @@ function splitParagraphBySentences(p: string, maxTokens: number): string[] {
   // group as a capturing delimiter, then re-glue each terminator onto the
   // preceding text. Avoids the catastrophic-backtracking risk of an
   // alternation across two overlapping greedy character classes.
-  const parts = p.split(/([.!?]+[\])'"`’”]*)/)
+  const parts = p.split(/([.!?。！？]+[\])'"`’”」』]*)/)
   const sentences: string[] = []
   for (let i = 0; i < parts.length; i += 2) {
     const text = parts[i] ?? ''

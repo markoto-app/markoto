@@ -37,6 +37,16 @@ export default async function globalSetup() {
   const db = drizzle(pool)
   console.log('[repos-test] running migrations...')
   await migrate(db, { migrationsFolder: './drizzle' })
+  // The repos tests assume the migrations' `vector(768)` knowledge column. An
+  // integration run on the same stack boots the app, which retypes the empty
+  // column to the configured default (1024, `mistral-embed`): put it back.
+  const { readEmbeddingColumnDims } = await import('../../../server/db/embeddingColumn')
+  if (await readEmbeddingColumnDims(pool) !== 768) {
+    await pool.query('DROP INDEX IF EXISTS idx_wkc_embedding')
+    await pool.query('TRUNCATE workspace_knowledge_chunks')
+    await pool.query('ALTER TABLE workspace_knowledge_chunks ALTER COLUMN embedding TYPE vector(768) USING NULL')
+    await pool.query('CREATE INDEX idx_wkc_embedding ON workspace_knowledge_chunks USING hnsw (embedding vector_cosine_ops)')
+  }
   await pool.end()
   console.log('[repos-test] migrations applied.')
 

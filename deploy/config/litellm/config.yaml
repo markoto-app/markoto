@@ -11,31 +11,35 @@
 # and encrypt at-rest verification tokens respectively.
 
 model_list:
-  # ---- Embeddings: jina-embeddings-v5-text-nano (custom provider) ----
-  # Used by server/utils/knowledge/embeddings.ts.
+  # ---- Embeddings: mistral-embed (Mistral, EU endpoint) ----
+  # Used by server/utils/knowledge/embeddings.ts (the hosted default,
+  # NUXT_LITELLM_EMBEDDINGS_MODEL=mistral-embed, NUXT_LITELLM_EMBEDDINGS_DIMS=1024).
   #
-  # Why -nano: native 768-d output (perfect fit for the existing
-  # pgvector(768) HNSW index: zero DDL), smallest model in Jina's v5
-  # family = fastest + cheapest. For writing-doc retrieval the quality vs
-  # -text-small (1024-d native) is negligible; the hybrid vector+BM25 RRF
-  # retrieval absorbs the difference. -text-small via MRL truncation to
-  # 768 is a config-only swap.
+  # Pinned to the dated id `mistral-embed-2312` so the vector space never
+  # drifts behind an alias (a new version would need a re-embed).
+  # Fixed 1024-d output (no `dimensions` parameter, no task hints: the app
+  # sends neither by default), 8192 input tokens per text; the app cuts
+  # every input to 8000 UTF-8 bytes, which stays below that for any
+  # script. EU-pinned like every other platform-paid Mistral call.
   #
-  # Why custom provider (jina-embed/) instead of native (jina_ai/):
-  # LiteLLM's native Jina path computes spend as `input_cost_per_token ×
-  # prompt_tokens` but Jina populates `total_tokens` only: result is
-  # $0.00 on every call. The custom provider in custom_handlers.py
-  # reshapes usage so spend tracks correctly.
-  - model_name: jina-embeddings-v5-text-nano
+  # Native LiteLLM path: Mistral reports `usage.prompt_tokens`, so spend is
+  # `input_cost_per_token x prompt_tokens` without a custom handler
+  # (verified through this proxy on 1.108.10 against a Mistral-shaped
+  # upstream: 1000 prompt tokens -> x-litellm-response-cost 0.00011).
+  # Price: $0.10 / M list, EU 1.1x = $0.11 / M.
+  - model_name: mistral-embed
     litellm_params:
-      model: jina-embed/jina-embeddings-v5-text-nano
-      api_key: os.environ/JINA_AI_API_KEY
+      model: mistral/mistral-embed-2312
+      api_base: https://api.eu.mistral.ai/v1
+      api_key: os.environ/MISTRAL_API_KEY
     model_info:
       mode: embedding
-      input_cost_per_token: 0.00000002  # ~$0.02/M tokens
+      input_cost_per_token: 0.00000011  # $0.11 / M (EU: 1.1 x $0.10)
+      max_input_tokens: 8192
+      output_vector_size: 1024
 
   # ---- Embeddings: operator-configurable deployment (self-hosting) ----
-  # Hosted markoto keeps the Jina default above and never selects this
+  # Hosted markoto keeps the mistral-embed default above and never selects this
   # entry. A self-hoster points knowledge embeddings at ANY provider
   # LiteLLM supports by setting, in .env:
   #   NUXT_LITELLM_EMBEDDINGS_MODEL=custom-embeddings
@@ -60,7 +64,7 @@ model_list:
 
   # Reranker intentionally NOT registered. Hybrid vector + BM25 RRF
   # gives sufficient retrieval quality for writing-doc workloads; adding
-  # a reranker stage would burn 100-200ms latency + extra Jina-token cost
+  # a reranker stage would burn 100-200ms latency + extra token cost
   # per knowledge search without a justified quality win. Revisit only
   # if recall becomes the bottleneck under real usage.
 
@@ -432,9 +436,9 @@ model_list:
       # Budget reservation ceiling: a tick is exactly 60 tokens.
       max_output_tokens: 60
 
-  # ---- Web-tool metering: web_search (Staan) + fetch_url (Jina Reader) ----
+  # ---- Web-tool metering: web_search (Staan search) + fetch_url (Staan Fetch) ----
   # Billing-only stubs via custom_handlers.py:WebToolTickProvider. The app
-  # calls Staan / Jina itself with the operator's keys; right before each
+  # calls Staan itself with the operator's key; right before each
   # call it sends one completion on these models with the caller's virtual
   # key (server/utils/ai/webToolCharge.ts), so the call is charged to the
   # same budget as all other AI (per-user key, the free-tier pool, a Team /
@@ -455,12 +459,11 @@ model_list:
       # Budget reservation ceiling: a tick is exactly 1 token.
       max_output_tokens: 1
 
-  # web-fetch-tick: Jina Reader bills the tokens of the page it returns
-  # (about $0.05 per 1M on paid top-ups, no per-request minimum). The app
-  # caps a page at 8,000 tokens (X-Token-Budget), so one fetch costs at most
-  # about $0.0004. Charged as a flat $0.001 per fetch: above that ceiling, so
-  # a Jina price change or a page billed above the cap stays covered, while
-  # still only 1 AI Point.
+  # web-fetch-tick: Staan Fetch lists EUR 0.50 per 1,000 URLs
+  # (staan.ai/#pricing, checked 2026-11; failed URLs are not billed) =
+  # EUR 0.0005 per fetch, about $0.0006. Charged as a flat $0.001 per fetch:
+  # above that, so an exchange-rate move or a price change stays covered,
+  # while still only 1 AI Point.
   - model_name: web-fetch-tick
     litellm_params:
       model: web-tool-tick/web-fetch-tick
@@ -523,7 +526,6 @@ litellm_settings:
   # Custom provider map. It is loaded eagerly, so a regression in
   # custom_handlers.py surfaces at boot rather than on first use.
   custom_provider_map:
-    - {"provider": "jina-embed", "custom_handler": "custom_handlers.jina_embeddings_provider"}
     - {"provider": "mistral-transcribe", "custom_handler": "custom_handlers.mistral_transcribe_provider"}
     - {"provider": "bfl-flux", "custom_handler": "custom_handlers.bfl_flux_provider"}
     - {"provider": "voxtral-tick", "custom_handler": "custom_handlers.voxtral_tick_provider"}

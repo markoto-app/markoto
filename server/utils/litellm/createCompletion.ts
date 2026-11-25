@@ -13,7 +13,7 @@ import { isBudgetExceededError } from './userKeys'
 // type error in the body.
 //
 // Retry semantics: applies to both wrappers below:
-//   - 429 from upstream (Mistral / Jina / BFL) is RETRIED with
+//   - 429 from upstream (Mistral / BFL) is RETRIED with
 //     exponential backoff (3s, 6s, 12s, 24s, total ≤45s for 4
 //     retries). Sized to ride out a full Mistral per-minute
 //     rate-limit reset window even on sustained throttling, NOT

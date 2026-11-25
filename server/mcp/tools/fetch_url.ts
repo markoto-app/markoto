@@ -2,12 +2,12 @@ import { z } from 'zod'
 import { buildUserOnlyTool } from '../lib/wrapDocBoundTool'
 import { isWebToolAvailable } from '../../utils/ai/webTools'
 
-// `fetch_url` is a 2-call pattern (Jina Reader → synthesis with json_schema
+// `fetch_url` is a 2-call pattern (Staan Fetch → synthesis with json_schema
 // strict on the caller's worker model). Returns `{summary, images[]}`, the
 // answer to `question`, or (mode "extract") the page Markdown in pages. The
-// Jina Reader call is platform-paid: charged to the caller's AI budget
+// Staan Fetch call is platform-paid: charged to the caller's AI budget
 // (`chargeWebToolCall`) and sharing the per-user hourly/daily web-tool
-// allowance (`consumeWebToolQuota`) with `web_search` and the in-app loop. Not listed when `JINA_AI_API_KEY` is unset. SSRF-guarded by
+// allowance (`consumeWebToolQuota`) with `web_search` and the in-app loop. Not listed when `STAAN_API_KEY` is unset. SSRF-guarded by
 // `assertSafeUrl` inside the handler.
 export default buildUserOnlyTool({
   name: 'fetch_url',

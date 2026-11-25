@@ -183,7 +183,7 @@ const ALL_WEB_TOOLS: Readonly<{ search: boolean, fetch: boolean }> = { search: t
  * provider → no `generate_image`; a chat model without vision → no
  * `view_image` / `view_pages` (their results are image parts a
  * text-only model would reject). `web_search` / `fetch_url` are dropped
- * when the operator has no Staan / Jina key (`webTools`). Everything else
+ * when the operator has no Staan key (`webTools`). Everything else
  * is unaffected.
  */
 export function filterToolsForProviders(

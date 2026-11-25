@@ -5,7 +5,7 @@ import { webSearch } from './webSearch'
 import { fetchUrl } from './fetchUrl'
 import { workerProviderFor } from '../../aiProviders/resolve'
 
-// web_search (Staan search + synthesis) and fetch_url (Jina Reader +
+// web_search (Staan search + synthesis) and fetch_url (Staan Fetch +
 // synthesis). The in-app loop runs both itself (`agentic/loop/webSubCalls.ts`:
 // its abort signal, its model, citation reminders and an activity row);
 // `run` here serves MCP and the test route through the same surface as

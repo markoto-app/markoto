@@ -32,9 +32,9 @@ The row's existence is re-checked after conversion and after embedding, so a fil
 
 ## Embeddings
 
-All embedding calls go through LiteLLM. The hosted default is Jina `jina-embeddings-v5-text-nano` (768 dimensions). A self-hoster can point `NUXT_LITELLM_EMBEDDINGS_MODEL=custom-embeddings` at any OpenAI-compatible embeddings endpoint; operator documentation is in `docs/AI-MODELS.md`. Request parameters (Jina's `task` hint, `retrieval.passage` on ingest and `retrieval.query` on search; the `dimensions` field) are decided in `shared/utils/runtime/embeddingConfig.ts`.
+All embedding calls go through LiteLLM. The hosted default is Mistral `mistral-embed` (1024 dimensions, Mistral's EU endpoint; the migrations create `vector(768)` and the boot check retypes the column, see `server/db/embeddingColumn.ts`). A self-hoster can point `NUXT_LITELLM_EMBEDDINGS_MODEL=custom-embeddings` at any OpenAI-compatible embeddings endpoint; operator documentation is in `docs/AI-MODELS.md`. Optional request parameters (a `task` hint, `retrieval.passage` on ingest and `retrieval.query` on search; the `dimensions` field; both off unless the operator opts in) are decided in `shared/utils/runtime/embeddingConfig.ts`.
 
-Jina reports only `total_tokens`, which LiteLLM's built-in Jina provider prices at zero. `JinaEmbeddingsProvider` in `deploy/config/litellm/custom_handlers.py` rewrites the usage so spend is recorded.
+Mistral reports `usage.prompt_tokens`, so LiteLLM's native Mistral path records the spend (`input_cost_per_token` of the `mistral-embed` deployment); no custom handler is involved. Every input is cut to 8,000 UTF-8 bytes (`truncateForEmbedding`), below `mistral-embed`'s 8,192-token limit, which Mistral enforces by refusing longer inputs.
 
 ### Column dimension and re-embedding
 

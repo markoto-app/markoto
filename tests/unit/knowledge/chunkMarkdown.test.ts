@@ -79,3 +79,29 @@ describe('chunkMarkdown', () => {
     expect(chunk!.tokens).toBeLessThan(300)
   })
 })
+
+// Chunks must fit the embedding model's input limit (mistral-embed: 8192
+// tokens) in every script: non-ASCII characters count as one token each.
+describe('chunkMarkdown token estimate beyond ASCII', () => {
+  it('counts each non-ASCII character as a token, so CJK chunks stay small', () => {
+    const sentence = '这是一个关于知识库的句子。'
+    const chunks = chunkMarkdown(sentence.repeat(600))
+    expect(chunks.length).toBeGreaterThan(1)
+    for (const c of chunks) {
+      // The 1500 ceiling plus at most the 100-token overlap carried over.
+      expect(c.tokens).toBeLessThanOrEqual(1600)
+      expect(new TextEncoder().encode(c.content).length).toBeLessThanOrEqual(8000)
+    }
+    expect(chunks.map(c => c.content).join('')).toContain(sentence)
+  })
+
+  it('splits CJK paragraphs at full-width sentence ends', () => {
+    const chunks = chunkMarkdown('一二三四五。'.repeat(400), { maxTokens: 300 })
+    for (const c of chunks) expect(c.content.endsWith('。')).toBe(true)
+  })
+
+  it('keeps the ASCII estimate at four characters per token', () => {
+    const [chunk] = chunkMarkdown('abcd'.repeat(10))
+    expect(chunk?.tokens).toBe(10)
+  })
+})

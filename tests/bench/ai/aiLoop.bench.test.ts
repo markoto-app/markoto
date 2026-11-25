@@ -57,7 +57,6 @@ describe.skipIf(!ENABLED)('AI loop benchmark (scripted planner, large document)'
   beforeEach(() => {
     // The hosted SaaS offers web_search / fetch_url (operator keys set).
     vi.stubEnv('STAAN_API_KEY', 'bench-staan-key')
-    vi.stubEnv('JINA_AI_API_KEY', 'bench-jina-key')
   })
 
   for (const task of BASELINE_TASKS) {

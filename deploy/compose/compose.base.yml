@@ -158,9 +158,6 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_LITELLM_USER:-${POSTGRES_USER}}:${POSTGRES_LITELLM_PASSWORD:-${POSTGRES_PASSWORD}}@postgres:5432/litellm
       - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:?LITELLM_MASTER_KEY required}
       - LITELLM_SALT_KEY=${LITELLM_SALT_KEY:?LITELLM_SALT_KEY required}
-      # Empty is fine when embeddings run on `custom-embeddings` (self-hosting);
-      # defined-but-empty keeps LiteLLM from crashing on an unset os.environ/ ref.
-      - JINA_AI_API_KEY=${JINA_AI_API_KEY:-}
       # Self-hosting: operator-configurable embeddings deployment
       # (`custom-embeddings` in deploy/config/litellm/config.yaml). Selected only when
       # NUXT_LITELLM_EMBEDDINGS_MODEL=custom-embeddings. The proxy crashes at
@@ -170,7 +167,9 @@ services:
       - EMBEDDINGS_UPSTREAM_API_BASE=${EMBEDDINGS_UPSTREAM_API_BASE:-https://api.openai.com/v1}
       - EMBEDDINGS_UPSTREAM_API_KEY=${EMBEDDINGS_UPSTREAM_API_KEY:-}
       # Upstream provider keys. `${VAR:-}` fallbacks let the stack boot
-      # before the keys are provisioned.
+      # before the keys are provisioned (defined-but-empty keeps LiteLLM
+      # from crashing on an unset os.environ/ ref). Mistral also backs the
+      # default knowledge-base embeddings (`mistral-embed`).
       - MISTRAL_API_KEY=${MISTRAL_API_KEY:-}
       - BFL_API_KEY=${BFL_API_KEY:-}
       - STORE_MODEL_IN_DB=false

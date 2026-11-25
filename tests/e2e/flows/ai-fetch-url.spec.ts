@@ -8,12 +8,12 @@ import { test, expect, requireLiveAi } from '../fixtures/flow'
 // Job done when the AI calls `fetch_url`, fetches the page through
 // the SSRF-guarded URL fetcher, and inserts a summary paragraph.
 //
-// Pipeline: AI calls `fetch_url(url)` → 2-call sub-pipeline (Jina
-// Reader fetches the page, then the chat model synthesises a
+// Pipeline: AI calls `fetch_url(url)` → 2-call sub-pipeline (Staan
+// Fetch reads the page, then the chat model synthesises a
 // structured `{summary, images[]}` extraction) → AI weaves the result
 // into the doc with a link to the page (system-prompt citation rule).
 //
-// Live LiteLLM round-trip → Mistral. Skipped if no key.
+// Live round-trip: Staan Fetch + LiteLLM → Mistral. Skipped if no key.
 test('Ask the AI to read a URL', async ({ page, flow, editor }) => {
   requireLiveAi()
   test.setTimeout(360_000)
@@ -39,7 +39,7 @@ test('Ask the AI to read a URL', async ({ page, flow, editor }) => {
   )
 
   // Vue.js docs landing page: stable, public, returns a clear short
-  // page that Jina Reader → Mistral summarises predictably. Avoid
+  // page that Staan Fetch → Mistral summarises predictably. Avoid
   // news sites (paywalls / cookies banners change the fetched body
   // and produce flaky summaries).
   const prompt = 'Read https://vuejs.org/guide/introduction.html and add a one-paragraph summary at the end of this doc.'

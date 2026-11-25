@@ -32,7 +32,7 @@ flowchart LR
   S3[("S3 storage<br/>images, exports,<br/>backups")]
   Backup["backup<br/>pg_dump to S3"]
   Providers["AI providers<br/>(user keys or instance defaults)"]
-  Web["web_search (Staan)<br/>fetch_url (Jina Reader)"]
+  Web["web_search (Staan search)<br/>fetch_url (Staan Fetch)"]
 
   Browser -- "HTTPS" --> Traefik
   Browser -- "WSS" --> Traefik
@@ -172,7 +172,7 @@ Development uses `deploy/compose/compose.dev.yml` (infrastructure only, app on t
 - **Billing behind a flag, off by default.** Self-hosted, free hosted and paid hosted run the same code. Billing endpoints answer 404 `billing/disabled` when off (not 503, which would make Stripe retry forever).
 - **Every AI call through LiteLLM.** One OpenAI-shaped API, per-user budgets enforced by the proxy, uniform spend tracking; adding a provider is configuration.
 - **Bring your own key.** Users or the operator choose the provider; platform-paid calls are limited to the instance defaults and web tools.
-- **EU-resident AI providers on the hosted service.** Mistral (EU endpoint), Jina, the web search provider and BFL (EU endpoint), so no transfer outside the EU for AI processing.
+- **EU-resident AI providers on the hosted service.** Mistral (EU endpoint, also the knowledge-base embeddings), Staan (web search and page fetch) and BFL (EU endpoint), so no transfer outside the EU for AI processing.
 - **Zod as the AI tool source of truth.** One schema generates the model-facing JSON schema and validates the arguments.
 - **One `themeToCss()` for preview and print.** The preview is the PDF, not an approximation.
 - **Server-rendered PDF in a Playwright sidecar.** Consistent output across browsers and server-side bytes for the AI's page tools, without a Chromium dependency in the app image.

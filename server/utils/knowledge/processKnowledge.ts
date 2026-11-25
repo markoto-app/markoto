@@ -23,7 +23,7 @@ const log = useLogger('knowledge-processing')
  *   2. POST to the markitdown service, same endpoint the user-facing
  *      /api/import uses, so we share all format support for free.
  *   3. Chunk the returned markdown.
- *   4. Embed each chunk (batched) via LiteLLM → Jina v5-text-nano.
+ *   4. Embed each chunk (batched) via LiteLLM → Mistral `mistral-embed` (EU endpoint).
  *   5. Persist chunks + flip the parent row to status='ready'.
  *
  * This runs fire-and-forget from the confirm endpoint. A sweep plugin

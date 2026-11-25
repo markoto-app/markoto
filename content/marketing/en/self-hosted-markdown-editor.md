@@ -49,7 +49,7 @@ Users sign in through **your own OpenID Connect provider**, such as Authentik, K
 
 ## AI on your terms
 
-All AI is optional. Each user can connect their own OpenAI-compatible provider for chat, images and voice input. As the operator you can set instance defaults, including a local model through Ollama. Nothing is sent to an AI provider unless someone uses an AI feature. The knowledge base needs an embeddings provider (Jina by default, or any other, including a local one).
+All AI is optional. Each user can connect their own OpenAI-compatible provider for chat, images and voice input. As the operator you can set instance defaults, including a local model through Ollama. Nothing is sent to an AI provider unless someone uses an AI feature. The knowledge base needs an embeddings provider (Mistral by default, or any other, including a local one).
 
 ::tour-clip{scene="yours"}
 ::

@@ -36,7 +36,7 @@ export const FEATURE_TAGS = {
   transcribe: 'feature:transcribe',
   textLoop: 'feature:text-loop',
   dictateTick: 'feature:dictate-tick',
-  // Per-call charges of the web tools (Staan search, Jina Reader page fetch)
+  // Per-call charges of the web tools (Staan search and page fetch)
   webSearch: 'feature:web-search',
   webFetch: 'feature:web-fetch',
   imageGen: 'feature:image-gen',

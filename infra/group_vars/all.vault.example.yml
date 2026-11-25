@@ -53,9 +53,8 @@ litellm_master_key: "REPLACE_ME"           # openssl rand -hex 32, prefix "sk-" 
 litellm_salt_key: "REPLACE_ME"             # openssl rand -hex 32 (encrypts key tokens at rest, NEVER rotate casually)
 
 # ─── AI provider keys (all EU-resident providers) ───
-jina_ai_api_key: "REPLACE_ME"              # jina.ai, embeddings + fetch_url reader
-staan_api_key: "REPLACE_ME"                # staan.ai, web_search (enable EU-only routing in the dashboard)
-mistral_api_key: "REPLACE_ME"              # mistral.ai, text + voice
+staan_api_key: "REPLACE_ME"                # staan.ai, web_search + fetch_url (enable EU-only routing in the dashboard)
+mistral_api_key: "REPLACE_ME"              # mistral.ai, text + voice + knowledge-base embeddings
 bfl_api_key: "REPLACE_ME"                  # blackforestlabs, image generation
 
 # ─── Stripe billing: ONLY needed once nuxt_billing_enabled is true ───

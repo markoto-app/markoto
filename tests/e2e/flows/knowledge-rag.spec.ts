@@ -15,8 +15,8 @@ import path from 'node:path'
 // AI: `search_knowledge` tool returns top-K snippets; the model
 // folds them into its reply.
 //
-// Live LiteLLM round-trip. Drives Jina embeddings (search) + Mistral
-// (synthesis). MISTRAL_API_KEY + JINA_AI_API_KEY required.
+// Live LiteLLM round-trip. Drives Mistral embeddings (search) + Mistral
+// (synthesis). MISTRAL_API_KEY required.
 //
 // Setup shortcut: the workspace is created via the API, not the UI
 // (UI workspace creation is a `WorkspaceFormModal` dance that's

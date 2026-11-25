@@ -74,7 +74,6 @@ nuxt_s3_bucket=v_s3bucket
 nuxt_ai_dictate_jwt_secret=v_dictate
 litellm_master_key=v_llmaster
 litellm_salt_key=v_llsalt
-jina_ai_api_key=v_jina
 staan_api_key=v_staan
 mistral_api_key=v_mistral
 bfl_api_key=v_bfl

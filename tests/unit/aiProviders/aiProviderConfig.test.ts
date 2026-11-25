@@ -150,7 +150,7 @@ describe('filterToolsForProviders', () => {
     expect(out).toContain('generate_image')
     expect(out).toContain('insert_text')
   })
-  it('drops web_search / fetch_url independently when the operator has no Staan / Jina key', () => {
+  it('drops web_search / fetch_url independently, per availability flag', () => {
     const providers = { chat: { supportsVision: true }, image: {} }
     const noSearch = names(filterToolsForProviders(ALL_TOOL_DECLARATIONS, providers, { search: false, fetch: true }))
     expect(noSearch).not.toContain('web_search')

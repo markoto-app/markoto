@@ -1,56 +1,63 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { stubEnv } from '../../helpers/env'
 
-// Embeddings wrapper over a single backend (Jina
-// via LiteLLM). The shape of `embedDocuments` / `embedQuery` /
-// `embeddingVersionTag` is the public contract that
-// processKnowledge.ts and the re-embed script depend on.
+// Embeddings wrapper over a single backend (the `mistral-embed` deployment
+// via LiteLLM by default). The shape of `embedDocuments` / `embedQuery` /
+// `embeddingVersionTag` is the public contract that processKnowledge.ts and
+// the re-embed script depend on.
 
 const mockState = vi.hoisted(() => ({
-  jinaCalls: [] as Array<Record<string, unknown>>,
-  jinaResponse: { data: [{ embedding: new Array(768).fill(0.01) }] } as unknown
+  calls: [] as Array<Record<string, unknown>>,
+  response: { data: [{ embedding: new Array(1024).fill(0.01) }] } as unknown
 }))
 
 // Configuration comes from the typed env (shared/env), stubbed per test.
-const JINA_ENV = {
+const DEFAULT_ENV = {
   NUXT_LITELLM_URL: 'http://litellm:4000',
   NUXT_LITELLM_MASTER_KEY: 'sk-master',
-  NUXT_LITELLM_EMBEDDINGS_MODEL: 'jina-embeddings-v5-text-nano',
-  NUXT_LITELLM_EMBEDDINGS_DIMS: '768'
+  NUXT_LITELLM_EMBEDDINGS_MODEL: undefined,
+  NUXT_LITELLM_EMBEDDINGS_DIMS: undefined,
+  NUXT_LITELLM_EMBEDDINGS_SEND_DIMENSIONS: undefined,
+  NUXT_LITELLM_EMBEDDINGS_TASK_HINTS: undefined
 }
 
 vi.mock('../../../server/utils/ai/litellmClient', () => ({
   useLitellmAdmin: () => ({
     embeddings: {
       create: async (req: Record<string, unknown>) => {
-        mockState.jinaCalls.push(req)
-        return mockState.jinaResponse
+        mockState.calls.push(req)
+        return mockState.response
       }
     }
   })
 }))
 
 const {
+  MAX_INPUT_BYTES,
   resolveEmbeddingsConfig,
   embeddingVersionTag,
   embedDocuments,
-  embedQuery
+  embedQuery,
+  truncateForEmbedding
 } = await import('../../../server/utils/knowledge/embeddings')
 
 beforeEach(() => {
-  mockState.jinaCalls = []
-  stubEnv(JINA_ENV)
-  mockState.jinaResponse = { data: [{ embedding: new Array(768).fill(0.01) }] }
+  mockState.calls = []
+  stubEnv(DEFAULT_ENV)
+  mockState.response = { data: [{ embedding: new Array(1024).fill(0.01) }] }
 })
+
+const utf8Bytes = (s: string): number => new TextEncoder().encode(s).length
 
 // resolveEmbeddingsConfig + embeddingVersionTag
 
 describe('resolveEmbeddingsConfig', () => {
-  it('resolves the jina config from the environment', () => {
+  it('defaults to mistral-embed at 1024 dimensions, with no extra request fields', () => {
     const cfg = resolveEmbeddingsConfig()
-    expect(cfg.provider).toBe('jina')
-    expect(cfg.model).toBe('jina-embeddings-v5-text-nano')
-    expect(cfg.dimensions).toBe(768)
+    expect(cfg.provider).toBe('mistral')
+    expect(cfg.model).toBe('mistral-embed')
+    expect(cfg.dimensions).toBe(1024)
+    expect(cfg.shape).toEqual({ sendTaskHint: false, sendDimensions: false })
     expect(cfg.apiKey).toBe('sk-master')
   })
 
@@ -62,14 +69,7 @@ describe('resolveEmbeddingsConfig', () => {
 
 describe('embeddingVersionTag', () => {
   it('emits {provider}/{model}:{dims}', () => {
-    expect(embeddingVersionTag({
-      provider: 'jina',
-      model: 'jina-embeddings-v5-text-nano',
-      upstreamModel: '',
-      dimensions: 768,
-      shape: { sendTaskHint: true, sendDimensions: true },
-      apiKey: 'k'
-    })).toBe('jina/jina-embeddings-v5-text-nano:768')
+    expect(embeddingVersionTag(resolveEmbeddingsConfig())).toBe('mistral/mistral-embed:1024')
   })
 
   it('uses the upstream model for a custom deployment when known', () => {
@@ -86,10 +86,10 @@ describe('embeddingVersionTag', () => {
   })
 })
 
-describe('custom (non-Jina) configuration', () => {
+describe('custom configuration', () => {
   function useCustom(extra: Record<string, string> = {}, dims = 1536): void {
-    stubEnv({ ...JINA_ENV, NUXT_LITELLM_EMBEDDINGS_MODEL: 'custom-embeddings', NUXT_LITELLM_EMBEDDINGS_DIMS: String(dims), ...extra })
-    mockState.jinaResponse = { data: [{ embedding: new Array(dims).fill(0.01) }] }
+    stubEnv({ ...DEFAULT_ENV, NUXT_LITELLM_EMBEDDINGS_MODEL: 'custom-embeddings', NUXT_LITELLM_EMBEDDINGS_DIMS: String(dims), ...extra })
+    mockState.response = { data: [{ embedding: new Array(dims).fill(0.01) }] }
   }
 
   it('resolves provider=custom and sends neither task nor dimensions by default', async () => {
@@ -97,7 +97,7 @@ describe('custom (non-Jina) configuration', () => {
     expect(resolveEmbeddingsConfig().provider).toBe('custom')
     await embedDocuments(['hello'])
     await embedQuery('hello')
-    for (const call of mockState.jinaCalls) {
+    for (const call of mockState.calls) {
       expect(call).not.toHaveProperty('task')
       expect(call).not.toHaveProperty('dimensions')
       expect(call.model).toBe('custom-embeddings')
@@ -107,19 +107,21 @@ describe('custom (non-Jina) configuration', () => {
   it('sends dimensions when the operator opts in', async () => {
     useCustom({ NUXT_LITELLM_EMBEDDINGS_SEND_DIMENSIONS: 'true' })
     await embedDocuments(['hello'])
-    expect(mockState.jinaCalls[0]!.dimensions).toBe(1536)
-    expect(mockState.jinaCalls[0]).not.toHaveProperty('task')
+    expect(mockState.calls[0]!.dimensions).toBe(1536)
+    expect(mockState.calls[0]).not.toHaveProperty('task')
   })
 
   it('sends the task hint when the operator opts in', async () => {
     useCustom({ NUXT_LITELLM_EMBEDDINGS_TASK_HINTS: 'true' })
     await embedQuery('hello')
-    expect(mockState.jinaCalls[0]!.task).toBe('retrieval.query')
+    await embedDocuments(['hello'])
+    expect(mockState.calls[0]!.task).toBe('retrieval.query')
+    expect(mockState.calls[1]!.task).toBe('retrieval.passage')
   })
 
   it('still rejects a vector of the wrong length with an actionable message', async () => {
     useCustom()
-    mockState.jinaResponse = { data: [{ embedding: new Array(768).fill(0) }] }
+    mockState.response = { data: [{ embedding: new Array(768).fill(0) }] }
     await expect(embedDocuments(['x'])).rejects.toThrow(/NUXT_LITELLM_EMBEDDINGS_DIMS=1536/)
   })
 
@@ -132,43 +134,71 @@ describe('custom (non-Jina) configuration', () => {
 // embedDocuments: wire-format
 
 describe('embedDocuments', () => {
-  it('passes task=retrieval.passage and dimensions=768 to LiteLLM', async () => {
+  it('asks the mistral-embed deployment for float vectors, with no task or dimensions field', async () => {
     await embedDocuments(['hello world'])
-    expect(mockState.jinaCalls).toHaveLength(1)
-    const call = mockState.jinaCalls[0]!
-    expect(call.model).toBe('jina-embeddings-v5-text-nano')
-    expect(call.dimensions).toBe(768)
-    expect(call.task).toBe('retrieval.passage')
+    expect(mockState.calls).toHaveLength(1)
+    const call = mockState.calls[0]!
+    expect(call.model).toBe('mistral-embed')
+    expect(call.encoding_format).toBe('float')
+    expect(call).not.toHaveProperty('dimensions')
+    expect(call).not.toHaveProperty('task')
     expect(call.input).toBe('hello world')
   })
 
-  it('returns one vector per input, all 768-d', async () => {
+  it('returns one vector per input, all 1024-d', async () => {
     const out = await embedDocuments(['a', 'b', 'c', 'd', 'e'])
     expect(out).toHaveLength(5)
-    out.forEach(v => expect(v.length).toBe(768))
-    expect(mockState.jinaCalls).toHaveLength(5)
+    out.forEach(v => expect(v.length).toBe(1024))
+    expect(mockState.calls).toHaveLength(5)
   })
 
-  it('truncates inputs longer than MAX_INPUT_CHARS', async () => {
-    const huge = 'x'.repeat(20_000)
-    await embedDocuments([huge])
-    const call = mockState.jinaCalls[0]!
-    expect(typeof call.input).toBe('string')
-    expect((call.input as string).length).toBeLessThanOrEqual(8000)
+  it('cuts inputs to MAX_INPUT_BYTES of UTF-8', async () => {
+    await embedDocuments(['x'.repeat(20_000)])
+    const input = mockState.calls[0]!.input as string
+    expect(input.length).toBe(MAX_INPUT_BYTES)
   })
 
   it('throws on wrong-shape vector', async () => {
-    mockState.jinaResponse = { data: [{ embedding: new Array(512).fill(0) }] }
+    mockState.response = { data: [{ embedding: new Array(512).fill(0) }] }
     await expect(embedDocuments(['x'])).rejects.toThrow(/wrong shape/)
+  })
+})
+
+// truncateForEmbedding: stays under mistral-embed's 8192-token limit in any script
+
+describe('truncateForEmbedding', () => {
+  it('keeps short text untouched', () => {
+    expect(truncateForEmbedding('hello')).toBe('hello')
+    const fits = 'ü'.repeat(MAX_INPUT_BYTES / 2)
+    expect(truncateForEmbedding(fits)).toBe(fits)
+  })
+
+  it('cuts multi-byte text by bytes, not characters (CJK: 3 bytes each)', () => {
+    const out = truncateForEmbedding('漢'.repeat(5000))
+    expect(utf8Bytes(out)).toBeLessThanOrEqual(MAX_INPUT_BYTES)
+    expect(out.length).toBe(Math.floor(MAX_INPUT_BYTES / 3))
+  })
+
+  it('never splits a surrogate pair (emoji: 4 bytes each)', () => {
+    const out = truncateForEmbedding('😀'.repeat(3000))
+    expect(utf8Bytes(out)).toBeLessThanOrEqual(MAX_INPUT_BYTES)
+    expect(out).toBe('😀'.repeat(MAX_INPUT_BYTES / 4))
+  })
+
+  it('stays below the 8192-token input limit of mistral-embed', () => {
+    // A byte-level BPE never emits more tokens than bytes.
+    expect(MAX_INPUT_BYTES).toBeLessThan(8192)
   })
 })
 
 // embedQuery: single-call query path
 
 describe('embedQuery', () => {
-  it('uses task=retrieval.query', async () => {
+  it('sends the query to the default model with no task hint', async () => {
     await embedQuery('what is markoto')
-    const call = mockState.jinaCalls[0]!
-    expect(call.task).toBe('retrieval.query')
+    const call = mockState.calls[0]!
+    expect(call.model).toBe('mistral-embed')
+    expect(call).not.toHaveProperty('task')
+    expect(call.input).toBe('what is markoto')
   })
 })

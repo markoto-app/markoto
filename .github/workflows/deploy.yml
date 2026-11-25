@@ -171,7 +171,6 @@ jobs:
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           # provider keys (Environment-scoped, like the rest)
-          JINA_AI_API_KEY: ${{ secrets.JINA_AI_API_KEY }}
           STAAN_API_KEY: ${{ secrets.STAAN_API_KEY }}
           MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
           BFL_API_KEY: ${{ secrets.BFL_API_KEY }}

@@ -134,7 +134,7 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     basis: 'contract',
     dataCategories: ['user_prompt', 'document_context', 'uploaded_files', 'ai_generated_content', 'ai_usage_records'],
     retention: 90,
-    subProcessors: ['mistral_ai', 'jina_ai', 'bfl', 'staan']
+    subProcessors: ['mistral_ai', 'bfl', 'staan']
   },
   {
     // Bring-your-own-key AI. When a user configures their OWN AI
@@ -151,15 +151,14 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     // `ai_assistance` retention (90 days).
     //
     // Exception: web search + page fetch (`web_search` / `fetch_url`) are
-    // platform-provided for every user, BYOK included, queries go to Staan
-    // and fetched URLs to Jina Reader on OUR accounts, so both are listed
-    // below. The summarising step afterwards runs on the user's provider.
+    // platform-provided for every user, BYOK included: queries and fetched
+    // URLs go to Staan on OUR account, so it is listed below. The summarising step afterwards runs on the user's provider.
     id: 'user_directed_ai_provider',
     label: 'AI with your own provider (bring your own key)',
     basis: 'contract',
     dataCategories: ['provider_config', 'encrypted_api_key', 'user_prompt', 'document_context', 'uploaded_files', 'audio_recording', 'ai_generated_content'],
     retention: 'until_deletion',
-    subProcessors: ['ovh_postgres', 'staan', 'jina_ai']
+    subProcessors: ['ovh_postgres', 'staan']
   },
   {
     // Delegated AI edits ("jobs": translate, rewrite, terminology, summary
@@ -184,7 +183,7 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     basis: 'contract',
     dataCategories: ['uploaded_files', 'extracted_text', 'embeddings'],
     retention: 'until_deletion',
-    subProcessors: ['jina_ai', 'ovh_postgres', 'ovh_object_storage']
+    subProcessors: ['mistral_ai', 'ovh_postgres', 'ovh_object_storage']
   },
   {
     // Project context ("bible"): a document a member marked as standing AI

@@ -146,9 +146,8 @@ export function primaryServerEnv(stripe: TestStripeTarget = STRIPE_MOCK): NodeJS
     NUXT_ADMIN_USER_EMAILS: TEST_OIDC_ADMIN_EMAIL,
     NUXT_GOOGLE_API_KEY: 'test',
     // LiteLLM proxy: integration tests hit a real `litellm-test` container (deploy/compose/compose.test.yml) on port 4100
-    // so the per-user virtual-key CRUD round-trips through the actual /key/* admin surface. Knowledge embeddings
-    // keep the legacy provider tag for tests that exercise the dual-mode resolver branch; no model upstream is
-    // wired in the test proxy.
+    // so the per-user virtual-key CRUD round-trips through the actual /key/* admin surface. No embeddings
+    // upstream is called by the suite.
     NUXT_LITELLM_URL: 'http://127.0.0.1:4100',
     NUXT_LITELLM_MASTER_KEY: 'sk-test-litellm-master',
     // Test stack uses `litellm_test` (alongside `ypad_test`) on the
@@ -158,9 +157,6 @@ export function primaryServerEnv(stripe: TestStripeTarget = STRIPE_MOCK): NodeJS
     // ...as LiteLLM's own role, like a deployment with separate roles.
     NUXT_LITELLM_DB_USER: TEST_LITELLM_DB_USER,
     NUXT_LITELLM_DB_PASSWORD: TEST_LITELLM_DB_PASSWORD,
-    // `NUXT_KNOWLEDGE_EMBEDDINGS_PROVIDER` has a single value (`jina`); tests leave it at the default (the env var
-    // no longer toggles a runtime branch).
-    //
     // Substitutes a fake SpeechClient for the dictation WS route so integration tests can drive the full
     // handshake and message flow without hitting Voxtral Realtime or paying per-minute. See
     // `server/utils/agentic/dictateSpeechClient.ts`.
@@ -233,10 +229,9 @@ export function primaryServerEnv(stripe: TestStripeTarget = STRIPE_MOCK): NodeJS
     // dictation tests use the in-process speech mock, so a stub works.
     MISTRAL_API_KEY: process.env.MISTRAL_API_KEY || 'stub-mistral-key',
     // Platform web tools: stub upstream keys so the primary server
-    // offers web_search + fetch_url (nothing in the suite calls Staan/Jina;
+    // offers web_search + fetch_url (nothing in the suite calls Staan;
     // TEST_MODE bypasses the per-user allowance).
     STAAN_API_KEY: 'stub-staan-key',
-    JINA_AI_API_KEY: 'stub-jina-key',
     // Custom domains: checked against challtestsrv-test, routed by
     // traefik-test (which polls this server with the same token) with
     // certificates from pebble-test: deploy/compose/compose.test.yml.
@@ -322,8 +317,8 @@ async function startBillingOffServer(primaryEnv: NodeJS.ProcessEnv): Promise<voi
   }
   env.NUXT_BILLING_ENABLED = 'false'
   env.NUXT_PLANS_COMING_SOON = 'true'
-  // Partially configured web tools: Jina only, no Staan key → web_search
-  // is unavailable while fetch_url stays on (pins `webTools` availability).
+  // No web tools: without the Staan key neither web_search nor fetch_url
+  // is offered (pins `webTools` availability).
   delete env.STAAN_API_KEY
   // SaaS BYOK policy: provider allowlist, no private networks.
   env.NUXT_AI_BYOK_ALLOWED_BASE_URLS = RECOMMENDED_SAAS_ALLOWED_BASE_URLS.join(',')

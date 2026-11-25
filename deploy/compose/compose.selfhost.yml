@@ -341,7 +341,6 @@ services:
       - NUXT_IMAGE_GC_RETENTION_DAYS=${NUXT_IMAGE_GC_RETENTION_DAYS:-}
       - NUXT_PUBLIC_SYNC_HIDDEN_DISCONNECT_MS=${NUXT_PUBLIC_SYNC_HIDDEN_DISCONNECT_MS:-}
       - RENDERER_ALLOWED_ORIGINS=${RENDERER_ALLOWED_ORIGINS:-}
-      - JINA_AI_API_KEY=${JINA_AI_API_KEY:-}
       - MISTRAL_API_KEY=${MISTRAL_API_KEY:-}
       - STAAN_API_KEY=${STAAN_API_KEY:-}
       - NUXT_WEB_TOOLS_HOURLY_LIMIT=${NUXT_WEB_TOOLS_HOURLY_LIMIT:-}
@@ -470,11 +469,11 @@ services:
       # Workspace single sign-on against an IdP on a private network (an
       # on-prem Keycloak, say). Default false (server/utils/sso/urlPolicy.ts).
       - NUXT_SSO_ALLOW_PRIVATE_URLS=${NUXT_SSO_ALLOW_PRIVATE_URLS:-false}
-      # Knowledge-base embeddings (docs/AI-MODELS.md#embeddings). The Jina
-      # default needs JINA_AI_API_KEY; otherwise point custom-embeddings at
+      # Knowledge-base embeddings (docs/AI-MODELS.md#embeddings). The
+      # mistral-embed default needs MISTRAL_API_KEY; otherwise point custom-embeddings at
       # any provider (EMBEDDINGS_UPSTREAM_* are read by the litellm service).
-      - NUXT_LITELLM_EMBEDDINGS_MODEL=${NUXT_LITELLM_EMBEDDINGS_MODEL:-jina-embeddings-v5-text-nano}
-      - NUXT_LITELLM_EMBEDDINGS_DIMS=${NUXT_LITELLM_EMBEDDINGS_DIMS:-768}
+      - NUXT_LITELLM_EMBEDDINGS_MODEL=${NUXT_LITELLM_EMBEDDINGS_MODEL:-mistral-embed}
+      - NUXT_LITELLM_EMBEDDINGS_DIMS=${NUXT_LITELLM_EMBEDDINGS_DIMS:-1024}
       - NUXT_LITELLM_EMBEDDINGS_SEND_DIMENSIONS=${NUXT_LITELLM_EMBEDDINGS_SEND_DIMENSIONS:-auto}
       - NUXT_LITELLM_EMBEDDINGS_TASK_HINTS=${NUXT_LITELLM_EMBEDDINGS_TASK_HINTS:-auto}
       - NUXT_LITELLM_EMBEDDINGS_UPSTREAM_MODEL=${EMBEDDINGS_UPSTREAM_MODEL:-}

@@ -5,8 +5,8 @@ import { capsFor, resolveUserPlan } from '../billing/entitlements'
 import { DAY_MS, HOUR_MS } from '~~/shared/config/units'
 import { useEnv } from '~~/shared/env/load'
 
-// Platform-provided web tools: `web_search` (Staan) and `fetch_url` (Jina
-// Reader). The operator's key pays the upstream search / reader call, a
+// Platform-provided web tools: `web_search` (Staan search) and `fetch_url`
+// (Staan Fetch). The operator's key pays the upstream search / fetch call, a
 // plain HTTP call made by the app; each call is charged to the caller's AI
 // budget through a tick model first (`webToolCharge.ts`). The synthesis
 // step that follows runs on the caller's chat provider (BYOK → the user's
@@ -46,7 +46,7 @@ export function getWebToolLimits(planDailyLimit: number | null = null): WebToolL
 export interface WebToolAvailability {
   /** `STAAN_API_KEY` is set on the app. */
   search: boolean
-  /** `JINA_AI_API_KEY` is set on the app. */
+  /** `STAAN_API_KEY` is set on the app (Staan Fetch, same key as search). */
   fetch: boolean
 }
 
@@ -55,7 +55,7 @@ export function getWebToolAvailability(): WebToolAvailability {
   const { providers } = useEnv()
   return {
     search: Boolean(providers.staanApiKey),
-    fetch: Boolean(providers.jinaApiKey)
+    fetch: Boolean(providers.staanApiKey)
   }
 }
 

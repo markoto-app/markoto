@@ -94,7 +94,7 @@ const FLOWS_ENV: Record<string, string> = {
   NUXT_INTERNAL_API_SECRET: 'test-internal-api-secret-isolated',
   NUXT_SESSION_PASSWORD: 'test-session-password-at-least-32-chars-isolated-x',
   // The test stack's `litellm-test` container. Upstream provider keys
-  // (Mistral / Jina / BFL) are forwarded from the host in `main()`. Every
+  // (Mistral / BFL) are forwarded from the host in `main()`. Every
   // flow needs it so resolveBillingContext can lazily create the user's
   // virtual key; the budget-exhausted flow drives the real /key/* admin API.
   NUXT_LITELLM_URL: 'http://127.0.0.1:4100',

@@ -5,7 +5,6 @@ import {
   DEFAULT_EMBEDDINGS_DIMS,
   DEFAULT_EMBEDDINGS_MODEL,
   embeddingRequestParams,
-  isJinaModel,
   parseEmbeddingDims,
   parseTriState,
   resolveRequestShape,
@@ -18,7 +17,7 @@ import { useEnv } from '~~/shared/env/load'
  * Embeddings wrapper for the workspace knowledge base.
  *
  * Every call routes through the LiteLLM proxy. Hosted markoto uses the
- * default `jina-embeddings-v5-text-nano` (768-d); a self-hoster can point the
+ * default `mistral-embed` (1024-d, Mistral's EU endpoint); a self-hoster can point the
  * proxy's `custom-embeddings` deployment at any OpenAI-compatible endpoint
  * and pick the dimension (see docs/AI-MODELS.md#embeddings). Same code path,
  * differences only through configuration.
@@ -26,9 +25,9 @@ import { useEnv } from '~~/shared/env/load'
  * Behaviour:
  *   - Pin model + dimensionality from the typed env so all calls produce
  *     vectors in one space (per-call drift breaks `1 - cosineDistance`).
- *   - Provider-specific request parameters (Jina `task` hint, OpenAI
- *     `dimensions`) are decided in `shared/utils/runtime/embeddingConfig.ts`: sent
- *     for Jina models, opt-in for everything else.
+ *   - Optional request parameters (`task` retrieval hint, OpenAI
+ *     `dimensions`) are decided in `shared/utils/runtime/embeddingConfig.ts`:
+ *     opt-in, never sent by default.
  *   - Apply the same per-input character cap (defends against pre-chunked
  *     input that exceeds the model's token window).
  *   - Use bounded concurrency (5) for batch document embedding.
@@ -40,21 +39,26 @@ import { useEnv } from '~~/shared/env/load'
  * `NUXT_LITELLM_EMBEDDINGS_DIMS` at boot by `server/utils/knowledge/embeddingColumn.ts`.
  */
 
-/** `jina` = a Jina model (task hint + dimensions sent by default);
+/** `mistral` = the bundled `mistral-embed` deployment;
  *  `custom` = any other model behind LiteLLM. */
-export type EmbeddingsProvider = 'jina' | 'custom'
+export type EmbeddingsProvider = 'mistral' | 'custom'
 
 const CONCURRENCY = 5
 
-// Per-input character cap. Our chunker targets 800 with a 1500 ceiling,
-// this is belt-and-braces for any caller that hands us pre-chunked text we
-// didn't produce, and keeps us under the context window of small local
-// models (nomic-embed-text: 2048 tokens).
-const MAX_INPUT_CHARS = 8000 // ~2000 tokens worst case in English
+// Per-input cap, in UTF-8 bytes. Our chunker targets 800 estimated tokens
+// with a 1500 ceiling; this is belt-and-braces for any caller that hands us
+// pre-chunked text we didn't produce (or one unbroken run of text the
+// chunker can't split). Byte-level BPE tokenizers (Mistral's included)
+// never produce more tokens than the input has bytes, so 8000 bytes stays
+// under `mistral-embed`'s hard 8192-token input limit (Mistral rejects a
+// longer input instead of truncating it) for every script, CJK included.
+// For English that is ~2000 tokens, inside the context window of small
+// local models too (nomic-embed-text: 2048 tokens).
+export const MAX_INPUT_BYTES = 8000
 
 export interface EmbeddingsConfig {
   provider: EmbeddingsProvider
-  /** LiteLLM model name the app asks for (e.g. `jina-embeddings-v5-text-nano`
+  /** LiteLLM model name the app asks for (e.g. `mistral-embed`
    *  or the operator-configurable `custom-embeddings`). */
   model: string
   /** Upstream model behind a custom deployment (`EMBEDDINGS_UPSTREAM_MODEL`),
@@ -85,11 +89,11 @@ export function buildEmbeddingsConfig(raw: RawEmbeddingsSettings): EmbeddingsCon
   }
   const model = raw.model || DEFAULT_EMBEDDINGS_MODEL
   return {
-    provider: isJinaModel(model) ? 'jina' : 'custom',
+    provider: model === DEFAULT_EMBEDDINGS_MODEL ? 'mistral' : 'custom',
     model,
     upstreamModel: raw.upstreamModel || '',
     dimensions: parseEmbeddingDims(raw.dims ?? DEFAULT_EMBEDDINGS_DIMS),
-    shape: resolveRequestShape(model, {
+    shape: resolveRequestShape({
       sendTaskHint: parseTriState(raw.taskHints, 'NUXT_LITELLM_EMBEDDINGS_TASK_HINTS'),
       sendDimensions: parseTriState(raw.sendDimensions, 'NUXT_LITELLM_EMBEDDINGS_SEND_DIMENSIONS')
     }),
@@ -120,9 +124,20 @@ export function embeddingVersionTag(cfg: EmbeddingsConfig): string {
   return `${cfg.provider}/${model}:${cfg.dimensions}`
 }
 
-function truncate(text: string): string {
-  if (text.length <= MAX_INPUT_CHARS) return text
-  return text.slice(0, MAX_INPUT_CHARS)
+/** Cut `text` to at most `MAX_INPUT_BYTES` UTF-8 bytes, never inside a character. */
+export function truncateForEmbedding(text: string): string {
+  // Fast path: even if every UTF-16 unit took 3 bytes it would fit.
+  if (text.length * 3 <= MAX_INPUT_BYTES) return text
+  let bytes = 0
+  let end = 0
+  for (const ch of text) {
+    const cp = ch.codePointAt(0) ?? 0
+    const size = cp < 0x80 ? 1 : cp < 0x800 ? 2 : cp < 0x10000 ? 3 : 4
+    if (bytes + size > MAX_INPUT_BYTES) break
+    bytes += size
+    end += ch.length
+  }
+  return text.slice(0, end)
 }
 
 async function embedOne(
@@ -134,10 +149,10 @@ async function embedOne(
   // Optional request fields ride in as a typed spread (spread members
   // aren't excess-property-checked) so the SDK's typed fields keep their
   // literal types: in particular `encoding_format: 'float'`, which
-  // selects the `number[]` overload of `create`. `task` (Jina) is not in
-  // the SDK's types but LiteLLM forwards unknown body params upstream
-  // verbatim; `dimensions` IS typed. Which of the two a model gets is
-  // decided by `embeddingRequestParams` (Jina: both; others: opt-in).
+  // selects the `number[]` overload of `create`. `task` is not in the
+  // SDK's types but LiteLLM forwards unknown body params upstream
+  // verbatim; `dimensions` IS typed. Whether either is sent is decided by
+  // `embeddingRequestParams` (opt-in, off by default).
   // The spend-tag for /admin/ai-spend aggregation rides on the same path.
   const extras = {
     ...embeddingRequestParams(cfg.shape, cfg.dimensions, taskType),
@@ -146,10 +161,10 @@ async function embedOne(
   const response = await client.embeddings.create({
     ...extras,
     model: cfg.model,
-    input: truncate(text),
-    // The OpenAI SDK defaults to `encoding_format: 'base64'`; with Jina via
-    // LiteLLM that returns a truncated 192-d vector instead of the
-    // requested 768-d. Force `'float'`.
+    input: truncateForEmbedding(text),
+    // The OpenAI SDK defaults to `encoding_format: 'base64'`, which some
+    // upstreams behind LiteLLM decode into a vector of the wrong length.
+    // Force `'float'` (Mistral accepts it; verified through LiteLLM).
     encoding_format: 'float'
   })
   const values = response.data?.[0]?.embedding

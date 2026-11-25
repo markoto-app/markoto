@@ -13,7 +13,7 @@ import { trimTrailingSlashes } from '../utils/trimTrailingSlashes'
 //                     Optional. Live dictation additionally needs a
 //                     Mistral key (Voxtral Realtime is Mistral-only).
 //
-// Embeddings, web search (Staan) and page fetch (Jina Reader) are
+// Embeddings (Mistral), web search and page fetch (Staan) are
 // platform-provided and NOT configurable here.
 //
 // Pure module: no Nuxt, no Node APIs, safe in the browser bundle.
@@ -64,7 +64,7 @@ export interface AiAvailability {
   }
   transcription: AiCapabilityStatus & { liveDictation: boolean }
   /**
-   * Platform-provided web tools (Staan search / Jina Reader). `false` when
+   * Platform-provided web tools (Staan search / Staan Fetch). `false` when
    * the operator has no upstream key, the tools are then not offered to
    * the AI at all. Independent of the user's chat provider.
    */

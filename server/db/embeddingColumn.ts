@@ -4,9 +4,10 @@ import type { Pool, PoolClient } from 'pg'
  * Keeps the pgvector column behind the workspace knowledge base in step with
  * `NUXT_LITELLM_EMBEDDINGS_DIMS`.
  *
- * Drizzle's schema (and therefore the migrations) pin `vector(768)`: that is
- * the hosted default (Jina v5-text-nano). A self-hoster who configures a model
- * with a different output size gets the column re-typed here, outside the
+ * Drizzle's schema (and therefore the migrations) pin `vector(768)`, the
+ * output size of the original hosted model. The default today is
+ * `mistral-embed` (1024), and a self-hoster may configure a model with yet
+ * another output size; either way the column is re-typed here, outside the
  * migration chain, because the target depends on runtime configuration:
  *
  *   - column already has the configured size  -> no-op

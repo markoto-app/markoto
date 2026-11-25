@@ -62,9 +62,8 @@ Install options (each also readable from the environment variable shown):
   --oidc-client-id ID           (NUXT_OAUTH_OIDC_CLIENT_ID)
   --oidc-client-secret S        (NUXT_OAUTH_OIDC_CLIENT_SECRET)
   --oidc-name NAME              sign-in button label, e.g. Authentik (NUXT_OAUTH_OIDC_NAME)
-  --mistral-api-key KEY         Mistral as the instance AI default: chat, voice (MISTRAL_API_KEY)
-  --jina-api-key KEY            knowledge-base embeddings + fetch_url tool (JINA_AI_API_KEY)
-  --staan-api-key KEY           web_search tool (STAAN_API_KEY)
+  --mistral-api-key KEY         Mistral: knowledge-base embeddings, and the instance AI default for chat + voice (MISTRAL_API_KEY)
+  --staan-api-key KEY           web_search + fetch_url tools (STAAN_API_KEY)
   --tag TAG                     image tag (IMAGE_TAG; default: newest release tag of this checkout, else latest)
   --build                       build images from this checkout instead of pulling
   --no-backup                   don't run the encrypted backup sidecar
@@ -434,18 +433,15 @@ configure_oauth() {
 
 configure_ai() {
   local mistral="${OPT_MISTRAL:-$(env_get MISTRAL_API_KEY)}"
-  local jina="${OPT_JINA:-$(env_get JINA_AI_API_KEY)}"
   local staan="${OPT_STAAN:-$(env_get STAAN_API_KEY)}"
-  if [[ "$INTERACTIVE" = 1 ]] && [[ -z "$mistral$jina$staan" ]]; then
+  if [[ "$INTERACTIVE" = 1 ]] && [[ -z "$mistral$staan" ]]; then
     info "AI (optional: everything else works without it)"
     note "Users can always bring their own key (Settings -> AI provider). Optionally"
     note "set instance-wide providers now; more options in docs/SELF-HOSTING.md#ai."
-    ask_secret mistral "Mistral API key (instance default for chat + voice)"
-    ask_secret jina "Jina API key (knowledge-base embeddings + fetch_url)"
-    ask_secret staan "Staan API key (web_search)"
+    ask_secret mistral "Mistral API key (knowledge-base embeddings; instance default for chat + voice)"
+    ask_secret staan "Staan API key (web_search + fetch_url)"
   fi
   env_set MISTRAL_API_KEY "$mistral"
-  env_set JINA_AI_API_KEY "$jina"
   env_set STAAN_API_KEY "$staan"
   if [[ -n "$mistral" ]]; then
     set_config NUXT_AI_DEFAULT_CHAT_MODEL "" "mistral-small-2603"
@@ -641,7 +637,6 @@ OPT_OIDC_ID="${NUXT_OAUTH_OIDC_CLIENT_ID:-}"
 OPT_OIDC_SECRET="${NUXT_OAUTH_OIDC_CLIENT_SECRET:-}"
 OPT_OIDC_NAME="${NUXT_OAUTH_OIDC_NAME:-}"
 OPT_MISTRAL="${MISTRAL_API_KEY:-}"
-OPT_JINA="${JINA_AI_API_KEY:-}"
 OPT_STAAN="${STAAN_API_KEY:-}"
 OPT_TAG="${IMAGE_TAG:-}"
 OPT_INSTANCE="${MARKOTO_INSTANCE:-}"
@@ -685,7 +680,6 @@ while [[ $# -gt 0 ]]; do
     --oidc-client-secret) need_arg "$@"; OPT_OIDC_SECRET="$2"; shift ;;
     --oidc-name) need_arg "$@"; OPT_OIDC_NAME="$2"; shift ;;
     --mistral-api-key) need_arg "$@"; OPT_MISTRAL="$2"; shift ;;
-    --jina-api-key) need_arg "$@"; OPT_JINA="$2"; shift ;;
     --staan-api-key) need_arg "$@"; OPT_STAAN="$2"; shift ;;
     --tag) need_arg "$@"; OPT_TAG="$2"; shift ;;
     --instance) need_arg "$@"; OPT_INSTANCE="$2"; shift ;;

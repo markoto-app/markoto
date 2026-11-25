@@ -277,7 +277,6 @@ services:
       # env at compose-up time: defaults to `stub` so the integration
       # suite still boots without real keys, overrides when the
       # operator runs `bun run flows:test` with .env loaded.
-      - JINA_AI_API_KEY=${JINA_AI_API_KEY:-stub}
       # `custom-embeddings` deployment (config.yaml): must be defined or the
       # proxy won't boot. Never called by the suites.
       - EMBEDDINGS_UPSTREAM_MODEL=openai/text-embedding-3-small

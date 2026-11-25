@@ -1,12 +1,13 @@
 // Pure helpers for the embeddings configuration. No Nuxt auto-imports and no
 // I/O, so the server, the re-embed script and the unit tests all share them.
 //
-// Hosted markoto runs the defaults (Jina v5-text-nano, 768 dims). A
-// self-hoster can point the proxy at any OpenAI-compatible embeddings
-// endpoint and pick the dimensionality, see docs/AI-MODELS.md#embeddings.
+// Hosted markoto runs the defaults (Mistral `mistral-embed` on Mistral's EU
+// endpoint, 1024 dims, fixed). A self-hoster can point the proxy at any
+// OpenAI-compatible embeddings endpoint and pick the dimensionality, see
+// docs/AI-MODELS.md#embeddings.
 
-export const DEFAULT_EMBEDDINGS_MODEL = 'jina-embeddings-v5-text-nano'
-export const DEFAULT_EMBEDDINGS_DIMS = 768
+export const DEFAULT_EMBEDDINGS_MODEL = 'mistral-embed'
+export const DEFAULT_EMBEDDINGS_DIMS = 1024
 
 /**
  * pgvector indexes a `vector` column with HNSW up to 2000 dimensions. The
@@ -58,18 +59,15 @@ export function parseTriState(raw: unknown, name: string): TriState {
   throw new Error(`${name} must be one of auto | true | false (got ${JSON.stringify(raw)}).`)
 }
 
-export function isJinaModel(model: string): boolean {
-  return model.toLowerCase().includes('jina')
-}
-
 /**
- * Jina's `task` parameter is a top-level field on `/v1/embeddings`.
+ * The optional `task` retrieval hint, a top-level field on `/v1/embeddings`
+ * that some providers accept (opt-in, NUXT_LITELLM_EMBEDDINGS_TASK_HINTS).
  *
  * RETRIEVAL_DOCUMENT -> retrieval.passage (corpus chunks)
  * RETRIEVAL_QUERY    -> retrieval.query   (search-time query)
- * Other task types fall back to text-matching, Jina's symmetric default.
+ * Other task types fall back to text-matching, the symmetric default.
  */
-function mapTaskToJina(task: EmbeddingTaskType): string {
+function taskHint(task: EmbeddingTaskType): string {
   switch (task) {
     case 'RETRIEVAL_DOCUMENT': return 'retrieval.passage'
     case 'RETRIEVAL_QUERY': return 'retrieval.query'
@@ -84,28 +82,27 @@ function resolveTriState(value: TriState, autoValue: boolean): boolean {
 }
 
 export interface EmbeddingRequestShape {
-  /** Send the Jina `task` hint. Default: only for Jina models. */
+  /** Send the `task` retrieval hint. Default: off. */
   sendTaskHint: boolean
-  /** Send the OpenAI `dimensions` parameter. Default: only for Jina models. */
+  /** Send the OpenAI `dimensions` parameter. Default: off. */
   sendDimensions: boolean
 }
 
 /**
- * Decide which optional request parameters a model gets. Both default to
- * "Jina only": the `task` hint is a Jina extension that other providers may
- * reject, and `dimensions` is rejected by most models (LiteLLM itself
- * answers 400 for non-`text-embedding-3` OpenAI-compatible models). When a
- * model's native output already has the configured size, neither is needed;
- * the vector-length check still catches any mismatch.
+ * Decide which optional request parameters a model gets. Both are off
+ * unless the operator opts in: the `task` hint is a provider extension
+ * that others may reject, and `dimensions` is rejected by most models
+ * (LiteLLM itself answers 400 for non-`text-embedding-3` OpenAI-compatible
+ * models; `mistral-embed` has a fixed 1024-d output). When a model's native
+ * output already has the configured size, neither is needed; the
+ * vector-length check still catches any mismatch.
  */
 export function resolveRequestShape(
-  model: string,
   overrides: { sendTaskHint?: TriState, sendDimensions?: TriState } = {}
 ): EmbeddingRequestShape {
-  const jina = isJinaModel(model)
   return {
-    sendTaskHint: resolveTriState(overrides.sendTaskHint ?? 'auto', jina),
-    sendDimensions: resolveTriState(overrides.sendDimensions ?? 'auto', jina)
+    sendTaskHint: resolveTriState(overrides.sendTaskHint ?? 'auto', false),
+    sendDimensions: resolveTriState(overrides.sendDimensions ?? 'auto', false)
   }
 }
 
@@ -116,7 +113,7 @@ export function embeddingRequestParams(
   taskType: EmbeddingTaskType
 ): { task?: string, dimensions?: number } {
   const out: { task?: string, dimensions?: number } = {}
-  if (shape.sendTaskHint) out.task = mapTaskToJina(taskType)
+  if (shape.sendTaskHint) out.task = taskHint(taskType)
   if (shape.sendDimensions) out.dimensions = dimensions
   return out
 }

@@ -99,7 +99,6 @@ beforeEach(() => {
   // The loop only dispatches tools it offered; web_search / fetch_url
   // are offered only when the operator configured their upstream keys.
   vi.stubEnv('STAAN_API_KEY', 'test-staan-key')
-  vi.stubEnv('JINA_AI_API_KEY', 'test-jina-key')
 })
 
 afterEach(() => {

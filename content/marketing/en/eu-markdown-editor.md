@@ -45,10 +45,10 @@ These transfers rely on the EU-U.S. and Swiss-U.S. Data Privacy Framework, with 
 
 ## AI features
 
-The writing assistant, voice input, web search, page fetching and image generation all go through markoto's own AI gateway to EU-based providers: Mistral AI (France; data centres in the EU and EFTA countries) for text and voice, Jina AI (Germany) for knowledge-base search and reading web pages, Staan (France) for web search and Black Forest Labs for images (EU-pinned region).
+The writing assistant, voice input, web search, page fetching and image generation all go through markoto's own AI gateway to EU-based providers: Mistral AI (France; data centres in the EU and EFTA countries) for text, voice and knowledge-base search, Staan (France) for web search and reading web pages, and Black Forest Labs for images (EU-pinned region).
 
 - **Nothing is sent to an AI provider unless you use an AI feature.** AI needs an account; anonymous visitors can't use it.
-- **No training on your content.** markoto doesn't train models. Jina AI and Staan state that they don't train on request data; with Mistral AI and Black Forest Labs, markoto has opted out of training.
+- **No training on your content.** markoto doesn't train models. Staan states that it doesn't train on request data; with Mistral AI and Black Forest Labs, markoto has opted out of training.
 - **Your own provider is your choice.** If you connect your own AI provider under Settings › AI provider, your AI requests go to that provider under your own agreement with it. It is then not markoto's sub-processor, and where it processes data depends on the provider you pick.
 - **Prompts and tool calls** are kept for 90 days for abuse review, then deleted.
 

@@ -64,17 +64,21 @@ describe('getWebToolLimits', () => {
 })
 
 describe('getWebToolAvailability', () => {
-  it('reports each tool by its own upstream key', () => {
+  it('offers both tools with the Staan key (search and page fetch run on Staan)', () => {
     vi.stubEnv('STAAN_API_KEY', 'k')
-    vi.stubEnv('JINA_AI_API_KEY', '')
-    expect(getWebToolAvailability()).toEqual({ search: true, fetch: false })
+    expect(getWebToolAvailability()).toEqual({ search: true, fetch: true })
     expect(isWebToolAvailable('web_search')).toBe(true)
+    expect(isWebToolAvailable('fetch_url')).toBe(true)
+  })
+
+  it('offers neither without it', () => {
+    vi.stubEnv('STAAN_API_KEY', '')
+    expect(getWebToolAvailability()).toEqual({ search: false, fetch: false })
     expect(isWebToolAvailable('fetch_url')).toBe(false)
   })
 
   it('treats a whitespace-only key as missing', () => {
     vi.stubEnv('STAAN_API_KEY', '   ')
-    vi.stubEnv('JINA_AI_API_KEY', '   ')
     expect(getWebToolAvailability()).toEqual({ search: false, fetch: false })
   })
 })

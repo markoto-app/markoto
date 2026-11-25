@@ -6,7 +6,7 @@ import { runReembed, PENDING_VERSION } from '../../server/db/reembedKnowledge'
 
 // The re-embed driver against a real pgvector and a fake embedder.
 
-const OLD_TAG = 'jina/jina-embeddings-v5-text-nano:768'
+const OLD_TAG = 'custom/text-embedding-3-small:768'
 const NEW_TAG = 'custom/test-model:16'
 
 function vec768(): string {

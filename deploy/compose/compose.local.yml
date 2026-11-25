@@ -244,8 +244,8 @@ services:
       # container (which reads LITELLM_MASTER_KEY from .env via base.yml).
       - NUXT_LITELLM_URL=http://litellm:4000
       # Embeddings (see deploy/compose/compose.prod.yml / docs/AI-MODELS.md#embeddings).
-      - NUXT_LITELLM_EMBEDDINGS_MODEL=${NUXT_LITELLM_EMBEDDINGS_MODEL:-jina-embeddings-v5-text-nano}
-      - NUXT_LITELLM_EMBEDDINGS_DIMS=${NUXT_LITELLM_EMBEDDINGS_DIMS:-768}
+      - NUXT_LITELLM_EMBEDDINGS_MODEL=${NUXT_LITELLM_EMBEDDINGS_MODEL:-mistral-embed}
+      - NUXT_LITELLM_EMBEDDINGS_DIMS=${NUXT_LITELLM_EMBEDDINGS_DIMS:-1024}
       - NUXT_LITELLM_EMBEDDINGS_SEND_DIMENSIONS=${NUXT_LITELLM_EMBEDDINGS_SEND_DIMENSIONS:-auto}
       - NUXT_LITELLM_EMBEDDINGS_TASK_HINTS=${NUXT_LITELLM_EMBEDDINGS_TASK_HINTS:-auto}
       - NUXT_LITELLM_EMBEDDINGS_UPSTREAM_MODEL=${EMBEDDINGS_UPSTREAM_MODEL:-}
@@ -257,12 +257,11 @@ services:
       # those values unreadable; rotate through _PREVIOUS.
       - NUXT_ENCRYPTION_KEY=local-encryption-key-change-me-64chars-for-real-deployments-only
       # AI grounding provider keys read directly by the app process (NOT via
-      # LiteLLM): Staan backs web_search, Jina Reader backs fetch_url.
-      # Platform-paid web tools. Optional: without a key the matching tool
-      # (web_search / fetch_url) is simply not offered to the AI and
+      # LiteLLM): Staan backs web_search and fetch_url.
+      # Platform-paid web tools. Optional: without the key neither tool
+      # (web_search / fetch_url) is offered to the AI and
       # /api/ai/availability reports webTools.{search,fetch}=false.
       - STAAN_API_KEY=${STAAN_API_KEY:-}
-      - JINA_AI_API_KEY=${JINA_AI_API_KEY:-}
       # Per-user web-tool allowance (calls/hour, calls/day; 0 = unlimited,
       # empty = default 30 / 100). Shared by the editor AI and MCP.
       - NUXT_WEB_TOOLS_HOURLY_LIMIT=${NUXT_WEB_TOOLS_HOURLY_LIMIT:-}

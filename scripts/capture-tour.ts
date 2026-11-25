@@ -12,7 +12,7 @@
 // frames + clip.json per scene (see tests/e2e/tour/fixture.ts). It needs
 // the flow test stack and an app server in the hosted shape (no
 // NUXT_AI_DEFAULT_*: the AI runs on the user's own key), plus
-// MISTRAL_API_KEY / JINA_AI_API_KEY in the stack's LiteLLM and this shell.
+// MISTRAL_API_KEY in the stack's LiteLLM and this shell.
 // PLAYWRIGHT_BASE_URL overrides the default http://markoto.localhost:3001;
 // TOUR_OUTPUT_DIR moves the (large) frame output, e.g. onto a tmpfs.
 //

@@ -86,8 +86,8 @@ const chunkMarkdown = vi.fn<(md: string, opts: { maxChunks: number }) => Array<{
 vi.mock('../../../server/utils/knowledge/chunkMarkdown', () => ({ chunkMarkdown }))
 
 const embedDocuments = vi.fn<(chunks: string[], opts: unknown) => Promise<number[][]>>()
-const resolveEmbeddingsConfig = vi.fn(() => ({ model: 'jina-embeddings-v5-text-nano', dims: 768, apiKey: 'x' }))
-const embeddingVersionTag = vi.fn(() => 'jina/jina-embeddings-v5-text-nano:768')
+const resolveEmbeddingsConfig = vi.fn(() => ({ model: 'mistral-embed', dims: 1024, apiKey: 'x' }))
+const embeddingVersionTag = vi.fn(() => 'mistral/mistral-embed:1024')
 vi.mock('../../../server/utils/knowledge/embeddings', () => ({
   embedDocuments,
   resolveEmbeddingsConfig,
@@ -322,7 +322,7 @@ describe('processKnowledge: happy path', () => {
       chunkCount: 2,
       tokenCount: 4,
       markdownCache: '# Hello\n\nBody',
-      embeddingVersion: 'jina/jina-embeddings-v5-text-nano:768',
+      embeddingVersion: 'mistral/mistral-embed:1024',
       errorMessage: null
     })
 
@@ -401,18 +401,18 @@ describe('processKnowledge: pipeline exceptions', () => {
     })
   })
 
-  it('markFailed when embedDocuments throws (e.g. Jina API error)', async () => {
+  it('markFailed when embedDocuments throws (e.g. embeddings API error)', async () => {
     selectQueue.push([row()])
     selectQueue.push([{ id: 'k1' }])
     fetchMock.mockResolvedValueOnce(okResponse('# body'))
     chunkMarkdown.mockReturnValueOnce([{ index: 0, content: 'body', tokens: 1 }])
-    embedDocuments.mockRejectedValueOnce(new Error('Jina rate limit: 429'))
+    embedDocuments.mockRejectedValueOnce(new Error('Embeddings rate limit: 429'))
 
     await processKnowledge('k1')
 
     expect(updateCalls).toHaveLength(1)
     expect((updateCalls[0]!.set as { status: string }).status).toBe('failed')
-    expect((updateCalls[0]!.set as { errorMessage: string }).errorMessage).toContain('Jina rate limit')
+    expect((updateCalls[0]!.set as { errorMessage: string }).errorMessage).toContain('Embeddings rate limit')
   })
 
   it('truncates error messages longer than 500 chars (DB column sanity)', async () => {
