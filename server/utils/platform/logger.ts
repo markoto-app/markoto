@@ -1,6 +1,7 @@
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { asLogLevel, createLogging, formatFor, type LogLevel, type Logger } from '~~/shared/logging/core'
 import { useEnv } from '~~/shared/env/load'
+import { nodeEnv } from '~~/shared/env/runtime'
 
 // The app's logger: `const log = useLogger('stripe-webhook')`, then
 // `log.info('subscription updated', { subscriptionId, plan })`. Levels,
@@ -36,7 +37,7 @@ export function currentRequestId(): string | undefined {
 
 const create = createLogging({
   level: currentLevel,
-  format: () => formatFor(process.env.NODE_ENV),
+  format: () => formatFor(nodeEnv()),
   context: () => {
     const requestId = currentRequestId()
     return requestId ? { requestId } : undefined

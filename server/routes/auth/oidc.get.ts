@@ -17,6 +17,7 @@ import {
 import type { H3Event } from 'h3'
 import { oidcSignInQuery } from '~~/shared/api/sso'
 import { useEnv } from '~~/shared/env/load'
+import { nodeEnv } from '~~/shared/env/runtime'
 import { useLogger } from '../../utils/platform/logger'
 
 const log = useLogger('auth-oidc')
@@ -32,7 +33,7 @@ const log = useLogger('auth-oidc')
 // Protocol + validation live in `server/utils/oidc/client.ts`; the claim
 // → profile mapping and the email rule in `server/utils/oidc/profile.ts`.
 
-const isDevelopment = process.env.NODE_ENV === 'development'
+const isDevelopment = nodeEnv() === 'development'
 
 // Configured URLs only: never the request Host header (boot validation
 // refuses an OIDC setup with neither `_REDIRECT_URL` nor `NUXT_SITE_URL`).

@@ -14,6 +14,7 @@ import { EnvValueError } from './coerce'
 import { nameFor, VALIDATED_SERVICES, type AnyVar, type RawEnv, type RuleContext, type ValidatedService } from './define'
 import { NAMESPACES, RULES, type AppEnv, type ServiceEnv } from './registry'
 import { isTestModeEnabled } from '../utils/security/testMode'
+import { isProduction } from './runtime'
 
 export class EnvError extends Error {
   constructor(readonly service: ValidatedService, readonly problems: readonly string[]) {
@@ -190,7 +191,7 @@ function failEarlyRead(service: ValidatedService, e: EnvError): never {
   } catch (full) {
     if (full instanceof EnvError) report = full
   }
-  if (process.env.NODE_ENV === 'production') {
+  if (isProduction()) {
     console.error(report.message)
     process.exit(1)
   }

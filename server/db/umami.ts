@@ -9,6 +9,7 @@
 
 import { Pool } from 'pg'
 import { useEnv } from '~~/shared/env/load'
+import { isProduction } from '~~/shared/env/runtime'
 import { resolvePostgresSsl } from '../../shared/utils/runtime/postgresSsl'
 import type { RawEnv } from '~~/shared/env/define'
 
@@ -25,7 +26,7 @@ let pool: Pool | null = null
 export function useUmamiPool(): Pool {
   if (!pool) {
     // Same TLS posture as the app's own pool (managed Postgres: verified TLS).
-    pool = new Pool({ connectionString: umamiDbUrl(), ssl: resolvePostgresSsl(useEnv().database, process.env.NODE_ENV === 'production'), max: 1, connectionTimeoutMillis: 5000, idleTimeoutMillis: 5000 })
+    pool = new Pool({ connectionString: umamiDbUrl(), ssl: resolvePostgresSsl(useEnv().database, isProduction()), max: 1, connectionTimeoutMillis: 5000, idleTimeoutMillis: 5000 })
   }
   return pool
 }

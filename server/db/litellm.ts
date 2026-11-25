@@ -15,6 +15,7 @@
 import { Pool, type PoolConfig } from 'pg'
 import { resolvePostgresSsl } from '../../shared/utils/runtime/postgresSsl'
 import { useEnv } from '~~/shared/env/load'
+import { isProduction } from '~~/shared/env/runtime'
 import type { RawEnv } from '~~/shared/env/define'
 
 export function litellmDbUrl(source?: RawEnv): string {
@@ -46,7 +47,7 @@ let spendPool: Pool | null = null
  * separate `NUXT_LITELLM_DB_URL` server needs a certificate that verifies
  * the same way.
  */
-export function litellmPoolConfig(source?: RawEnv, production: boolean = process.env.NODE_ENV === 'production'): PoolConfig {
+export function litellmPoolConfig(source?: RawEnv, production: boolean = isProduction()): PoolConfig {
   return {
     connectionString: litellmDbUrl(source),
     ssl: resolvePostgresSsl(useEnv(source).database, production),

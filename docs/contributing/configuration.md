@@ -42,7 +42,7 @@ A value that two variables must agree on, or that is only required in some shape
 
 ## Reading configuration
 
-- **Never `process.env`** in `server/`, `shared/`, `sync-server/src/` or `renderer/src/` (ESLint `markoto/no-raw-env`). `process.env.NODE_ENV` stays allowed (bundlers replace it). The allowlist in `eslint.config.mjs` is the env module itself, the generated renderer loader, the nitropack entry copy `server/runtime/bunEntry.ts`, the test-mode guard and the boot plugin.
+- **Never `process.env`** in `server/`, `shared/`, `sync-server/src/` or `renderer/src/` (ESLint `markoto/no-raw-env`). `process.env.NODE_ENV` is a build-time constant to every bundler (`bun build` turns it into `'development'` in the operator CLIs of the app image), so `server/` and `shared/` ask `isProduction()` / `nodeEnv()` from `shared/env/runtime.ts` instead; only the unbundled sync server and renderer may still read it. The allowlist in `eslint.config.mjs` is the env module itself, the generated renderer loader, the nitropack entry copy `server/runtime/bunEntry.ts`, the test-mode guard and the boot plugin.
 - `runtimeConfig` keeps only what Nuxt modules and the browser read: `session` and `oauth` (nuxt-auth-utils) and `public`. Nuxt fills them from `NUXT_*`; `tests/unit/env/runtimeConfig.test.ts` checks every such name is registered.
 - Pure helpers that take an env-shaped record (`resolveInstanceConfig(source)`, `resolveTiersFromEnv(source)`) parse it with the same registry: `useEnv(source)`.
 

@@ -42,6 +42,7 @@ import { runReembed } from '../server/db/reembedKnowledge'
 import { postgresUrlFromEnv } from '../shared/utils/runtime/connectionStrings'
 import { resolvePostgresSsl } from '../shared/utils/runtime/postgresSsl'
 import { useEnv } from '../shared/env/load'
+import { isProduction } from '../shared/env/runtime'
 import { trimTrailingSlashes } from '../shared/utils/trimTrailingSlashes'
 
 function flag(argv: string[], name: string): string | undefined {
@@ -75,7 +76,7 @@ async function main(): Promise<void> {
   // DATABASE_URL: a full URL for a run outside the stack (otherwise the POSTGRES_* parts).
   const pool = new Pool({
     connectionString: process.env.DATABASE_URL || postgresUrlFromEnv(env.database),
-    ssl: resolvePostgresSsl(env.database, process.env.NODE_ENV === 'production')
+    ssl: resolvePostgresSsl(env.database, isProduction())
   })
 
   console.log(`[reembed] model=${cfg.model} dims=${cfg.dimensions} tag=${embeddingVersionTag(cfg)}`)

@@ -101,6 +101,25 @@ describe('sendTransactionalEmail (stub mode)', () => {
     expect(logs.find('info', 'email stubbed, not sent')).toMatchObject({ component: 'email', kind: 'account-delete-requested' })
   })
 
+  it('shows subject and body only outside production', async () => {
+    const send = () => sendTransactionalEmail({
+      kind: 'account.delete_requested',
+      to: 'alice@example.com',
+      locale: 'en',
+      subject: 'Hello',
+      body: 'Body text'
+    })
+    await send()
+    expect(logs.find('info', 'email stubbed, not sent')).toMatchObject({ subject: 'Hello', bodyPreview: 'Body text' })
+    logs.records.length = 0
+    vi.stubEnv('NODE_ENV', 'production')
+    await send()
+    const record = logs.find('info', 'email stubbed, not sent')
+    expect(record).toBeDefined()
+    expect(record).not.toHaveProperty('subject')
+    expect(record).not.toHaveProperty('bodyPreview')
+  })
+
   it('redacts the email address in logs', async () => {
     await sendTransactionalEmail({
       kind: 'account.delete_requested',

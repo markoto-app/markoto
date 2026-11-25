@@ -22,6 +22,7 @@ import { reencryptStoredSecrets } from '../server/utils/platform/secretReencrypt
 import { postgresUrlFromEnv } from '../shared/utils/runtime/connectionStrings'
 import { resolvePostgresSsl } from '../shared/utils/runtime/postgresSsl'
 import { useEnv } from '../shared/env/load'
+import { isProduction } from '../shared/env/runtime'
 
 async function main(): Promise<void> {
   const dryRun = process.argv.slice(2).includes('--dry-run')
@@ -29,7 +30,7 @@ async function main(): Promise<void> {
   if (!env.auth.encryptionKey) throw new Error('NUXT_ENCRYPTION_KEY is required')
   const pool = new Pool({
     connectionString: process.env.DATABASE_URL || postgresUrlFromEnv(env.database),
-    ssl: resolvePostgresSsl(env.database, process.env.NODE_ENV === 'production'),
+    ssl: resolvePostgresSsl(env.database, isProduction()),
     max: 1
   })
   try {

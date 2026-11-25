@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/nuxt'
 import { Resend } from 'resend'
 import { useEnv } from '~~/shared/env/load'
+import { isProduction } from '~~/shared/env/runtime'
 import { useLogger } from '../platform/logger'
 
 const log = useLogger('email')
@@ -143,7 +144,7 @@ export async function sendTransactionalEmail(args: SendEmailArgs): Promise<SendE
     if (args.bodyContainsSecrets) previewBody = '<redacted: contains single-use links>'
     // Subject and body (workspace and document names, member names) are only
     // shown outside production, where the stub is how a developer reads the mail.
-    const preview = process.env.NODE_ENV === 'production' ? {} : { subject: args.subject, bodyPreview: previewBody }
+    const preview = isProduction() ? {} : { subject: args.subject, bodyPreview: previewBody }
     log.info('email stubbed, not sent', { kind: label, to: redactEmail(args.to), locale: args.locale ?? 'en', ...preview })
     return { delivered: true }
   }
