@@ -31,7 +31,9 @@
     "linkedTitle": "Cuentas vinculadas",
     "linkedDescription": "Tu inicio de sesión con {provider} ya está conectado a tu cuenta existente. A partir de ahora puedes iniciar sesión con cualquiera de los dos proveedores.",
     "reauthTitle": "Vuelve a iniciar sesión",
-    "reauthAction": "Iniciar sesión de nuevo"
+    "reauthAction": "Iniciar sesión de nuevo",
+    "adoptedTitle": "{n} documento de este navegador ahora es tuyo | {n} documentos de este navegador ahora son tuyos",
+    "adoptedDescription": "Lo encontrarás entre tus documentos. Su forma de compartir no cambia: cualquiera con el enlace puede seguir abriéndolo. | Los encontrarás entre tus documentos. Su forma de compartir no cambia: cualquiera con un enlace puede seguir abriéndolos."
   },
   "editor": {
     "untitled": "Sin título",
@@ -1113,7 +1115,9 @@
     "alt": {
       "anon": "Escribir sin cuenta",
       "selfHost": "Alojar markoto tú mismo"
-    }
+    },
+    "signUpTitle": "Regístrate en {plan}",
+    "signUpDescription": "Crea tu cuenta o inicia sesión. Después vuelves aquí para terminar."
   },
   "topbar": {
     "planBadge": "Plan: {plan}",
@@ -1135,7 +1139,9 @@
       "knowledgeStorage": "Almacenamiento de conocimiento",
       "workspaces": "Tus espacios de trabajo",
       "unlimited": "ilimitado"
-    }
+    },
+    "creditsLeftPct": "Queda un {pct} %",
+    "creditsBadgeLabel": "Puntos de IA: quedan {left} de {total} este mes"
   },
   "theme": {
     "title": "Tema del documento",

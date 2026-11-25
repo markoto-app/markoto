@@ -35,10 +35,11 @@ export function useInstanceConfig() {
   const workspaceSso = computed(() => config.value.workspaceSso === true)
   const customDomains = computed(() => config.value.customDomains === true)
   const brand = computed(() => config.value.brand ?? EMPTY_INSTANCE_BRAND)
-  /** The first configured provider's login path, or null when login is off. */
+  const router = useRouter()
+  /** The first configured provider's login path (back to the current page), or null when login is off. */
   const primaryLoginPath = computed(() => {
     const first = config.value.loginProviders[0]
-    return first ? loginPath(first) : null
+    return first ? loginPath(first, router.currentRoute.value.fullPath) : null
   })
   return { config, loginProviders, legalSurfaces, operatorName, marketingSite, siteUrl, docsCanonicalBase, anonGate, anonDocTtlDays, workspaceSso, customDomains, brand, primaryLoginPath }
 }

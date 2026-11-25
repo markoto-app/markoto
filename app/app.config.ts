@@ -35,6 +35,21 @@ export default defineAppConfig({
         // (light) / sumi-950 (dark); input bg is sumi-100 (light) /
         // sumi-900 (dark): same as cards but with a tighter border.
         base: 'rounded'
+      },
+      // Focus ring in ink, not shu: a red border on a field the visitor
+      // is typing in reads as an error. Same for the other text fields.
+      defaultVariants: {
+        color: 'neutral'
+      }
+    },
+    textarea: {
+      defaultVariants: {
+        color: 'neutral'
+      }
+    },
+    inputMenu: {
+      defaultVariants: {
+        color: 'neutral'
       }
     },
 

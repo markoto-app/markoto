@@ -99,14 +99,14 @@ async function renderPdfWith(markdown: string | ((docId: string) => string)): Pr
 describe('renderer network lockdown (SSRF)', () => {
   it('fetches images from an origin on the allowlist (positive control)', async () => {
     const status = await renderPdfWith(`# Doc\n\n![ok](http://host.docker.internal:${allowed.port}/ok.png)\n`)
-    expect(status).toBe(302)
+    expect(status).toBe(200)
     expect(allowed.hits).toContain('/ok.png')
   }, 90_000)
 
   it('never requests an origin outside the allowlist', async () => {
     const status = await renderPdfWith(`# Doc\n\n![evil](http://host.docker.internal:${blocked.port}/internal-secret.png)\n`)
     // A blocked image degrades to a broken image, the render itself succeeds.
-    expect(status).toBe(302)
+    expect(status).toBe(200)
     expect(blocked.hits).toEqual([])
   }, 90_000)
 
@@ -115,14 +115,14 @@ describe('renderer network lockdown (SSRF)', () => {
   // `/api/files/<docId>/…` substring match in the HTML.
   it('never hands the file-access token to a URL that only contains the doc\'s upload path', async () => {
     const status = await renderPdfWith(docId => `# Doc\n\n![t](http://host.docker.internal:${allowed.port}/api/files/${docId}/AbCdEfGhIjKl.png)\n`)
-    expect(status).toBe(302)
+    expect(status).toBe(200)
     expect(allowed.hits).toHaveLength(1)
     expect(allowed.hits[0]).toMatch(/^\/api\/files\/[\w-]+\/AbCdEfGhIjKl\.png$/)
   }, 90_000)
 
   it('does not follow a redirect from an allowed origin to a blocked one', async () => {
     const status = await renderPdfWith(`# Doc\n\n![hop](http://host.docker.internal:${allowed.port}/redirect.png)\n`)
-    expect(status).toBe(302)
+    expect(status).toBe(200)
     expect(allowed.hits).toContain('/redirect.png')
     expect(blocked.hits).toEqual([])
   }, 90_000)

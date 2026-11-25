@@ -8,6 +8,7 @@ import { LANGUAGE_PRESETS, LANGUAGE_MAX_LENGTH } from '~~/shared/languages'
 import { THEME_PRESETS, type ThemePresetCategory } from '~~/shared/utils/theme/themePresets'
 import { THEME_FONTS, fontStylesheetUrls } from '~~/shared/utils/theme/themeFonts'
 import { DEFAULT_TEMPLATE_ID, getTemplate, resolveTemplateId } from '~~/shared/templates'
+import { browserHasCreatedDoc, rememberBrowserCreatedDoc } from '~/utils/documents/firstDocument'
 
 // Same trick as ThemeEditorPanel, link every picker font's (same-origin)
 // stylesheet so each preset card can render its heading in its actual
@@ -88,25 +89,10 @@ const designOverride = ref<string | null>(null)
 // want their own page (Blank). Signed in, "first" is per account: the
 // dialog asks whether the account owns a document yet (anonymous documents
 // made in this browser before signing up don't count). Anonymous visitors
-// have no account, so it is remembered per browser, reset by logout, which
-// clears localStorage, and absent in private windows: then the demo shows
-// once more, which is harmless.
+// have no account, so it is remembered per browser (`firstDocument.ts`).
 const { loggedIn } = useUserSession()
-const FIRST_DOC_KEY = 'markoto-created-first-doc'
-function hasCreatedDoc(): boolean {
-  try {
-    return globalThis.localStorage?.getItem(FIRST_DOC_KEY) === '1'
-  } catch {
-    return false
-  }
-}
-function rememberCreatedDoc(): void {
-  try {
-    globalThis.localStorage?.setItem(FIRST_DOC_KEY, '1')
-  } catch { /* storage blocked, the demo shows again next time */ }
-}
 function defaultTemplateId(): string {
-  return resolveTemplateId(props.initialTemplateId) ?? (hasCreatedDoc() ? 'blank' : DEFAULT_TEMPLATE_ID)
+  return resolveTemplateId(props.initialTemplateId) ?? (browserHasCreatedDoc() ? 'blank' : DEFAULT_TEMPLATE_ID)
 }
 
 /** Signed in: Demo for an account without documents, else Blank; null when unknown. */
@@ -335,7 +321,7 @@ async function submit() {
   submitting.value = true
   try {
     const docId = await createDocument()
-    rememberCreatedDoc()
+    rememberBrowserCreatedDoc()
     emit('update:open', false)
     emit('created', docId)
   } catch (e) {

@@ -32,14 +32,16 @@ something with a single collaborator: paste the link, both of you
 type, both of you see each other's edits live.
 
 To give someone view-only access, or to lock the document behind a
-password, sign in before you create it: the owner of a document gets
-those options in the same share dialog. Anonymous documents always stay
-open-edit. See [Lock a document behind a password](/docs/sharing/password-protect)
+password, sign in: the owner of a document gets those options in the
+same share dialog. Anonymous documents always stay open-edit. See [Lock a document behind a password](/docs/sharing/password-protect)
 for the password flow.
 
 A document created without an account is deleted after 30 days without
-activity, and shows a short note that a markoto user wrote it, not
-markoto. Sign in to keep your documents.
+activity, and the people you share it with see a short note that a
+markoto user wrote it, not markoto. Sign in to keep your documents: when
+you sign in in the same browser, you come back to the document you were
+on, and the documents this browser created become yours. Their sharing
+stays as it was, so links you already sent keep working.
 
 ## What's next
 

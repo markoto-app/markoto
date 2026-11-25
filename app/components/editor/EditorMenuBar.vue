@@ -123,7 +123,7 @@ const fileItems = computed(() => {
       ]
     },
     { type: 'separator' },
-    { label: t('menubar.file.print'), icon: 'i-lucide-printer', kbds: ['cmd', 'p'], onSelect: () => emit('export-pdf') }
+    { label: t('menubar.file.print'), icon: 'i-lucide-printer', kbds: ['meta', 'p'], onSelect: () => emit('export-pdf') }
   )
   // Duplicate is open to anyone who can edit (the server re-checks); Move needs
   // manage rights. Both need login: the server rejects anonymous because they need an owner.
@@ -150,8 +150,8 @@ const fileItems = computed(() => {
 
 const editItems = computed(() => {
   const items: Array<Record<string, unknown>> = [
-    { label: t('menubar.edit.undo'), icon: 'i-lucide-undo-2', kbds: ['cmd', 'z'], disabled: props.isReadOnly, onSelect: () => emit('undo') },
-    { label: t('menubar.edit.redo'), icon: 'i-lucide-redo-2', kbds: ['cmd', 'shift', 'z'], disabled: props.isReadOnly, onSelect: () => emit('redo') }
+    { label: t('menubar.edit.undo'), icon: 'i-lucide-undo-2', kbds: ['meta', 'z'], disabled: props.isReadOnly, onSelect: () => emit('undo') },
+    { label: t('menubar.edit.redo'), icon: 'i-lucide-redo-2', kbds: ['meta', 'shift', 'z'], disabled: props.isReadOnly, onSelect: () => emit('redo') }
   ]
   return [items]
 })
@@ -373,8 +373,8 @@ const insertItems = computed(() => {
 const formatItems = computed(() => {
   if (props.isReadOnly) return [[]]
   return [[
-    { label: t('editor.bold'), icon: 'i-lucide-bold', kbds: ['cmd', 'b'], onSelect: () => call(v => toggleWrap(v, '**')) },
-    { label: t('editor.italic'), icon: 'i-lucide-italic', kbds: ['cmd', 'i'], onSelect: () => call(v => toggleWrap(v, '*')) },
+    { label: t('editor.bold'), icon: 'i-lucide-bold', kbds: ['meta', 'b'], onSelect: () => call(v => toggleWrap(v, '**')) },
+    { label: t('editor.italic'), icon: 'i-lucide-italic', kbds: ['meta', 'i'], onSelect: () => call(v => toggleWrap(v, '*')) },
     { label: t('editor.strikethrough'), icon: 'i-lucide-strikethrough', onSelect: () => call(v => toggleWrap(v, '~~')) },
     { label: t('editor.highlight'), icon: 'i-lucide-highlighter', onSelect: () => call(v => toggleWrap(v, '==')) },
     { label: t('editor.insert'), icon: 'i-lucide-underline', onSelect: () => call(v => toggleWrap(v, '++')) },

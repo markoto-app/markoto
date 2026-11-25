@@ -47,3 +47,23 @@ export function appendQueryParam(path: string, key: string, value: string): stri
   url.searchParams.set(key, value)
   return url.pathname + url.search
 }
+
+/** Query parameters a completed sign-in adds (`signedInLanding`); never part of a page to return to. */
+const SIGN_IN_MARKERS = ['signed_in', 'signed_up', 'linked', LOGIN_RETURN_PARAM]
+
+/**
+ * The page to come back to after signing in from `fullPath` (a route's
+ * `fullPath`), or null for the home page and anything refused. Markers of
+ * an earlier sign-in are dropped, so they can't fire twice.
+ */
+export function loginReturnFrom(fullPath: string): string | null {
+  let url: URL
+  try {
+    url = new URL(fullPath, BASE)
+  } catch {
+    return null
+  }
+  for (const key of SIGN_IN_MARKERS) url.searchParams.delete(key)
+  const path = safeLoginReturnPath(url.pathname + url.search)
+  return path === '/' ? null : path
+}

@@ -218,7 +218,9 @@ describe('UsageBadge: plan budget, bought credits and the workspace budget', () 
       workspace: null
     })
     const wrapper = await mountBadge()
-    expect(wrapper.get('[data-testid="usage-badge"]').text()).toContain('100%')
+    // Says what is LEFT, and the label spells out the points.
+    expect(wrapper.get('[data-testid="usage-badge-pct"]').text()).toBe('100% left')
+    expect(wrapper.get('[data-testid="usage-badge"]').attributes('aria-label')).toMatch(/^AI Points: [\d,]+ of [\d,]+ left this month$/)
     // Brand tokens, no bright palette: ink while there are points.
     expect(wrapper.get('.usage-badge__bar-fill').classes()).toContain('bg-inverted')
     expect(document.body.querySelector('[data-testid="usage-badge-points-remaining"]')?.textContent).toBe('4,988')

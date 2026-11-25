@@ -31,7 +31,9 @@
     "linkedTitle": "账号已关联",
     "linkedDescription": "你的 {provider} 登录已连接到现有账号。此后你可以使用任一登录方式登录。",
     "reauthTitle": "请重新登录",
-    "reauthAction": "重新登录"
+    "reauthAction": "重新登录",
+    "adoptedTitle": "此浏览器中的 {n} 个文档现在归你所有",
+    "adoptedDescription": "你可以在你的文档中找到它们。共享设置保持不变：拥有链接的人仍然可以打开。"
   },
   "editor": {
     "untitled": "无标题",
@@ -1113,7 +1115,9 @@
     "alt": {
       "anon": "无需账户直接写作",
       "selfHost": "自托管 markoto"
-    }
+    },
+    "signUpTitle": "注册 {plan}",
+    "signUpDescription": "创建账号或登录，之后会回到这里完成操作。"
   },
   "topbar": {
     "planBadge": "套餐：{plan}",
@@ -1135,7 +1139,9 @@
       "knowledgeStorage": "知识存储",
       "workspaces": "你拥有的工作区",
       "unlimited": "无限制"
-    }
+    },
+    "creditsLeftPct": "剩余 {pct}%",
+    "creditsBadgeLabel": "AI 点数：本月剩余 {left} / {total}"
   },
   "theme": {
     "title": "文档主题",

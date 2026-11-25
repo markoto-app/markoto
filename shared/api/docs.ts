@@ -103,10 +103,9 @@ export const docTokenQuery = z.object({
   refresh: z.string().optional().catch(undefined)
 })
 
-/** GET /api/docs/:docId/pdf. `inline=1|true`: open in the tab; `response=json`: `{ url }` instead of a redirect. */
+/** GET /api/docs/:docId/pdf. `inline=1|true`: open in the tab instead of downloading. */
 export const docPdfQuery = z.object({
-  inline: z.string().optional().catch(undefined),
-  response: z.string().optional().catch(undefined)
+  inline: z.string().optional().catch(undefined)
 })
 
 /** /api/docs/:docId/activity/:activityId/* */

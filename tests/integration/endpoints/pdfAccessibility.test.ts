@@ -43,7 +43,7 @@ async function renderPdf(opts: { title: string, language: string, name: string }
   const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit', title: opts.title, language: opts.language })
   const snapId = await insertYjsRow(doc.docId, FIXTURE)
   const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
-  expect(res.status).toBe(302)
+  expect(res.status).toBe(200)
   const got = await s3.send(new GetObjectCommand({ Bucket: 'ypad', Key: `renders/${doc.docId}/${snapId}/document.pdf` }))
   const bytes = await got.Body!.transformToByteArray()
   // Output switch of scripts/pdf-a11y-check.sh, not app configuration.

@@ -31,7 +31,9 @@
     "linkedTitle": "Accounts linked",
     "linkedDescription": "Your {provider} login is now connected to your existing account. You can sign in with either provider from here on.",
     "reauthTitle": "Sign in again",
-    "reauthAction": "Sign in again"
+    "reauthAction": "Sign in again",
+    "adoptedTitle": "{n} document from this browser is now yours | {n} documents from this browser are now yours",
+    "adoptedDescription": "You'll find it under your documents. Its sharing is unchanged: anyone with the link can still open it. | You'll find them under your documents. Their sharing is unchanged: anyone with a link can still open them."
   },
   "editor": {
     "untitled": "Untitled",
@@ -1113,7 +1115,9 @@
     "alt": {
       "anon": "Write without an account",
       "selfHost": "Self-host markoto"
-    }
+    },
+    "signUpTitle": "Sign up for {plan}",
+    "signUpDescription": "Create your account or sign in. You come back here to finish."
   },
   "topbar": {
     "planBadge": "Plan: {plan}",
@@ -1135,7 +1139,9 @@
       "knowledgeStorage": "Knowledge storage",
       "workspaces": "Workspaces you own",
       "unlimited": "unlimited"
-    }
+    },
+    "creditsLeftPct": "{pct}% left",
+    "creditsBadgeLabel": "AI Points: {left} of {total} left this month"
   },
   "theme": {
     "title": "Document theme",

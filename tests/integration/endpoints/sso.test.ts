@@ -251,7 +251,7 @@ describe('SSO with OpenID Connect', () => {
     // With the domain verified, the sign-in links to Ben's account.
     await verifyDomain(ws.workspaceId, 'acme.test')
     const ok = await oidcSignIn(connectionId, { sub: 'ben-sub', claims: { email: 'ben@acme.test', email_verified: true, name: 'Ben' } })
-    expect(ok.location).toBe(`/w/${ws.workspaceId}`)
+    expect(ok.location).toBe(`/w/${ws.workspaceId}?signed_in=1`)
     expect(await sessionUserId(ok.session!)).toBe(member.id)
     expect((await asMember.get(`/api/workspaces/${ws.workspaceId}`)).status).toBe(200)
     expect((await (await asMember.get(`/api/docs/${doc.docId}/token`)).json() as { token: string | null }).token).toBeTruthy()
@@ -268,7 +268,7 @@ describe('SSO with OpenID Connect', () => {
     const connectionId = await activateOidc(admin.id, ws.workspaceId)
     await verifyDomain(ws.workspaceId, 'acme.test')
     const done = await oidcSignIn(connectionId, { sub: 'cleo-sub', claims: { email: 'Cleo@Acme.test', email_verified: true, name: 'Cleo' } })
-    expect(done.location).toBe(`/w/${ws.workspaceId}`)
+    expect(done.location).toBe(`/w/${ws.workspaceId}?signed_in=1`)
     const cleo = (await testDb().query<{ id: number, email: string }>(`SELECT id, email FROM users WHERE email = 'cleo@acme.test'`)).rows[0]!
     expect(await sessionUserId(done.session!)).toBe(cleo.id)
     expect((await testDb().query('SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2', [ws.workspaceId, cleo.id])).rows).toEqual([{ role: 'editor' }])
@@ -395,7 +395,7 @@ describe('SSO with SAML', () => {
     const { requestId, flow } = await samlStart(sp.id)
     const good = samlResponse({ ...base, inResponseTo: requestId })
     const first = await samlPost(sp.id, flow, good)
-    expect(first.location).toBe(`/w/${ws.workspaceId}`)
+    expect(first.location).toBe(`/w/${ws.workspaceId}?signed_in=1`)
     const replay = await samlPost(sp.id, flow, good)
     expect(replay.location).toContain('code=sso%2Ffailed')
     // Another browser's flow can't carry it either.
@@ -501,7 +501,7 @@ describe('SCIM provisioning (/scim/v2/Users)', () => {
     const { ws, connectionId, scim } = await scimSetup()
     const created = await (await scim('/Users', { method: 'POST', body: { userName: 'gia@acme.test', externalId: 'ext-gia' } })).json() as { id: string }
     const signedIn = await oidcSignIn(connectionId, { sub: 'gia-real-sub', claims: { email: 'gia@acme.test', email_verified: true, name: 'Gia' } })
-    expect(signedIn.location).toBe(`/w/${ws.workspaceId}`)
+    expect(signedIn.location).toBe(`/w/${ws.workspaceId}?signed_in=1`)
     expect((await testDb().query('SELECT subject, scim_external_id FROM user_identities WHERE id = $1', [Number(created.id)])).rows).toEqual([{ subject: 'gia-real-sub', scim_external_id: 'ext-gia' }])
 
     await scim(`/Users/${created.id}`, { method: 'PATCH', body: { Operations: [{ op: 'replace', path: 'active', value: false }] } })

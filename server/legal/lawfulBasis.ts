@@ -78,7 +78,12 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     // read them); kept 30 days after the import, or until the account goes.
     // A GitHub import fetches the public repository from GitHub on the
     // user's instruction and sends nothing about the user, so GitHub is not
-    // a sub-processor. All of this sits inside the existing purpose, so the
+    // a sub-processor. Signing in with the browser that created anonymous
+    // documents makes them the account's (`utils/documents/adoptAnonymous.ts`:
+    // owner set, the anonymous terms acceptance and creator-key hash
+    // cleared), the keeping of documents the user asked for ("Sign in to keep
+    // your documents"), described in the policy's §2 and §9.
+    // All of this sits inside the existing purpose, so the
     // policy version (shared/legal/versions.ts) is unchanged (owner decision).
     dataCategories: ['document_content', 'document_metadata', 'images', 'edit_attribution', 'guest_document_shares', 'workspace_brand_kit', 'document_search_index', 'document_folders', 'import_records'],
     retention: 'until_deletion',

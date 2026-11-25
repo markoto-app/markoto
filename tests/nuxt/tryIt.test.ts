@@ -57,10 +57,11 @@ registerEndpoint('/api/docs', {
   }
 })
 registerEndpoint('/api/docs/doc123/pdf', async (event) => {
-  const { getQuery, createError } = await import('h3')
+  const { getQuery, createError, setResponseHeader } = await import('h3')
   created.pdfQueries.push(getQuery(event))
   if (created.pdfStatus !== 200) throw createError({ statusCode: created.pdfStatus, message: 'nope' })
-  return { url: 'https://s3.example.test/renders/doc123/document.pdf' }
+  setResponseHeader(event, 'content-type', 'application/pdf')
+  return '%PDF-1.7 test'
 })
 
 const SOURCE = '# Field notes\n\nSome **Markdown**.\n'
@@ -111,6 +112,13 @@ beforeEach(() => {
   created.pdfStatus = 200
   vi.stubGlobal('IntersectionObserver', FakeIntersectionObserver)
   setConfig({ anonGate: false, anonDocTtlDays: 30 })
+})
+
+// "Open as a document" on /de/... keeps German for the app (useCarryMarketingLocale):
+// back to English for the next test.
+afterEach(async () => {
+  useMarketingLocaleBefore().value = null
+  await useNuxtApp().$i18n.setLocale('en')
 })
 
 afterEach(() => {
@@ -227,16 +235,28 @@ describe('::try-it actions', () => {
     wrapper.unmount()
   })
 
-  it('"Download PDF" creates the document, asks the PDF route for JSON and downloads; same text → same document', async () => {
+  it('"Download PDF" creates the document, fetches the PDF from the app and saves it; same text → same document', async () => {
     const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
     const hrefs: string[] = []
+    const names: string[] = []
     click.mockImplementation(function (this: HTMLAnchorElement) {
       hrefs.push(this.href)
+      names.push(this.download)
     })
+    const blobs: Blob[] = []
+    vi.spyOn(URL, 'createObjectURL').mockImplementation((b) => {
+      blobs.push(b as Blob)
+      return `blob:test/${blobs.length}`
+    })
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
     const wrapper = await mountLive()
     await wrapper.find('[data-testid="try-it-pdf"]').trigger('click')
-    await vi.waitFor(() => expect(hrefs).toEqual(['https://s3.example.test/renders/doc123/document.pdf']))
-    expect(created.pdfQueries).toEqual([{ response: 'json' }])
+    await vi.waitFor(() => expect(hrefs).toHaveLength(1))
+    expect(await blobs[0]?.text()).toBe('%PDF-1.7 test')
+    // A local copy of the bytes, never a storage URL.
+    expect(hrefs[0]).toMatch(/^blob:/)
+    expect(names).toEqual(['Field notes.pdf'])
+    expect(created.pdfQueries).toEqual([{}])
 
     await wrapper.find('[data-testid="try-it-pdf"]').trigger('click')
     await vi.waitFor(() => expect(hrefs).toHaveLength(2))

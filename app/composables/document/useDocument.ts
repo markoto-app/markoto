@@ -4,6 +4,7 @@ import { docSizeWarning as computeDocSizeWarning } from '~~/shared/utils/documen
 import { normalizeAwarenessStates, normalizeAwarenessUser } from '~~/shared/utils/documents/awarenessUser'
 import { useDocumentMeta } from './documentMeta'
 import { createHiddenTabPause } from '~/utils/collab/hiddenTabPause'
+import { createHeadingTitleSync } from '~/utils/collab/headingTitle'
 import { TEMPLATE_SEED_ORIGIN } from '~/utils/editor/collabHistory'
 import { SUGGEST_ORIGIN } from '~/composables/suggestions/useSuggestions'
 import { suggestionsMap } from '~~/shared/utils/suggestions/ySuggestions'
@@ -153,6 +154,7 @@ export function useDocument(docId: string) {
       // content on reconnect and corrupt the document. (The serverless dev
       // path without syncUrl also seeds, since `connect()` routes it here.)
       insertTemplateIfEmpty()
+      headingTitle.start()
       // After a password unlock it is now safe to mount the editor.
       tokenState.clearPendingUnlock()
     },
@@ -206,6 +208,15 @@ export function useDocument(docId: string) {
   })
 
   const meta = useDocumentMeta(docId, ymeta, tokenState)
+  // The title follows the first `# Heading` until someone renames the document.
+  const headingTitle = createHeadingTitleSync({
+    ytext,
+    getTitle: () => meta.title.value,
+    setTitle: (next) => {
+      meta.title.value = next
+    },
+    canWrite: () => !tokenState.isReadOnly.value && !tokenState.suggestOnly.value
+  })
   const bibliography = useBibliography(ydoc, ymeta, tokenState.isReadOnly)
 
   const docSizeWarning = computed(() => computeDocSizeWarning(sync.docSizeBytes.value))
@@ -236,6 +247,7 @@ export function useDocument(docId: string) {
   }
 
   function destroy() {
+    headingTitle.stop()
     stopAccessWatch()
     stopHiddenTabWatch()
     sync.destroy()

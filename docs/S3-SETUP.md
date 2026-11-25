@@ -2,7 +2,7 @@
 
 How to prepare an external S3-compatible bucket for markoto. The self-host stack ships SeaweedFS and needs none of this; use this guide when you point `NUXT_S3_ENDPOINT` at an external provider instead (see [SELF-HOSTING.md](SELF-HOSTING.md#storage)). The hosted service uses OVH Object Storage.
 
-Browsers talk to the bucket **directly**: image and knowledge uploads use presigned PUT URLs, and image reads, PDF downloads and data-export downloads redirect to presigned GET URLs. The app never proxies that traffic, so CORS must be configured on the bucket itself.
+Browsers talk to the bucket **directly**: image and knowledge uploads use presigned PUT URLs, and image reads and data-export downloads redirect to presigned GET URLs. The app does not proxy that traffic (PDF downloads are the exception: the app streams them from the render cache), so CORS must be configured on the bucket itself.
 
 The `aws s3api` commands below work against any S3-compatible endpoint (`--endpoint-url`). Many provider consoles do not expose CORS, lifecycle or default-encryption settings; the S3 API does.
 

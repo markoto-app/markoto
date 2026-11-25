@@ -172,14 +172,15 @@ const { tableModalOpen, onTableModalSelect, openImagePicker } = useEditorInserts
 // "Created by a markoto user, not by markoto · Report" on documents without
 // an owner account (anonymous creations). Waits for the first sync, when the
 // token endpoint has told us who owns the doc (no flash on owned docs).
+// Not for the creating browser (`canDelete` on an ownerless document): the
+// notice is for the people it was shared with.
 const { legalSurfaces } = useInstanceConfig()
 const showUserContentBar = computed(() =>
   legalSurfaces.value
   && synced.value
   && !forbidden.value
   && !notFound.value
-  && !hasOwner.value
-  && !docWorkspaceId.value
+  && !hasOwner.value && !docWorkspaceId.value && !canDelete.value
 )
 
 // The access level picks the layout; a deletion keeps the one on screen.

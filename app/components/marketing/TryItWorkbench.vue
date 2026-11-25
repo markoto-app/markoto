@@ -149,12 +149,16 @@ function messageFor(key: string): string {
   return te(key) ? t(key) : t('marketing.tryIt.errors.create')
 }
 
+const carryLocale = useCarryMarketingLocale()
+
 async function openAsDocument(): Promise<void> {
   if (busy.value || tooLong.value) return
   busy.value = 'open'
   errorKey.value = null
   try {
     const docId = await ensureDocument()
+    // The app keeps the language of the page the visitor was reading.
+    carryLocale()
     await router.push(`/d/${docId}`)
   } catch (e) {
     if (!(e instanceof AnonGateCancelled)) errorKey.value = tryItErrorKey(e, 'create')
@@ -163,14 +167,17 @@ async function openAsDocument(): Promise<void> {
   }
 }
 
-/** Navigate to the presigned PDF URL: `Content-Disposition: attachment` makes it a download. */
-function startDownload(url: string): void {
+/** Save the fetched PDF under the document's title. */
+function startDownload(pdf: Blob, fileName: string): void {
+  const url = URL.createObjectURL(pdf)
   const a = document.createElement('a')
   a.href = url
+  a.download = fileName
   a.rel = 'noopener'
   document.body.appendChild(a)
   a.click()
   a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 60_000)
 }
 
 async function downloadPdf(): Promise<void> {
@@ -186,13 +193,15 @@ async function downloadPdf(): Promise<void> {
     return
   }
   try {
-    const res = await apiFetch('/api/docs/:docId/pdf', {
+    // The bytes are fetched here, not navigated to: a refusal (429 / 5xx)
+    // then stays an error this block can explain, not a JSON page.
+    const pdf = await apiFetch('/api/docs/:docId/pdf', {
       path: { docId },
-      query: { response: 'json' },
+      responseType: 'blob',
       // One request = one render allowance (10/min): never retry a 5xx.
       retry: 0
-    })
-    startDownload(res.url)
+    }) as unknown as Blob
+    startDownload(pdf, `${title.value || 'markoto'}.pdf`)
   } catch (e) {
     errorKey.value = tryItErrorKey(e, 'pdf')
   } finally {

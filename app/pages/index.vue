@@ -15,8 +15,6 @@ const { t } = useI18n()
 const router = useRouter()
 const { loggedIn } = useUserSession()
 
-const toast = useToast()
-
 // Hosted markoto.app shows the scroll-driven product page to logged-out
 // visitors (NUXT_MARKETING_SITE_ENABLED); everyone else gets the
 // plain hero + dashboard (components/home/Dashboard.vue).
@@ -53,35 +51,26 @@ function toggleTourTone(): void {
   tourTone.value = next
   colorMode.preference = next
 }
-const { providerName } = useLoginOptions()
-
-// OAuth account-merge flash. The auth handler redirects to
-// `/?linked=github`, `/?linked=google` or `/?linked=oidc` when a second-provider
-// sign-in landed on an existing row (matched by verified email) and
-// we added the new provider id to it. Surface a one-time toast
-// explaining what happened, then strip the query param so a reload
-// doesn't re-show the toast.
-onMounted(() => {
-  const route = useRoute()
-  const linked = route.query.linked
-  if (typeof linked === 'string' && (linked === 'github' || linked === 'google' || linked === 'oidc')) {
-    toast.add({
-      title: t('auth.linkedTitle'),
-      description: t('auth.linkedDescription', { provider: providerName(linked) }),
-      icon: 'i-lucide-link',
-      color: 'success'
-    })
-    // Strip the query param so a reload doesn't re-fire the toast.
-    void router.replace({ query: { ...route.query, linked: undefined } })
-  }
-})
-
 // New-doc dialog: seeds title/description/audience/language/theme up
 // front, so the AI has authoritative context from the first prompt.
 // "Just give me a blank doc" inside the dialog skips the setup. Mounted on first use
 // (useNewDocDialog), so the product page doesn't ship it.
-const { mounted: newDocDialogMounted, open: showNewDocDialog, show: createDocument, warm: warmNewDocDialog } = useNewDocDialog(() => import('~/components/document/NewDocumentDialog.vue'))
+// The product tour's "Start writing, no sign-up" skips the dialog for a
+// first-time anonymous visitor (useStartWriting).
+const {
+  mounted: newDocDialogMounted,
+  open: showNewDocDialog,
+  show: createDocument,
+  start: startWriting,
+  warm: warmNewDocDialog,
+  quickMounted,
+  quickRun,
+  quickDone
+} = useStartWriting(() => import('~/components/document/NewDocumentDialog.vue'))
+const carryLocale = useCarryMarketingLocale()
 function onDocCreated(docId: string) {
+  // From the product page, the app keeps the language the visitor was reading.
+  carryLocale()
   void router.push(`/d/${docId}`)
 }
 const pageRoute = useRoute()
@@ -125,7 +114,7 @@ function createDocumentIn(folderId?: string | null) {
     <LandingProductTour
       v-if="showTour"
       class="flex-1"
-      @start="createDocument"
+      @start="startWriting()"
       @warm="warmNewDocDialog"
     />
     <!-- Plain hero + dashboard (components/home/Dashboard.vue). Lazy: its
@@ -147,6 +136,12 @@ function createDocumentIn(folderId?: string | null) {
       :workspace-id="null"
       :folder-id="newDocFolder"
       @created="onDocCreated"
+    />
+    <LazyDocumentQuickStartDocument
+      v-if="quickMounted"
+      :run="quickRun"
+      @created="onDocCreated"
+      @done="quickDone"
     />
 
     <!-- Hydrates when scrolled to (server-rendered links until then). -->

@@ -118,3 +118,22 @@ export function useChooseMarketingLanguage(): (variant: MarketingVariant) => Pro
     await navigateTo(variant.path)
   }
 }
+
+/**
+ * Leaving a marketing page for the app through one of its calls to action
+ * ("Start writing", "Open as a document"): the visitor was reading this
+ * language, so the app keeps it instead of falling back to the language
+ * in force before (Accept-Language), and it becomes their UI language
+ * (the locale cookie), like a choice in the language switcher. A no-op
+ * off the marketing pages, where the visitor's own language is in force.
+ */
+export function useCarryMarketingLocale(): () => void {
+  const i18n = useNuxtApp().$i18n
+  const before = useMarketingLocaleBefore()
+  return () => {
+    if (before.value === null) return
+    const code = i18n.locale.value
+    i18n.setLocaleCookie(code)
+    before.value = code
+  }
+}

@@ -10,6 +10,7 @@ import { getSessionEpoch } from '../../repos/users'
 import type { OidcSettings } from '../oidc/settings'
 import type { SsoConnectionRow } from '../../repos/sso'
 import { createSsoFetch, ssoAllowsPrivateUrls } from './urlPolicy'
+import { signedInLanding } from '../auth/loginReturn'
 import {
   SSO_FLOW_COOKIE,
   SSO_FLOW_COOKIE_PATH,
@@ -89,7 +90,9 @@ export async function setSsoSession(event: H3Event, result: SsoLoginResult): Pro
 /** Where to go after a successful sign-in. */
 export function afterSsoLoginPath(result: SsoLoginResult, flow: SsoFlow): string {
   if (flow.purpose === 'test') return `/w/${encodeURIComponent(result.workspaceId)}?tab=sso&test=${result.activated ? 'activated' : 'ok'}`
-  return flow.returnTo ?? `/w/${encodeURIComponent(result.workspaceId)}`
+  // `signed_in` lets the client take over this browser's anonymous
+  // documents, as after any other sign-in (auth/loginReturn.ts).
+  return signedInLanding(flow.returnTo ?? `/w/${encodeURIComponent(result.workspaceId)}`, 'sso', 'existing')
 }
 
 /**

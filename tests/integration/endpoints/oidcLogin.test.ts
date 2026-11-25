@@ -126,7 +126,7 @@ describe('GET /auth/oidc: full sign-in against a real IdP', () => {
     const res = await signIn('alice-sub', { email: 'alice@idp.test', email_verified: true, name: 'Alice IdP' })
     expect(res.status).toBe(302)
     // A new account: the client sends its cookieless sign-up event from this parameter.
-    expect(res.headers.get('location')).toBe('/?signed_up=oidc')
+    expect(res.headers.get('location')).toBe('/?signed_up=oidc&signed_in=1')
     // Flow cookie is single-use.
     expect(res.headers.getSetCookie().some(c => c.startsWith(`${FLOW_COOKIE}=;`))).toBe(true)
 
@@ -147,7 +147,7 @@ describe('GET /auth/oidc: full sign-in against a real IdP', () => {
     // Second sign-in: same row.
     const again = await signIn('alice-sub', { email: 'alice@idp.test', email_verified: true, name: 'Alice Renamed' })
     expect(again.status).toBe(302)
-    expect(again.headers.get('location')).toBe('/')
+    expect(again.headers.get('location')).toBe('/?signed_in=1')
     expect(await usersBySubject('alice-sub')).toEqual([expect.objectContaining({ id: rows[0]?.id, name: 'Alice Renamed' })])
   })
 
@@ -156,12 +156,12 @@ describe('GET /auth/oidc: full sign-in against a real IdP', () => {
 
     // Unverified: new, separate account WITHOUT the email.
     const unverified = await signIn('mallory-sub', { email: 'bob@idp.test', email_verified: false })
-    expect(unverified.headers.get('location')).toBe('/?signed_up=oidc')
+    expect(unverified.headers.get('location')).toBe('/?signed_up=oidc&signed_in=1')
     expect(await usersBySubject('mallory-sub')).toEqual([expect.objectContaining({ email: null, github_id: null })])
 
     // Verified: merged into the existing account, flash param set.
     const verified = await signIn('bob-sub', { email: 'BOB@idp.test', email_verified: true })
-    expect(verified.headers.get('location')).toBe('/?linked=oidc')
+    expect(verified.headers.get('location')).toBe('/?linked=oidc&signed_in=1')
     const rows = await usersBySubject('bob-sub')
     expect(rows).toEqual([expect.objectContaining({ id: existing.id, oidc_issuer: TEST_OIDC_ISSUER })])
   })
@@ -216,17 +216,17 @@ describe('GET /auth/oidc: full sign-in against a real IdP', () => {
 
   it('comes back to the page the sign-in link named (a new account carries signed_up)', async () => {
     const created = await signIn('return-sub', { email: 'return@idp.test', email_verified: true }, '/pricing?interval=year&currency=chf')
-    expect(created.headers.get('location')).toBe('/pricing?interval=year&currency=chf&signed_up=oidc')
+    expect(created.headers.get('location')).toBe('/pricing?interval=year&currency=chf&signed_up=oidc&signed_in=1')
     const again = await signIn('return-sub', { email: 'return@idp.test', email_verified: true }, '/de/pricing?interval=year')
-    expect(again.headers.get('location')).toBe('/de/pricing?interval=year')
+    expect(again.headers.get('location')).toBe('/de/pricing?interval=year&signed_in=1')
     // Taken once: the next sign-in without a return page lands on the home page.
-    expect((await signIn('return-sub', { email: 'return@idp.test', email_verified: true })).headers.get('location')).toBe('/')
+    expect((await signIn('return-sub', { email: 'return@idp.test', email_verified: true })).headers.get('location')).toBe('/?signed_in=1')
   })
 
   it('never returns to another site or a sign-in route', async () => {
     for (const unsafe of ['//evil.example/pricing', 'https://evil.example/', '/\\evil.example', '/auth/oidc']) {
       const res = await signIn('unsafe-return-sub', { email: 'unsafe@idp.test', email_verified: true }, unsafe)
-      expect(res.headers.get('location')).toMatch(/^\/(\?signed_up=oidc)?$/)
+      expect(res.headers.get('location')).toMatch(/^\/\?(signed_up=oidc&)?signed_in=1$/)
     }
   })
 

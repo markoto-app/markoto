@@ -150,6 +150,9 @@ const IMPORT_WORKER = '^server/utils/imports/importWorker\\.ts$'
 // own, like opening its URL (the resolver), and the AI's edit of one
 // re-proves the initiator's write access to that document (the tool).
 const PROJECT_CONTEXT = ['^server/utils/documents/projectContext\\.ts$', '^server/utils/ai/tools/projectContextTools\\.ts$']
+// Anonymous documents a user just took over after signing in: the search
+// index write re-proves their (new) ownership against the database.
+const ADOPTION = '^server/utils/documents/adoptAnonymous\\.ts$'
 
 /**
  * Each entry point that mints a proof from something the caller vouches for
@@ -172,7 +175,7 @@ export const PROOF_ENTRY_CALLERS = {
   proveNewDoc: CREATION,
   // Membership of a user, checked against the database.
   proveDocMembership: [MCP_WRAPPER, MCP_EXPORT_TOOL, ...AI_SESSION, ...AI_TOOLS, AI_JOBS, POLICY_PROVER, EXPLORER],
-  proveDocNeed: [EXPLORER, IMPORT_ROUTE, ...PROJECT_CONTEXT],
+  proveDocNeed: [EXPLORER, IMPORT_ROUTE, ...PROJECT_CONTEXT, ADOPTION],
   proveFolderScope: [EXPLORER, IMPORTS, ...AI_TOOLS],
   proveScope: [EXPLORER, IMPORTS, ...AI_TOOLS],
   memberWorkspaceProofs: [EXPLORER, ...AI_TOOLS],
