@@ -1,10 +1,10 @@
 ---
 title: Plans and limits
-description: What the free tier includes on markoto.app and when self-hosted, and what paid plans will add. Self-hosted limits are set by the operator.
+description: What the free tier includes on markoto.app and when self-hosted, and what Pro, Team and Business add. Self-hosted limits are set by the operator.
 category: plans
 order: 1
 featured: true
-updated: '2026-11-17'
+updated: '2026-11-25'
 ---
 
 # Plans and limits
@@ -26,15 +26,14 @@ plan is narrower:
 - 3 AI jobs a day, each up to 200 AI Points
 - no custom CSS, AI image generation, voice input, stronger AI model, single sign-on, workspace audit log, guests, brand kit, share controls or custom domains
 
-Pro and Teams are coming soon and will lift these limits and turn those features on.
+Pro (for one person) and Team and Business (for a workspace) lift these limits and turn those features on.
 
 What you see depends on where markoto runs:
 
 | Where | Plans |
 |---|---|
-| **markoto.app** | Everyone is on Free. The [pricing page](/pricing) shows three cards: Free, Pro and Teams (switch the Teams card between Team and Business). Pro and Teams are marked **coming soon**: they show the prices we plan to charge (in euros or Swiss francs, monthly or annual, per seat for Team and Business; not final) and no purchase button. The bar above the cards puts you on a waitlist (double opt-in by email; you can unsubscribe at any time) to hear when they launch. Writing without an account and self-hosting are linked under the cards. |
-| **A self-hosted instance** | No plans, no pricing page tiers, no waitlist, no purchase. Everyone is on the free tier, and the operator decides the limits (workspaces, knowledge storage, AI Points). |
-| **An instance with paid plans live** (later) | Free and Pro for individuals with Stripe checkout ([Upgrade](/docs/plans/upgrade)); Team and Business for workspaces, billed per seat. |
+| **markoto.app** | Everyone starts on Free. The [pricing page](/pricing) shows three cards: Free, Pro and Teams (switch the Teams card between Team and Business), with prices in euros or Swiss francs, monthly or annual, per seat for Team and Business. Pro is bought for yourself ([Upgrade](/docs/plans/upgrade)); Team and Business are bought for a workspace and billed per seat ([Team and Business](/docs/plans/team-plan)). Plans are sold through Link, a Stripe company. |
+| **A self-hosted instance** | No plans, no pricing page tiers, no purchase. Everyone is on the free tier, and the operator decides the limits (workspaces, knowledge storage, AI Points). |
 
 ::flow{id="what-you-get-on-each-plan" hide-title}
 ::
@@ -46,7 +45,7 @@ What you see depends on where markoto runs:
 - **Knowledge storage**: files and bytes per workspace and per person ([knowledge](/docs/ai/knowledge-rag)).
 - **Image storage**: the total size of the images you upload or the AI generates for you, across all your documents (100 MB on the free plan).
 - **AI Points**, the monthly allowance for AI that the operator pays for. Calls on your own AI provider are not limited by it ([AI Points](/docs/plans/ai-budget)).
-- **Team and Business** (once available): a workspace subscription billed per seat (at least 3), with AI budget and storage shared by its members. The AI budget and storage limits on the pricing page are per seat: a 5-seat Team workspace gets five times the per-seat amount, shared. See [Team and Business](/docs/plans/team-plan).
+- **Team and Business**: a workspace subscription billed per seat (at least 3), with AI budget and storage shared by its members. The AI budget and storage limits on the pricing page are per seat: a 5-seat Team workspace gets five times the per-seat amount, shared. See [Team and Business](/docs/plans/team-plan).
 
 ## What features a plan includes
 
@@ -66,10 +65,10 @@ include; nothing is deleted.
 
 ## Extra AI Points
 
-When a month's AI Points run out early, Pro users and Team / Business
-workspace admins can buy extra AI Points. They are used only after the
-month's plan allowance is spent, carry over from month to month and expire
-12 months after purchase. The free plan can't buy them.
+Buying extra AI Points on top of a plan's monthly allowance is not
+available on markoto.app yet. When a month's AI Points run out early, the
+AI works again with the next month's allowance, or right away with
+[your own AI provider](/docs/ai/provider).
 
 ## Seeing your usage
 
@@ -80,11 +79,11 @@ you own, each as used / limit. A bar turns orange at three quarters full and
 red when you are close to the limit. Your profile page shows your image
 storage too.
 
-The walkthrough above shows the pricing page on markoto.app, with paid plans
-coming soon. Under the cards, **Compare all details** opens a table with every limit for each plan. The current numbers always come from the instance you are on:
+Under the cards on the pricing page, **Compare all details** opens a table with every limit for each plan. The current numbers always come from the instance you are on:
 open its pricing page to see them.
 
 ## What's next
 
-- [Connect your own AI provider](/docs/ai/provider): the way to use AI today.
-- [Upgrade](/docs/plans/upgrade): for instances with paid plans live.
+- [Upgrade to Pro](/docs/plans/upgrade): for yourself.
+- [Team and Business for a workspace](/docs/plans/team-plan): billed per seat.
+- [Connect your own AI provider](/docs/ai/provider): AI on any plan.

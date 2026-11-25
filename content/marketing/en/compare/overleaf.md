@@ -6,7 +6,7 @@ keywords:
   - markoto vs overleaf
   - overleaf alternative without latex
   - overleaf markdown
-updated: '2026-11-19'
+updated: '2026-11-25'
 navGroup: compare
 navLabel: markoto vs Overleaf
 navOrder: 30
@@ -29,7 +29,6 @@ Overleaf and markoto both let several people write one document in the browser a
 
 - **LaTeX itself.** Full control over typesetting, any LaTeX package, and journal and university templates. markoto has print themes and custom CSS, but no LaTeX.
 - **Citations.** Overleaf works with BibTeX, natbib and biblatex, any style a LaTeX package provides, and connects live to Zotero, Mendeley and ReadCube on paid plans. markoto reads BibTeX and CSL JSON, looks up DOIs and formats six built-in styles (APA, Chicago author-date, Harvard, IEEE, Vancouver, DIN 1505-2), but has no other styles and no live reference-manager sync: you import an export file.
-- **Track changes.** Overleaf's paid plans have track changes. markoto has no suggestion or track-changes mode; it keeps every version with a diff and a restore button instead.
 - **Git and GitHub.** Overleaf's paid plans sync projects with Git and GitHub. markoto has no Git integration.
 - **Open source edition.** Overleaf Community Edition is AGPL-3.0 open source. markoto is source-available (FSL-1.1, Apache-2.0 two years after each release), not OSI open source.
 - **Established in academia.** Many universities offer Overleaf to their members, so co-authors often already have an account.
@@ -38,6 +37,7 @@ Overleaf and markoto both let several people write one document in the browser a
 
 - **No LaTeX to learn.** Headings, lists, tables, footnotes, math in LaTeX syntax (rendered with KaTeX) and Mermaid diagrams, all in Markdown.
 - **Collaborators on the free plan.** A markoto document has no collaborator limit, and people can join with the link without an account. Overleaf's free plan allows 1 collaborator per project.
+- **Suggestions on the free plan.** Collaborators can propose changes that others accept or reject, like track changes. Overleaf has track changes on its paid plans.
 - **Edit-level history.** markoto records every edit and restores any earlier state: 30 days back on the free plan on markoto.app, unlimited when you self-host. Overleaf's free plan shows the last 24 hours.
 - **Live paged preview.** The pages update as you type; there is no compile step.
 - **EU hosting.** markoto.app stores documents with OVHcloud in France. Overleaf lists its hosting providers (AWS, Google Cloud, Heroku, MongoDB Atlas) as US-located.
@@ -46,7 +46,7 @@ Overleaf and markoto both let several people write one document in the browser a
 
 ## Who should pick which
 
-Pick **Overleaf** if you submit to journals or conferences with a LaTeX template, need a citation style markoto doesn't have, need track changes, or already write LaTeX.
+Pick **Overleaf** if you submit to journals or conferences with a LaTeX template, need a citation style markoto doesn't have, or already write LaTeX.
 
 Pick **markoto** if you would rather write Markdown, if your co-authors don't know LaTeX, if you need more than one collaborator without paying, or if your data has to stay in the EU or on your own server.
 
@@ -64,9 +64,9 @@ items:
   - q: Does markoto support LaTeX math?
     a: Yes, inside Markdown. Inline and display math in LaTeX syntax is rendered with KaTeX in the preview and the PDF.
   - q: Does markoto have track changes?
-    a: No. Every edit is recorded, and you can see what changed and restore an earlier version, but there is no suggestion mode.
+    a: Yes, on every plan. In Suggesting mode your changes show up as proposals that others accept or reject, and an owner can require suggestions. Every edit is also recorded, and you can see what changed and restore an earlier version. Overleaf has track changes on its paid plans.
   - q: Is markoto free?
-    a: Yes. markoto.app is free, with no collaborator limit and PDF export included. Paid plans with higher limits are planned but not launched.
+    a: Yes. markoto.app has a free plan, with no collaborator limit and PDF export included. Paid plans (Pro for one person, Team and Business per seat for a workspace) raise the limits.
 ---
 ::
 

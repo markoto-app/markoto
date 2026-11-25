@@ -6,7 +6,7 @@ keywords:
   - markdown editor online free
   - markdown editor with preview
   - markdown live preview
-updated: '2026-11-04'
+updated: '2026-11-25'
 navGroup: use-cases
 navLabel: Online Markdown editor
 navOrder: 20
@@ -84,7 +84,6 @@ The document is plain Markdown, and **File › Export › Markdown** downloads i
 
 - **No offline mode.** The editor needs a connection to open a document. A short drop while you type is fine: your edits sync when you're back.
 - **You edit the source.** The left side is Markdown text with a toolbar, not a word-processor view. The preview is read-only.
-- **No suggestion mode.** Everyone with edit access changes the text directly. Every change is kept in the history with a diff and can be restored.
 - **No desktop app.** markoto runs in the browser, on a computer or a phone.
 
 Comparing editors? See markoto next to [HackMD](/compare/hackmd) and [HedgeDoc](/compare/hedgedoc).

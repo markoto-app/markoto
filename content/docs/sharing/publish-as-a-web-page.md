@@ -3,7 +3,7 @@ title: Publish as a web page
 description: Put a copy of a document at its own public address, keep it out of search engines or let them list it, and show it on your own domain.
 category: sharing
 order: 5
-updated: '2026-11-11'
+updated: '2026-11-25'
 ---
 
 # Publish as a web page
@@ -50,7 +50,7 @@ Deleting the document unpublishes its page too.
 ## Show it on your own domain
 
 > **Availability.** On markoto.app your own domain is part of the **Pro**,
-> **Team** and **Business** plans (coming soon). A self-hosted instance
+> **Team** and **Business** plans. A self-hosted instance
 > offers it once its operator has set it up.
 
 You can show a published page at your own address, such as

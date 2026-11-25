@@ -3,13 +3,13 @@ title: Guests in a workspace
 description: Invite clients and freelancers as guests. They see only the documents you share with them, take no seat and use their own AI budget.
 category: workspaces
 order: 5
-updated: '2026-11-09'
+updated: '2026-11-25'
 ---
 
 # Guests in a workspace
 
 > **Availability.** On markoto.app guests are part of the **Team** and
-> **Business** plans (coming soon), up to five guests per paid seat. On a
+> **Business** plans, up to five guests per paid seat. On a
 > self-hosted instance every workspace can have guests.
 
 A guest is someone outside your team (a client, a freelancer, a reviewer)

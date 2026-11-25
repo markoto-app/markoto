@@ -7,7 +7,7 @@ keywords:
   - cursor plan review
   - mcp document review
   - ai spec review with comments
-updated: '2026-11-19'
+updated: '2026-11-25'
 navGroup: use-cases
 navLabel: Review agent plans
 navOrder: 130
@@ -60,7 +60,7 @@ Cursor and other clients take the same URL and header. The [MCP server page](/mc
 
 ## What to know first
 
-- **Writing needs write access.** On markoto.app's free plan the MCP server is read-only (100 tool calls a day): an agent can read a document and its comments, but not create the plan or reply. MCP write access is a paid-plan feature once plans launch. On a self-hosted instance the whole loop works today, with no daily cap.
+- **Writing needs write access.** On markoto.app's free plan the MCP server is read-only (100 tool calls a day): an agent can read a document and its comments, but not create the plan or reply. MCP write access comes with the paid plans (Pro and up). On a self-hosted instance the whole loop works today, with no daily cap.
 - **The agent doesn't get a notification.** The MCP server answers tool calls and doesn't push anything. Tell the agent to read the comments when the review is done.
 - **Reviewers need edit access to comment.** Share the document with a workspace, or with a link with edit access. A read-only link can read the plan but not comment.
 - **The agent's model is yours.** It thinks in your MCP client, with its own confirmation settings. markoto doesn't ask you to confirm each tool call.
@@ -91,7 +91,7 @@ items:
   - q: Can my agent read the comments my team leaves?
     a: Yes. The read_comments tool returns every thread of a document with its anchored line range, the resolved status, the comment bodies and the replies. It needs the documents:read scope.
   - q: Can the agent reply to a comment and resolve it?
-    a: Yes, with reply_to_comment and resolve_comment, which need documents:write. On markoto.app the free plan has read-only MCP, so writing needs a paid plan once plans launch, or a self-hosted instance.
+    a: Yes, with reply_to_comment and resolve_comment, which need documents:write. On markoto.app the free plan has read-only MCP, so writing needs a paid plan (Pro and up) or a self-hosted instance.
   - q: Which agents work?
     a: Any MCP client that can connect to a remote server over HTTP with an Authorization header, for example Claude Code, Claude Desktop and Cursor, or your own scripts.
   - q: Does the agent get notified when someone comments?

@@ -6,7 +6,7 @@ keywords:
   - google docs alternative
   - google docs markdown
   - markdown alternative to google docs
-updated: '2026-11-19'
+updated: '2026-11-25'
 navGroup: compare
 navLabel: markoto vs Google Docs
 navOrder: 40
@@ -28,7 +28,6 @@ Google Docs and markoto are both online editors where several people write the s
 ## Where Google Docs is better
 
 - **Familiar and everywhere.** Most collaborators already know Google Docs and have a Google account. There is nothing to explain.
-- **Suggesting mode.** Collaborators propose edits that the owner accepts or rejects. markoto has no suggestion or track-changes mode; it keeps every version with a diff and a restore button instead.
 - **Offline editing.** Google Docs works without a connection in Chrome and Edge once offline access is turned on. markoto needs a connection: edits made during a short drop sync when you are back, but you can't open documents offline.
 - **MLA citations.** Google Docs inserts citations and a bibliography in MLA, APA or Chicago style. markoto has APA, Chicago author-date, Harvard, IEEE, Vancouver and DIN 1505-2, but no MLA.
 - **The Workspace around it.** Drive, Gmail, Calendar, Meet and Sheets, with admin controls for organisations. markoto is a document editor only.
@@ -41,12 +40,13 @@ Google Docs and markoto are both online editors where several people write the s
 - **Math and diagrams in the text.** LaTeX-syntax math (KaTeX), Mermaid diagrams, footnotes, alerts and a table of contents, written in Markdown.
 - **Self-hosting.** markoto runs on your own server for free. Google Docs is only available as Google's cloud service.
 - **EU data location on the free plan.** markoto.app stores documents with OVHcloud in France. In Google Workspace, choosing Europe for stored data (Data Regions) needs Business Standard or a higher edition.
+- **Suggesting mode, in Markdown.** Like Google Docs, markoto lets people propose changes that others accept or reject, and an owner can require suggestions. Every version is also kept with a diff and a restore button.
 - **No account needed.** You can write and share a markoto document without signing in.
 - **AI with your own provider.** markoto's assistant runs on your own AI provider (or a local model when self-hosted), or on a small free allowance on markoto.app. Gemini in Docs needs an eligible Google plan.
 
 ## Who should pick which
 
-Pick **Google Docs** if your collaborators expect it, if you need suggesting mode, offline work or MLA citations, or if your organisation already lives in Google Workspace.
+Pick **Google Docs** if your collaborators expect it, if you need offline work or MLA citations, or if your organisation already lives in Google Workspace.
 
 Pick **markoto** if you want to write in Markdown, need well laid-out pages without manual formatting, or need your documents in the EU or on your own server.
 
@@ -60,7 +60,7 @@ In Google Docs, choose **File › Download** and pick Markdown, then import the 
 ---
 items:
   - q: Is markoto a Google Docs alternative?
-    a: For documents you want to write in Markdown and print or send as PDF, yes. It does not replace the Google Workspace around Docs, and it has no suggesting mode or offline editing.
+    a: For documents you want to write in Markdown and print or send as PDF, yes. It does not replace the Google Workspace around Docs, and it has no offline editing.
   - q: Can I import a Google Doc into markoto?
     a: Yes. Download it from Google Docs as Markdown or DOCX and import the file in markoto.
   - q: Does markoto work offline?

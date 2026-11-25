@@ -3,13 +3,13 @@ title: Single sign-on for a workspace
 description: Connect a workspace to your organisation's identity provider with OpenID Connect or SAML, verify your email domains and provision members with SCIM.
 category: workspace-admin
 order: 2
-updated: '2026-11-09'
+updated: '2026-11-25'
 ---
 
 # Single sign-on for a workspace
 
 > **Availability.** On markoto.app single sign-on is part of the **Business**
-> plan (coming soon). On a self-hosted instance every workspace can use it;
+> plan. On a self-hosted instance every workspace can use it;
 > the operator only needs to set the instance's public address (see the [self-hosting guide](https://github.com/markoto-app/markoto/blob/main/docs/SELF-HOSTING.md)).
 
 With single sign-on, the members of a workspace sign in through your

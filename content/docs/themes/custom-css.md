@@ -3,7 +3,7 @@ title: Add your own CSS
 description: When the theme settings don't go far enough, write CSS rules for your document. Which selectors exist, what is allowed, and examples to copy.
 category: themes
 order: 5
-updated: '2026-11-08'
+updated: '2026-11-25'
 ---
 
 # Add your own CSS
@@ -25,7 +25,7 @@ Try the theme settings first. They keep working when you switch presets,
 and the markoto assistant can change them for you. Reach for CSS when no
 setting does what you want.
 
-Custom CSS is available on every self-hosted instance. On markoto.app it is not part of the free plan: it needs a paid plan once plans launch.
+Custom CSS is available on every self-hosted instance. On markoto.app it is not part of the free plan: it is part of Pro, Team and Business.
 
 ## Where your CSS applies
 

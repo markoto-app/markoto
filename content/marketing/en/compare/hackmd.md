@@ -6,7 +6,7 @@ keywords:
   - hackmd alternative
   - hackmd vs
   - collaborative markdown editor
-updated: '2026-11-04'
+updated: '2026-11-25'
 navGroup: compare
 navLabel: markoto vs HackMD
 navOrder: 10
@@ -29,7 +29,6 @@ HackMD and markoto are both collaborative Markdown editors in the browser: sever
 
 - **Slide mode and book mode.** HackMD turns a note into a slide deck and links notes into a book. markoto has neither.
 - **GitHub sync.** HackMD pushes notes to a GitHub repository (20 pushes a month on Free). markoto has no Git or GitHub integration; you download Markdown and commit it yourself.
-- **Suggested edits.** HackMD has a "Suggest edit" mode (in beta). markoto has no suggestion or track-changes mode; it keeps every version with a diff and a restore button instead.
 - **More diagram types.** HackMD renders Graphviz, PlantUML, Vega-Lite, music notation and more. markoto renders Mermaid only.
 - **HTML download.** HackMD downloads notes as HTML as well as Markdown.
 - **Maturity and certification.** HackMD is the longer-established product and states SOC 2 certification. markoto is new and has no certification.
@@ -38,6 +37,7 @@ HackMD and markoto are both collaborative Markdown editors in the browser: sever
 
 - **Paged preview and PDF on every plan.** markoto shows A4 or Letter pages as you type, with print themes, a cover page, headers, footers and page numbers. The PDF is rendered on the server from the same layout. HackMD lists PDF export on its Prime plan.
 - **No collaborator cap on the free plan.** Anyone with the link can join a markoto document, without an account. HackMD's free plan allows up to 3 teammates and 3 invitees.
+- **Suggesting mode.** Collaborators propose changes that the document's editors accept or reject, and an owner can require suggestions. HackMD's "Suggest edit" mode is in beta.
 - **Edit-level history.** markoto records every edit, shows what changed and restores any earlier state: 30 days back on the free plan on markoto.app, unlimited when you self-host. HackMD's free plan keeps the last 10 versions.
 - **AI writing assistant.** markoto's assistant edits the document directly, answers in comments, and can use files you upload to a workspace. It runs on your own AI provider, or on a small monthly free allowance on markoto.app.
 - **Self-hosting for everyone.** markoto is source-available and installs with one script and Docker Compose. HackMD offers on-premises deployment on its Enterprise plan.
@@ -46,7 +46,7 @@ HackMD and markoto are both collaborative Markdown editors in the browser: sever
 
 ## Who should pick which
 
-Pick **HackMD** if your notes live next to code on GitHub, if you present from your notes, or if your team wants suggested edits.
+Pick **HackMD** if your notes live next to code on GitHub, if you present from your notes
 
 Pick **markoto** if the result has to be a well laid-out PDF, if you work with more than three people on a free plan, or if your data has to stay in the EU or on your own server.
 
@@ -60,7 +60,7 @@ Download a note from HackMD as Markdown and open it in markoto with **File › I
 ---
 items:
   - q: Is markoto free?
-    a: Yes. markoto.app is free, with no collaborator limit and PDF export included. Paid plans with higher limits are planned but not launched. Self-hosting is free too.
+    a: Yes. markoto.app has a free plan, with no collaborator limit and PDF export included. Paid plans (Pro for one person, Team and Business per seat for a workspace) raise the limits. Self-hosting is free too.
   - q: Does markoto have slide mode like HackMD?
     a: No. markoto makes paged documents and PDFs, not slide decks.
   - q: Can markoto sync with GitHub?

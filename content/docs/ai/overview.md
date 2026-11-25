@@ -5,7 +5,7 @@ category: ai
 order: 1
 icon: i-lucide-sparkles
 featured: true
-updated: '2026-11-18'
+updated: '2026-11-25'
 ---
 
 # What the AI can do, and what it needs
@@ -42,7 +42,7 @@ For each of the three capabilities (writing assistant, image, voice
 transcription) markoto picks, in this order:
 
 1. **Your own provider**, connected under **Settings → AI provider** ([how](/docs/ai/provider)). Calls go to your account at that provider and are billed there.
-2. **The instance default**, if whoever runs this markoto set one. On a self-hosted instance that is the operator's choice (including a local model). On markoto.app it is the **free AI allowance** for the writing assistant (see below); images and voice need your own provider there.
+2. **The instance default**, if whoever runs this markoto set one. On a self-hosted instance that is the operator's choice (including a local model). On markoto.app it is the **free AI allowance** for the writing assistant (see below); image generation and voice input are included from Pro up, and on the free plan need your own provider.
 3. Otherwise the capability is unavailable.
 
 On a self-hosted instance the AI may already work, or you connect your own.

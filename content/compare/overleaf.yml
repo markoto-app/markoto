@@ -17,9 +17,9 @@ rows:
       checked: '2026-11-04'
   - feature: Price
     markoto:
-      value: Free on markoto.app; paid plans not launched yet
+      value: Free plan; Pro 9 a month, Team 12 and Business 20 per seat a month (EUR or CHF)
       source: /docs/plans/limits
-      checked: '2026-11-04'
+      checked: '2026-11-25'
     competitor:
       value: Free; Student $13, Standard $25, Pro $45 per month (billed monthly)
       source: https://www.overleaf.com/user/subscription/plans?currency=USD
@@ -52,11 +52,11 @@ rows:
       source: https://docs.overleaf.com/collaborating/commenting.md
       checked: '2026-11-04'
   - feature: Track changes
-    note: markoto keeps every version, with restore, instead.
+    note: In markoto, Suggesting mode, on every plan.
     markoto:
-      value: false
-      source: /docs/import-export
-      checked: '2026-11-04'
+      value: true
+      source: /docs/collaborate/suggestions
+      checked: '2026-11-25'
     competitor:
       value: Paid plans
       source: https://www.overleaf.com/plans

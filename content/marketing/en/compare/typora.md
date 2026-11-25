@@ -7,7 +7,7 @@ keywords:
   - typora online
   - typora alternative browser
   - collaborative typora
-updated: '2026-11-08'
+updated: '2026-11-25'
 navGroup: compare
 navLabel: markoto vs Typora
 navOrder: 60
@@ -44,7 +44,7 @@ If you write alone, on your own computer, Typora is hard to beat. If others need
 - **Print themes.** Built-in presets (including arXiv and two-column IEEE paper layouts) and a theme editor for fonts, colours, margins, columns, headers, footers and cover, without writing CSS.
 - **Import from Office files.** markoto converts Word, PDF, PowerPoint, Excel, HTML and EPUB into Markdown without extra software.
 - **AI assistant.** markoto's assistant edits the document, answers in comments and can use files uploaded to a workspace.
-- **Free, or on your own server.** markoto.app costs nothing today, and markoto is source-available and can be self-hosted.
+- **Free, or on your own server.** markoto.app has a free plan, and markoto is source-available and can be self-hosted.
 
 ## Who should pick which
 
@@ -68,7 +68,7 @@ items:
   - q: Does markoto work offline?
     a: No. markoto needs a connection. It keeps edits made during a short drop and sends them when the connection is back.
   - q: Is markoto free?
-    a: Yes. markoto.app is free, including PDF export and collaboration. Paid plans with higher limits are planned but not launched. Self-hosting is free too.
+    a: Yes. markoto.app has a free plan, including PDF export and collaboration. Paid plans (Pro for one person, Team and Business per seat for a workspace) raise the limits. Self-hosting is free too.
   - q: Do I need an account?
     a: No. You can write, share and download a PDF without signing in. An account lets you own documents, use workspaces and use the AI assistant.
 ---

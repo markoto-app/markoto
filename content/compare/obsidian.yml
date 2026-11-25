@@ -35,9 +35,9 @@ rows:
       checked: '2026-11-04'
   - feature: Price
     markoto:
-      value: Free on markoto.app; paid plans not launched yet
+      value: Free plan; Pro 9 a month, Team 12 and Business 20 per seat a month (EUR or CHF)
       source: /docs/plans/limits
-      checked: '2026-11-04'
+      checked: '2026-11-25'
     competitor:
       value: App free, also for work; optional commercial licence $50 per user/year
       source: https://obsidian.md/pricing

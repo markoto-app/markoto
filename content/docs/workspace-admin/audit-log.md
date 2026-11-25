@@ -3,13 +3,13 @@ title: Audit log of a workspace
 description: See and download who changed what in a workspace (members, invitations, sharing, deletions, billing and single sign-on) as a workspace admin.
 category: workspace-admin
 order: 3
-updated: '2026-11-09'
+updated: '2026-11-25'
 ---
 
 # Audit log of a workspace
 
 > **Availability.** On markoto.app the audit log is part of the **Business**
-> plan (coming soon). On a self-hosted instance every workspace has it.
+> plan. On a self-hosted instance every workspace has it.
 
 Workspace admins find the **Audit log** tab on the workspace page. It lists,
 newest first, the security-relevant things that happened in the workspace:

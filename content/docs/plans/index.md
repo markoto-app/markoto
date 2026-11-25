@@ -4,18 +4,18 @@ description: The free tier and its limits, paid plans for one person or a worksp
 category: plans
 order: 10
 icon: i-lucide-credit-card
-updated: '2026-11-14'
+updated: '2026-11-25'
 ---
 
 # Plans and billing
 
 Writing, sharing and exporting are free. This section explains the
-limits of each plan, how upgrading works where paid plans are live, and
+limits of each plan, how upgrading works, and
 how the AI allowance is counted. Self-hosted instances have only the
 limits their operator sets.
 
-- [Plans and limits](/docs/plans/limits): the free tier today, paid plans coming soon, limits on self-hosted instances.
-- [Upgrade your plan](/docs/plans/upgrade): only where paid plans are live.
+- [Plans and limits](/docs/plans/limits): the free tier, Pro, Team and Business on markoto.app, limits on self-hosted instances.
+- [Upgrade your plan](/docs/plans/upgrade): Pro for yourself, bought through Link.
 - [Team and Business for a workspace](/docs/plans/team-plan): seats, the shared AI budget, member limits.
 - [AI Points and what happens when you run out](/docs/plans/ai-budget): when the allowance applies, and your options.
 
