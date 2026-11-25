@@ -66,7 +66,7 @@ describe('product page: demo video from the hero picture', () => {
     expect(overlay()).toBeNull()
   })
 
-  it('opens the video on click, playing with sound and English captions on', async () => {
+  it('opens the video on click, playing with sound, captions available but off', async () => {
     await mountTour()
     await openFrom('tour-demo-play')
     const video = overlayVideo()!
@@ -79,7 +79,8 @@ describe('product page: demo video from the hero picture', () => {
     expect(track.getAttribute('kind')).toBe('captions')
     expect(track.getAttribute('srclang')).toBe('en')
     expect(track.getAttribute('src')).toBe(DEMO_VIDEO.captions)
-    expect(track.hasAttribute('default')).toBe(true)
+    // The cards in the video show the same text: captions stay off.
+    expect(track.hasAttribute('default')).toBe(false)
     await vi.waitFor(() => expect(play).toHaveBeenCalled())
     const dialog = video.closest('[role="dialog"]')
     expect(dialog).not.toBeNull()
@@ -106,7 +107,7 @@ describe('product page: demo video from the hero picture', () => {
     expect(overlay()).not.toBeNull()
   })
 
-  it('leaves the captions off by default on a page in another language', async () => {
+  it('shows the label in the page language, captions off there too', async () => {
     const i18n = useNuxtApp().$i18n
     await i18n.setLocale('de')
     try {

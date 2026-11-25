@@ -18,11 +18,7 @@ const props = defineProps<{
   returnFocusTo?: HTMLElement | null
 }>()
 
-const { t, locale } = useI18n()
-
-// The captions are the English text of the video's cards: on by default
-// for an English page, available from the player's menu otherwise.
-const captionsOn = computed(() => locale.value.split('-')[0] === 'en')
+const { t } = useI18n()
 
 const videoEl = ref<HTMLVideoElement | null>(null)
 
@@ -88,12 +84,13 @@ function onCloseAutoFocus(e: Event): void {
             :src="DEMO_VIDEO.src"
             type="video/mp4"
           >
+          <!-- Off by default: the captions repeat the text the video's
+               cards already show. The player's menu turns them on. -->
           <track
             kind="captions"
             srclang="en"
             :label="t('demo.captionsLabel')"
             :src="DEMO_VIDEO.captions"
-            :default="captionsOn"
           >
           <a :href="DEMO_VIDEO.src">{{ t('demo.download') }}</a>
         </video>
