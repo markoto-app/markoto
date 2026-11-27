@@ -173,27 +173,27 @@
       "file": "14.webp",
       "caption": "Both files are documents now, titled by their first heading.",
       "cursor": null,
-      "path": "/f/NMHynitXqZHe"
+      "path": "/f/bicUlJeEotWh"
     },
     {
       "kind": "approach",
-      "file": "14.webp",
+      "file": "15.webp",
       "caption": "Double-click \"Team handbook\"",
       "cursor": {
         "x": 764,
         "y": 562
       },
-      "path": "/f/NMHynitXqZHe"
+      "path": "/f/bicUlJeEotWh"
     },
     {
       "kind": "outcome",
-      "file": "15.webp",
+      "file": "16.webp",
       "caption": "The image shows in the document, and \"onboarding guide\" links to the other imported document.",
       "cursor": {
         "x": 640,
         "y": 26
       },
-      "path": "/d/ekeDNm2yTS",
+      "path": "/d/szlYWf98k6",
       "highlights": [
         {
           "label": "Imported image",

@@ -22,17 +22,17 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/Q2tqBufgDx"
+      "path": "/d/BdakwaCaZI"
     },
     {
       "kind": "approach",
       "file": "02.webp",
       "caption": "Open the share dialog",
       "cursor": {
-        "x": 915,
+        "x": 896,
         "y": 26
       },
-      "path": "/d/Q2tqBufgDx"
+      "path": "/d/BdakwaCaZI"
     },
     {
       "kind": "approach",
@@ -42,7 +42,7 @@
         "x": 454,
         "y": 752
       },
-      "path": "/d/Q2tqBufgDx",
+      "path": "/d/BdakwaCaZI",
       "annotations": [
         {
           "label": "Publish as a web page",
@@ -62,7 +62,7 @@
         "x": 816,
         "y": 700
       },
-      "path": "/d/Q2tqBufgDx"
+      "path": "/d/BdakwaCaZI"
     },
     {
       "kind": "outcome",
@@ -72,7 +72,7 @@
         "x": 816,
         "y": 700
       },
-      "path": "/d/Q2tqBufgDx",
+      "path": "/d/BdakwaCaZI",
       "highlights": [
         {
           "label": "Public address",
@@ -93,7 +93,7 @@
       "file": "06.webp",
       "caption": "Anyone with the address reads the page, no account, no editor",
       "cursor": null,
-      "path": "/p/harbourline-depot-guide-6xer8w",
+      "path": "/p/harbourline-depot-guide-ihiu9w",
       "hero": true,
       "actor": "reader"
     }

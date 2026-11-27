@@ -22,7 +22,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/E6WBv7ffa4"
+      "path": "/d/6dX87PyFpN"
     },
     {
       "kind": "approach",
@@ -32,7 +32,7 @@
         "x": 20,
         "y": 98
       },
-      "path": "/d/E6WBv7ffa4",
+      "path": "/d/6dX87PyFpN",
       "annotations": [
         {
           "label": "outline",
@@ -52,7 +52,7 @@
         "x": 20,
         "y": 98
       },
-      "path": "/d/E6WBv7ffa4"
+      "path": "/d/6dX87PyFpN"
     },
     {
       "kind": "approach",
@@ -62,7 +62,7 @@
         "x": 141,
         "y": 485
       },
-      "path": "/d/E6WBv7ffa4"
+      "path": "/d/6dX87PyFpN"
     },
     {
       "kind": "outcome",
@@ -72,7 +72,7 @@
         "x": 141,
         "y": 485
       },
-      "path": "/d/E6WBv7ffa4",
+      "path": "/d/6dX87PyFpN",
       "hero": true
     },
     {
@@ -83,7 +83,7 @@
         "x": 514,
         "y": 194
       },
-      "path": "/d/E6WBv7ffa4"
+      "path": "/d/6dX87PyFpN"
     },
     {
       "kind": "outcome",
@@ -93,7 +93,7 @@
         "x": 514,
         "y": 194
       },
-      "path": "/d/E6WBv7ffa4"
+      "path": "/d/6dX87PyFpN"
     },
     {
       "kind": "chapter",
@@ -103,52 +103,52 @@
     {
       "kind": "narration",
       "text": "The second tab lists the documents of the workspace, in their folders, so you can switch without going back to the workspace page. For a document outside any workspace it lists your own documents.",
-      "file": "08.webp",
+      "file": "07.webp",
       "cursor": {
         "x": 514,
         "y": 194
       },
-      "path": "/d/E6WBv7ffa4"
+      "path": "/d/6dX87PyFpN"
     },
     {
       "kind": "approach",
-      "file": "09.webp",
+      "file": "08.webp",
       "caption": "Click the \"Workspace\" tab",
       "cursor": {
         "x": 129,
         "y": 134
       },
-      "path": "/d/E6WBv7ffa4"
+      "path": "/d/6dX87PyFpN"
     },
     {
       "kind": "outcome",
-      "file": "10.webp",
+      "file": "09.webp",
       "caption": "The documents of your workspace, in their folders. The one you are in is marked.",
       "cursor": {
         "x": 129,
         "y": 134
       },
-      "path": "/d/E6WBv7ffa4"
+      "path": "/d/6dX87PyFpN"
     },
     {
       "kind": "approach",
-      "file": "11.webp",
+      "file": "10.webp",
       "caption": "Click \"Board memo\"",
       "cursor": {
         "x": 141,
         "y": 261
       },
-      "path": "/d/E6WBv7ffa4"
+      "path": "/d/6dX87PyFpN"
     },
     {
       "kind": "outcome",
-      "file": "12.webp",
+      "file": "11.webp",
       "caption": "Board memo opens in the same tab, and the panel stays open for the next switch. Ctrl + click opens a document in a new tab.",
       "cursor": {
         "x": 141,
         "y": 261
       },
-      "path": "/d/5QmmX90Kb1"
+      "path": "/d/9A_JbkkzDN"
     },
     {
       "kind": "chapter",
@@ -158,19 +158,19 @@
     {
       "kind": "narration",
       "text": "Ctrl + Shift + E (Cmd + Shift + E on a Mac) shows and hides the panel and puts you on its tabs. In the outline and the document list, the arrow keys move between entries, Right and Left open and close a section, and Enter jumps to it.",
-      "file": "13.webp",
+      "file": "12.webp",
       "cursor": null,
-      "path": "/d/5QmmX90Kb1"
+      "path": "/d/9A_JbkkzDN"
     },
     {
       "kind": "outcome",
-      "file": "14.webp",
+      "file": "13.webp",
       "caption": "Press Ctrl + Shift + E to hide the panel",
       "cursor": {
         "x": 19,
         "y": 383
       },
-      "path": "/d/5QmmX90Kb1"
+      "path": "/d/9A_JbkkzDN"
     }
   ],
   "next": {

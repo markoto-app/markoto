@@ -20,9 +20,9 @@
       "file": "01.webp",
       "cursor": {
         "x": 359,
-        "y": 97
+        "y": 73
       },
-      "path": "/d/1N6f-_X-QY"
+      "path": "/d/J0ozumvVFV"
     },
     {
       "kind": "approach",
@@ -30,15 +30,15 @@
       "caption": "Tap the zoom button next to Edit and Preview",
       "cursor": {
         "x": 359,
-        "y": 97
+        "y": 73
       },
-      "path": "/d/1N6f-_X-QY",
+      "path": "/d/J0ozumvVFV",
       "annotations": [
         {
           "label": "zoom",
           "kind": "arrow",
           "x": 343,
-          "y": 81.75,
+          "y": 57,
           "w": 32,
           "h": 32
         }
@@ -50,9 +50,9 @@
       "caption": "Pick fit width, all pages, or a fixed zoom.",
       "cursor": {
         "x": 359,
-        "y": 97
+        "y": 73
       },
-      "path": "/d/1N6f-_X-QY"
+      "path": "/d/J0ozumvVFV"
     },
     {
       "kind": "approach",
@@ -60,9 +60,9 @@
       "caption": "Tap \"All pages\"",
       "cursor": {
         "x": 311,
-        "y": 247
+        "y": 222
       },
-      "path": "/d/1N6f-_X-QY"
+      "path": "/d/J0ozumvVFV"
     },
     {
       "kind": "outcome",
@@ -70,9 +70,9 @@
       "caption": "The preview pulls back: every page side by side, two or three to a row.",
       "cursor": {
         "x": 311,
-        "y": 247
+        "y": 222
       },
-      "path": "/d/1N6f-_X-QY",
+      "path": "/d/J0ozumvVFV",
       "hero": true
     },
     {
@@ -81,9 +81,9 @@
       "caption": "Tap a page to open it",
       "cursor": {
         "x": 311,
-        "y": 247
+        "y": 222
       },
-      "path": "/d/1N6f-_X-QY"
+      "path": "/d/J0ozumvVFV"
     },
     {
       "kind": "outcome",
@@ -91,9 +91,9 @@
       "caption": "Page 4 opens at full width, right where you tapped.",
       "cursor": {
         "x": 311,
-        "y": 247
+        "y": 222
       },
-      "path": "/d/1N6f-_X-QY"
+      "path": "/d/J0ozumvVFV"
     },
     {
       "kind": "narration",
@@ -101,9 +101,9 @@
       "file": "06.webp",
       "cursor": {
         "x": 311,
-        "y": 247
+        "y": 222
       },
-      "path": "/d/1N6f-_X-QY"
+      "path": "/d/J0ozumvVFV"
     },
     {
       "kind": "chapter",
@@ -116,9 +116,9 @@
       "caption": "After a reload the preview opens on all pages again. The choice is kept in this browser, for every document.",
       "cursor": {
         "x": 359,
-        "y": 97
+        "y": 73
       },
-      "path": "/d/1N6f-_X-QY"
+      "path": "/d/J0ozumvVFV"
     }
   ],
   "next": {

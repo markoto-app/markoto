@@ -19,7 +19,7 @@
       "text": "The audit log lists what happened in the workspace, newest first: members and roles, invitations, sharing and deletions, billing and single sign-on: with who did it and their shortened network address.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/w/oUvO04_5Bc"
+      "path": "/w/oYZec4HCDe"
     },
     {
       "kind": "approach",
@@ -29,7 +29,7 @@
         "x": 844,
         "y": 257
       },
-      "path": "/w/oUvO04_5Bc",
+      "path": "/w/oYZec4HCDe",
       "annotations": [
         {
           "label": "Audit log",
@@ -49,7 +49,7 @@
         "x": 844,
         "y": 257
       },
-      "path": "/w/oUvO04_5Bc",
+      "path": "/w/oYZec4HCDe?tab=audit",
       "highlights": [
         {
           "label": "Who changed what",
@@ -69,7 +69,7 @@
         "x": 640,
         "y": 591
       },
-      "path": "/w/oUvO04_5Bc",
+      "path": "/w/oYZec4HCDe?tab=audit",
       "highlights": [
         {
           "label": "Before and after",
@@ -93,7 +93,7 @@
         "x": 640,
         "y": 591
       },
-      "path": "/w/oUvO04_5Bc",
+      "path": "/w/oYZec4HCDe?tab=audit",
       "highlights": [
         {
           "label": "CSV",

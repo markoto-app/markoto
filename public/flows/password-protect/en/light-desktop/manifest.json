@@ -22,32 +22,32 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/zmN8dcvmC7"
+      "path": "/d/JOnIVeFas2"
     },
     {
       "kind": "narration",
       "text": "Open the share dialog from the lock icon in the topbar.",
-      "file": "01.webp",
+      "file": "02.webp",
       "cursor": {
         "x": 640,
         "y": 26
       },
-      "path": "/d/zmN8dcvmC7"
+      "path": "/d/JOnIVeFas2"
     },
     {
       "kind": "approach",
-      "file": "02.webp",
+      "file": "03.webp",
       "caption": "Open the share dialog",
       "cursor": {
-        "x": 915,
+        "x": 896,
         "y": 26
       },
-      "path": "/d/zmN8dcvmC7",
+      "path": "/d/JOnIVeFas2",
       "annotations": [
         {
           "label": "lock icon",
           "kind": "arrow",
-          "x": 903.59375,
+          "x": 884.03125,
           "y": 14,
           "w": 24,
           "h": 24
@@ -56,13 +56,13 @@
     },
     {
       "kind": "outcome",
-      "file": "03.webp",
+      "file": "04.webp",
       "caption": "The share dialog opens, four access modes below the link.",
       "cursor": {
-        "x": 915,
+        "x": 896,
         "y": 26
       },
-      "path": "/d/zmN8dcvmC7"
+      "path": "/d/JOnIVeFas2"
     },
     {
       "kind": "chapter",
@@ -72,22 +72,22 @@
     {
       "kind": "narration",
       "text": "Tap \"Password protected\" to gate the doc. The password input appears below: choose at least 8 characters, memorable enough to share verbally with whoever needs in. markoto stores only a one-way hash of it, never the passphrase itself.",
-      "file": "03.webp",
+      "file": "04.webp",
       "cursor": {
-        "x": 915,
+        "x": 896,
         "y": 26
       },
-      "path": "/d/zmN8dcvmC7"
+      "path": "/d/JOnIVeFas2"
     },
     {
       "kind": "approach",
-      "file": "03.webp",
+      "file": "04.webp",
       "caption": "Pick \"Password protected\"",
       "cursor": {
         "x": 640,
         "y": 429
       },
-      "path": "/d/zmN8dcvmC7",
+      "path": "/d/JOnIVeFas2",
       "annotations": [
         {
           "label": "password mode",
@@ -101,57 +101,57 @@
     },
     {
       "kind": "outcome",
-      "file": "04.webp",
+      "file": "05.webp",
       "caption": "The password input appears, type a passphrase to lock the doc.",
       "cursor": {
         "x": 640,
         "y": 429
       },
-      "path": "/d/zmN8dcvmC7"
+      "path": "/d/JOnIVeFas2"
     },
     {
       "kind": "approach",
-      "file": "05.webp",
+      "file": "06.webp",
       "caption": "Type a passphrase",
       "cursor": {
         "x": 435,
         "y": 519
       },
-      "path": "/d/zmN8dcvmC7"
+      "path": "/d/JOnIVeFas2"
     },
     {
       "kind": "outcome",
-      "file": "06.webp",
+      "file": "07.webp",
       "caption": "The passphrase is typed, Save locks the doc with it.",
       "cursor": {
         "x": 435,
         "y": 519
       },
-      "path": "/d/zmN8dcvmC7"
+      "path": "/d/JOnIVeFas2"
     },
     {
       "kind": "approach",
-      "file": "07.webp",
+      "file": "08.webp",
       "caption": "Click Save to commit the password",
       "cursor": {
         "x": 835,
         "y": 519
       },
-      "path": "/d/zmN8dcvmC7"
+      "path": "/d/JOnIVeFas2"
     },
     {
       "kind": "outcome",
-      "file": "08.webp",
+      "file": "09.webp",
       "caption": "The document is now password protected; the lock icon in the top bar shows it.",
       "cursor": {
         "x": 835,
         "y": 519
       },
-      "path": "/d/zmN8dcvmC7",
+      "path": "/d/JOnIVeFas2",
       "highlights": [
         {
           "label": "Password protected",
-          "x": 903.59375,
+          "x": 884.03125,
           "y": 14,
           "w": 24,
           "h": 24
@@ -166,30 +166,30 @@
     {
       "kind": "narration",
       "text": "A first-time visitor: say, in their own browser, opens the link and gets the password dialog first. Until the passphrase checks out, markoto sends them nothing of the document: not the text, not even its title.",
-      "file": "09.webp",
+      "file": "10.webp",
       "cursor": {
         "x": 835,
         "y": 519
       },
-      "path": "/d/zmN8dcvmC7"
+      "path": "/d/JOnIVeFas2"
     },
     {
       "kind": "outcome",
-      "file": "10.webp",
+      "file": "11.webp",
       "caption": "A blocking dialog asks for the password, the editor is hidden until you enter it.",
       "cursor": {
         "x": 422,
         "y": 444
       },
-      "path": "/d/zmN8dcvmC7",
+      "path": "/d/JOnIVeFas2",
       "annotations": [
         {
           "label": "password input",
           "kind": "arrow",
-          "x": 408.177978515625,
-          "y": 425.98004150390625,
-          "w": 233.82049560546875,
-          "h": 35.972412109375
+          "x": 408,
+          "y": 426,
+          "w": 234,
+          "h": 36
         }
       ],
       "actor": "visitor"
@@ -202,53 +202,53 @@
     {
       "kind": "narration",
       "text": "Type the passphrase and the gate lifts. Too many wrong guesses and markoto pauses password checks on the document for a while, so a passphrase can't be brute-forced.",
-      "file": "11.webp",
+      "file": "12.webp",
       "cursor": null,
-      "path": "/d/zmN8dcvmC7",
+      "path": "/d/JOnIVeFas2",
       "actor": "visitor"
     },
     {
       "kind": "approach",
-      "file": "12.webp",
+      "file": "13.webp",
       "caption": "Type the passphrase",
       "cursor": {
         "x": 422,
         "y": 444
       },
-      "path": "/d/zmN8dcvmC7",
+      "path": "/d/JOnIVeFas2",
       "actor": "visitor"
     },
     {
       "kind": "outcome",
-      "file": "13.webp",
+      "file": "14.webp",
       "caption": "The passphrase is ready, Unlock submits it for verification.",
       "cursor": {
         "x": 422,
         "y": 444
       },
-      "path": "/d/zmN8dcvmC7",
+      "path": "/d/JOnIVeFas2",
       "actor": "visitor"
     },
     {
       "kind": "approach",
-      "file": "14.webp",
+      "file": "15.webp",
       "caption": "Click \"Unlock\" to enter the doc",
       "cursor": {
         "x": 758,
         "y": 490
       },
-      "path": "/d/zmN8dcvmC7",
+      "path": "/d/JOnIVeFas2",
       "actor": "visitor"
     },
     {
       "kind": "outcome",
-      "file": "15.webp",
+      "file": "16.webp",
       "caption": "The password dialog closes and the document opens.",
       "cursor": {
         "x": 758,
         "y": 490
       },
-      "path": "/d/zmN8dcvmC7",
+      "path": "/d/JOnIVeFas2",
       "hero": true,
       "actor": "visitor"
     }

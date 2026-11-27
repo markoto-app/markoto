@@ -19,7 +19,7 @@
       "text": "The brand kit holds what makes documents look like your organisation's. Upload each font file, one per weight and style, and confirm your licence allows embedding it in PDFs. Logos become available as the cover logo and header image of every document in the workspace.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/w/AdY1RiUsy2"
+      "path": "/w/i3FJhIoj4M"
     },
     {
       "kind": "approach",
@@ -29,7 +29,7 @@
         "x": 576,
         "y": 231
       },
-      "path": "/w/AdY1RiUsy2",
+      "path": "/w/i3FJhIoj4M",
       "annotations": [
         {
           "label": "Brand kit",
@@ -49,7 +49,7 @@
         "x": 89,
         "y": 708
       },
-      "path": "/w/AdY1RiUsy2",
+      "path": "/w/i3FJhIoj4M?tab=brand",
       "highlights": [
         {
           "label": "Font upload",
@@ -68,7 +68,7 @@
         "x": 141,
         "y": 746
       },
-      "path": "/w/AdY1RiUsy2"
+      "path": "/w/i3FJhIoj4M?tab=brand"
     },
     {
       "kind": "outcome",
@@ -78,7 +78,7 @@
         "x": 1238,
         "y": 42
       },
-      "path": "/w/AdY1RiUsy2",
+      "path": "/w/i3FJhIoj4M?tab=brand",
       "highlights": [
         {
           "label": "Quaybridge Sans",
@@ -107,9 +107,9 @@
       "caption": "Take the design from the quarterly report",
       "cursor": {
         "x": 524,
-        "y": 368
+        "y": 399
       },
-      "path": "/w/AdY1RiUsy2",
+      "path": "/w/i3FJhIoj4M?tab=brand",
       "highlights": [
         {
           "label": "Workspace design",
@@ -128,7 +128,7 @@
         "x": 99,
         "y": 410
       },
-      "path": "/w/AdY1RiUsy2"
+      "path": "/w/i3FJhIoj4M?tab=brand"
     },
     {
       "kind": "chapter",
@@ -143,7 +143,7 @@
         "x": 1208,
         "y": 98
       },
-      "path": "/d/8CqhZ5lzkH"
+      "path": "/d/ItKNVj-0fg"
     },
     {
       "kind": "outcome",
@@ -153,7 +153,7 @@
         "x": 1208,
         "y": 98
       },
-      "path": "/d/8CqhZ5lzkH",
+      "path": "/d/ItKNVj-0fg",
       "highlights": [
         {
           "label": "Locked by the workspace",

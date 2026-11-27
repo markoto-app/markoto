@@ -22,17 +22,17 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/fPEpXc7zGh"
+      "path": "/d/e14FPt2wDF"
     },
     {
       "kind": "approach",
       "file": "02.webp",
       "caption": "Open the share dialog",
       "cursor": {
-        "x": 915,
+        "x": 896,
         "y": 26
       },
-      "path": "/d/fPEpXc7zGh"
+      "path": "/d/e14FPt2wDF"
     },
     {
       "kind": "approach",
@@ -42,7 +42,7 @@
         "x": 640,
         "y": 375
       },
-      "path": "/d/fPEpXc7zGh"
+      "path": "/d/e14FPt2wDF"
     },
     {
       "kind": "outcome",
@@ -52,7 +52,7 @@
         "x": 426,
         "y": 610
       },
-      "path": "/d/fPEpXc7zGh",
+      "path": "/d/e14FPt2wDF",
       "highlights": [
         {
           "label": "Link settings",
@@ -77,7 +77,7 @@
         "x": 28,
         "y": 67
       },
-      "path": "/d/fPEpXc7zGh",
+      "path": "/d/e14FPt2wDF",
       "actor": "visitor"
     },
     {
@@ -88,7 +88,7 @@
         "x": 28,
         "y": 67
       },
-      "path": "/d/fPEpXc7zGh",
+      "path": "/d/e14FPt2wDF",
       "actor": "visitor"
     },
     {
@@ -96,7 +96,7 @@
       "file": "07.webp",
       "caption": "After the end date the link says it expired",
       "cursor": null,
-      "path": "/d/fPEpXc7zGh",
+      "path": "/d/e14FPt2wDF",
       "actor": "visitor"
     }
   ],

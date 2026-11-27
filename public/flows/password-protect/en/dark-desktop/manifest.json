@@ -22,7 +22,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/Drnil0Gepg"
+      "path": "/d/DyHVU9PiNu"
     },
     {
       "kind": "narration",
@@ -32,22 +32,22 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/Drnil0Gepg"
+      "path": "/d/DyHVU9PiNu"
     },
     {
       "kind": "approach",
       "file": "03.webp",
       "caption": "Open the share dialog",
       "cursor": {
-        "x": 915,
+        "x": 896,
         "y": 26
       },
-      "path": "/d/Drnil0Gepg",
+      "path": "/d/DyHVU9PiNu",
       "annotations": [
         {
           "label": "lock icon",
           "kind": "arrow",
-          "x": 903.59375,
+          "x": 884.03125,
           "y": 14,
           "w": 24,
           "h": 24
@@ -59,10 +59,10 @@
       "file": "04.webp",
       "caption": "The share dialog opens, four access modes below the link.",
       "cursor": {
-        "x": 915,
+        "x": 896,
         "y": 26
       },
-      "path": "/d/Drnil0Gepg"
+      "path": "/d/DyHVU9PiNu"
     },
     {
       "kind": "chapter",
@@ -74,10 +74,10 @@
       "text": "Tap \"Password protected\" to gate the doc. The password input appears below: choose at least 8 characters, memorable enough to share verbally with whoever needs in. markoto stores only a one-way hash of it, never the passphrase itself.",
       "file": "04.webp",
       "cursor": {
-        "x": 915,
+        "x": 896,
         "y": 26
       },
-      "path": "/d/Drnil0Gepg"
+      "path": "/d/DyHVU9PiNu"
     },
     {
       "kind": "approach",
@@ -87,7 +87,7 @@
         "x": 640,
         "y": 429
       },
-      "path": "/d/Drnil0Gepg",
+      "path": "/d/DyHVU9PiNu",
       "annotations": [
         {
           "label": "password mode",
@@ -107,7 +107,7 @@
         "x": 640,
         "y": 429
       },
-      "path": "/d/Drnil0Gepg"
+      "path": "/d/DyHVU9PiNu"
     },
     {
       "kind": "approach",
@@ -117,7 +117,7 @@
         "x": 435,
         "y": 519
       },
-      "path": "/d/Drnil0Gepg"
+      "path": "/d/DyHVU9PiNu"
     },
     {
       "kind": "outcome",
@@ -127,7 +127,7 @@
         "x": 435,
         "y": 519
       },
-      "path": "/d/Drnil0Gepg"
+      "path": "/d/DyHVU9PiNu"
     },
     {
       "kind": "approach",
@@ -137,7 +137,7 @@
         "x": 835,
         "y": 519
       },
-      "path": "/d/Drnil0Gepg"
+      "path": "/d/DyHVU9PiNu"
     },
     {
       "kind": "outcome",
@@ -147,11 +147,11 @@
         "x": 835,
         "y": 519
       },
-      "path": "/d/Drnil0Gepg",
+      "path": "/d/DyHVU9PiNu",
       "highlights": [
         {
           "label": "Password protected",
-          "x": 903.59375,
+          "x": 884.03125,
           "y": 14,
           "w": 24,
           "h": 24
@@ -171,7 +171,7 @@
         "x": 835,
         "y": 519
       },
-      "path": "/d/Drnil0Gepg"
+      "path": "/d/DyHVU9PiNu"
     },
     {
       "kind": "outcome",
@@ -181,7 +181,7 @@
         "x": 422,
         "y": 444
       },
-      "path": "/d/Drnil0Gepg",
+      "path": "/d/DyHVU9PiNu",
       "annotations": [
         {
           "label": "password input",
@@ -204,7 +204,7 @@
       "text": "Type the passphrase and the gate lifts. Too many wrong guesses and markoto pauses password checks on the document for a while, so a passphrase can't be brute-forced.",
       "file": "13.webp",
       "cursor": null,
-      "path": "/d/Drnil0Gepg",
+      "path": "/d/DyHVU9PiNu",
       "actor": "visitor"
     },
     {
@@ -215,7 +215,7 @@
         "x": 422,
         "y": 444
       },
-      "path": "/d/Drnil0Gepg",
+      "path": "/d/DyHVU9PiNu",
       "actor": "visitor"
     },
     {
@@ -226,7 +226,7 @@
         "x": 422,
         "y": 444
       },
-      "path": "/d/Drnil0Gepg",
+      "path": "/d/DyHVU9PiNu",
       "actor": "visitor"
     },
     {
@@ -237,7 +237,7 @@
         "x": 758,
         "y": 490
       },
-      "path": "/d/Drnil0Gepg",
+      "path": "/d/DyHVU9PiNu",
       "actor": "visitor"
     },
     {
@@ -248,7 +248,7 @@
         "x": 758,
         "y": 490
       },
-      "path": "/d/Drnil0Gepg",
+      "path": "/d/DyHVU9PiNu",
       "hero": true,
       "actor": "visitor"
     }

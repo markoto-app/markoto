@@ -19,7 +19,7 @@
       "text": "Keep the facts of your project in an ordinary document: characters, places, a glossary, a style guide. Mark it as AI context and markoto reads it whenever you ask the AI for help in this workspace.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/w/gnYv_39lu-"
+      "path": "/w/0mSf8U0Tza"
     },
     {
       "kind": "outcome",
@@ -29,7 +29,7 @@
         "x": 92,
         "y": 474
       },
-      "path": "/w/gnYv_39lu-",
+      "path": "/w/0mSf8U0Tza",
       "highlights": [
         {
           "label": "Actions",
@@ -48,7 +48,7 @@
         "x": 195,
         "y": 636
       },
-      "path": "/w/gnYv_39lu-"
+      "path": "/w/0mSf8U0Tza"
     },
     {
       "kind": "outcome",
@@ -58,7 +58,7 @@
         "x": 195,
         "y": 636
       },
-      "path": "/w/gnYv_39lu-"
+      "path": "/w/0mSf8U0Tza"
     },
     {
       "kind": "outcome",
@@ -68,7 +68,7 @@
         "x": 195,
         "y": 636
       },
-      "path": "/w/gnYv_39lu-",
+      "path": "/w/0mSf8U0Tza",
       "highlights": [
         {
           "label": "AI context",
@@ -92,7 +92,7 @@
         "x": 139,
         "y": 695
       },
-      "path": "/d/w_AnVUElJN"
+      "path": "/d/QlNSrMXi2e"
     },
     {
       "kind": "outcome",
@@ -102,7 +102,7 @@
         "x": 139,
         "y": 695
       },
-      "path": "/d/w_AnVUElJN"
+      "path": "/d/QlNSrMXi2e"
     },
     {
       "kind": "outcome",
@@ -112,7 +112,7 @@
         "x": 139,
         "y": 695
       },
-      "path": "/d/w_AnVUElJN",
+      "path": "/d/QlNSrMXi2e",
       "highlights": [
         {
           "label": "AI context",
@@ -136,7 +136,7 @@
         "x": 364,
         "y": 339
       },
-      "path": "/d/w_AnVUElJN"
+      "path": "/d/QlNSrMXi2e"
     },
     {
       "kind": "approach",
@@ -146,7 +146,7 @@
         "x": 159,
         "y": 602
       },
-      "path": "/d/w_AnVUElJN"
+      "path": "/d/QlNSrMXi2e"
     },
     {
       "kind": "outcome",
@@ -156,7 +156,7 @@
         "x": 159,
         "y": 602
       },
-      "path": "/d/w_AnVUElJN"
+      "path": "/d/QlNSrMXi2e"
     },
     {
       "kind": "approach",
@@ -166,7 +166,7 @@
         "x": 76,
         "y": 603
       },
-      "path": "/d/w_AnVUElJN"
+      "path": "/d/QlNSrMXi2e"
     },
     {
       "kind": "outcome",
@@ -176,7 +176,7 @@
         "x": 76,
         "y": 603
       },
-      "path": "/d/w_AnVUElJN"
+      "path": "/d/QlNSrMXi2e"
     },
     {
       "kind": "approach",
@@ -186,7 +186,7 @@
         "x": 350,
         "y": 602
       },
-      "path": "/d/w_AnVUElJN"
+      "path": "/d/QlNSrMXi2e"
     },
     {
       "kind": "outcome",
@@ -196,7 +196,7 @@
         "x": 350,
         "y": 602
       },
-      "path": "/d/w_AnVUElJN"
+      "path": "/d/QlNSrMXi2e"
     },
     {
       "kind": "outcome",
@@ -206,14 +206,14 @@
         "x": 350,
         "y": 602
       },
-      "path": "/d/w_AnVUElJN",
+      "path": "/d/QlNSrMXi2e",
       "highlights": [
         {
           "label": "AI's paragraph",
           "x": 0,
           "y": 42,
           "w": 390,
-          "h": 529.25
+          "h": 542.375
         }
       ],
       "hero": true
