@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { FUNNEL_STEPS, stepConversion, type FunnelRow, type FunnelStats } from '~~/shared/contracts/adminStats'
+import { FUNNEL_STEPS, stepConversion, stepExceedsPrevious, type FunnelRow, type FunnelStats } from '~~/shared/contracts/adminStats'
 
 // Funnel by source: per acquisition source (Product Hunt, Hacker News, …)
 // the visits, first documents, sign-ups, checkouts and paying accounts of
@@ -19,7 +19,10 @@ function sourceLabel(row: FunnelRow): string {
   return t(`adminStats.funnel.sources.${row.source}`)
 }
 
-/** "12 · 34 %": the count and its conversion from the step before. */
+/**
+ * "12 · 34 %": the count and its conversion from the step before. A step
+ * larger than the one before shows its count only (see `stepExceedsPrevious`).
+ */
 function cell(row: FunnelRow, step: typeof FUNNEL_STEPS[number]): string {
   const value = row[step]
   if (value === null) return t('adminStats.funnel.unavailable')
@@ -28,6 +31,9 @@ function cell(row: FunnelRow, step: typeof FUNNEL_STEPS[number]): string {
 }
 
 const allRows = computed(() => [...props.data.rows, props.data.total])
+
+/** Some step outgrows the one before it: explain why it carries no share. */
+const exceedsPrevious = computed(() => allRows.value.some(r => FUNNEL_STEPS.some(s => stepExceedsPrevious(r, s))))
 
 const table = computed(() => ({
   rows: allRows.value.map(r => ({ source: sourceLabel(r), ...Object.fromEntries(FUNNEL_STEPS.map(s => [s, cell(r, s)])) })),
@@ -50,6 +56,13 @@ const table = computed(() => ({
         data-testid="admin-stats-funnel-off"
       >
         {{ t('adminStats.funnel.notTracking') }}
+      </p>
+      <p
+        v-if="exceedsPrevious"
+        class="text-sm text-muted"
+        data-testid="admin-stats-funnel-exceeds"
+      >
+        {{ t('adminStats.funnel.exceedsPrevious') }}
       </p>
       <AdminStatsKpiGrid>
         <AdminStatsKpi

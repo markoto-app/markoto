@@ -1,0 +1,75 @@
+{
+  "version": 2,
+  "title": "What happens when you hit the AI cap",
+  "slug": "what-happens-when-you-hit-the-ai-cap",
+  "locale": "en",
+  "variant": "light-desktop",
+  "viewport": {
+    "w": 1280,
+    "h": 800
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "Out of credits, what happens next"
+    },
+    {
+      "kind": "narration",
+      "text": "You've been prompting markoto all month and have hit the cap. Instead of letting your next prompt fail with a cryptic toast, the prompt bar tells you what's up, directly, in the field where you would have typed.",
+      "file": "01.webp",
+      "cursor": null,
+      "path": "/d/QU9ujUvvCd"
+    },
+    {
+      "kind": "outcome",
+      "file": "02.webp",
+      "caption": "The prompt bar is greyed out. \"Out of AI Points: upgrade to continue\" replaces the normal placeholder. The send button, mic button, and even the input itself are disabled.",
+      "cursor": null,
+      "path": "/d/QU9ujUvvCd",
+      "annotations": [
+        {
+          "label": "exhausted state",
+          "kind": "box",
+          "x": 0,
+          "y": 697.75,
+          "w": 1280,
+          "h": 49.5
+        }
+      ],
+      "hero": true
+    },
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "The upgrade path is one click away"
+    },
+    {
+      "kind": "narration",
+      "text": "The topbar shows your AI Points at all times, a small badge tucked next to your avatar. When the cap is hit, the badge's popover shows an Upgrade button that takes you straight to the pricing page.",
+      "file": "03.webp",
+      "cursor": null,
+      "path": "/d/QU9ujUvvCd"
+    },
+    {
+      "kind": "outcome",
+      "file": "04.webp",
+      "caption": "You land on /pricing with every plan side by side. Free is your current plan; Pro raises the monthly AI Points.",
+      "cursor": null,
+      "path": "/pricing",
+      "highlights": [
+        {
+          "label": "Current plan, Free",
+          "x": 101,
+          "y": 290,
+          "w": 99.5625,
+          "h": 19.75
+        }
+      ]
+    }
+  ],
+  "next": {
+    "slug": "pricing-with-paid-plans-live",
+    "why": "See what every plan includes and what Pro, Team and Business add"
+  }
+}

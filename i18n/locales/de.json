@@ -3374,6 +3374,7 @@
       "note": "Besuche stammen aus der Besucherstatistik; Dokumente, Registrierungen, Checkouts und zahlende Konten aus der Datenbank, sie zählen also auch, wo ein Werbeblocker den Besuch verbirgt. Jeder Schritt zeigt seine Anzahl und den Anteil am Schritt davor.",
       "notTracking": "Quellen werden nur erfasst, solange die Besucherstatistik eingeschaltet ist (NUXT_PUBLIC_ANALYTICS_WEBSITE_ID). Hier zählt alles als direkt.",
       "noVisits": "Besuche sind nicht verfügbar: Die Statistikdatenbank kann nicht gelesen werden.",
+      "exceedsPrevious": "Besuche werden zu tief gezählt: Werbeblocker, Datenschutzeinstellungen und automatisierte Tests verbergen viele davon, während erste Dokumente (auch anonyme) aus der Datenbank stammen. Wo ein Schritt mehr zählt als der davor, zeigt er keinen Prozentwert.",
       "bySource": "Funnel nach Quelle",
       "source": "Quelle",
       "unavailable": "k. A.",

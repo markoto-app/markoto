@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { stubEnv } from '../../helpers/env'
-import { funnelRows, stepConversion, type StatsWindow } from '../../../shared/contracts/adminStats'
+import { funnelRows, stepConversion, stepExceedsPrevious, type StatsWindow } from '../../../shared/contracts/adminStats'
 
 // Assembly of the admin's "Funnel by source" (server/utils/adminStats/funnelStats.ts)
 // and its arithmetic (shared/contracts/adminStats.ts). The SQL is in
@@ -30,6 +30,27 @@ describe('funnel arithmetic', () => {
     expect(stepConversion(ph, 'signups')).toBe(40)
     expect(stepConversion(ph, 'paid')).toBe(25)
     expect(stepConversion(rows[1]!, 'documents')).toBeNull()
+  })
+
+  it('shows no share where a step outgrows the one before (undercounted visits)', () => {
+    // Staging: 1 visit, 65 first documents: 6500 % would mean nothing.
+    const row = { source: 'all' as const, visits: 1, documents: 65, signups: 65, checkouts: 2, paid: 3 }
+    expect(stepConversion(row, 'documents')).toBeNull()
+    expect(stepExceedsPrevious(row, 'documents')).toBe(true)
+    // Equal steps are a real 100 %.
+    expect(stepConversion(row, 'signups')).toBe(100)
+    expect(stepExceedsPrevious(row, 'signups')).toBe(false)
+    expect(stepConversion(row, 'checkouts')).toBeCloseTo(3.1, 5)
+    expect(stepConversion(row, 'paid')).toBeNull()
+    expect(stepExceedsPrevious(row, 'paid')).toBe(true)
+    // The first step and unknown visits never exceed anything.
+    expect(stepExceedsPrevious(row, 'visits')).toBe(false)
+    expect(stepExceedsPrevious({ ...row, visits: null }, 'documents')).toBe(false)
+    // A zero step before has no share; it counts as exceeded only when this step is above it.
+    const zero = { ...row, visits: 0 }
+    expect(stepConversion(zero, 'documents')).toBeNull()
+    expect(stepExceedsPrevious(zero, 'documents')).toBe(true)
+    expect(stepExceedsPrevious({ ...zero, documents: 0 }, 'documents')).toBe(false)
   })
 
   it('without visits the first step is unknown, not zero', () => {
