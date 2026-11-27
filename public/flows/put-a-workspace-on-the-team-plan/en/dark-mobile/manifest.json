@@ -19,7 +19,7 @@
       "text": "Team is bought for a workspace, not for a person. You pay per seat, and everyone in the workspace gets Team inside it, with one shared AI budget for the month. Only workspace admins see the Billing tab.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/w/sbTQ5sma94"
+      "path": "/w/PDrIxnftye"
     },
     {
       "kind": "approach",
@@ -29,7 +29,7 @@
         "x": 337,
         "y": 247
       },
-      "path": "/w/sbTQ5sma94",
+      "path": "/w/PDrIxnftye",
       "annotations": [
         {
           "label": "Billing",
@@ -49,7 +49,7 @@
         "x": 337,
         "y": 247
       },
-      "path": "/w/sbTQ5sma94"
+      "path": "/w/PDrIxnftye?tab=billing"
     },
     {
       "kind": "outcome",
@@ -59,7 +59,7 @@
         "x": 337,
         "y": 247
       },
-      "path": "/w/sbTQ5sma94",
+      "path": "/w/PDrIxnftye?tab=billing",
       "highlights": [
         {
           "label": "Total",
@@ -78,7 +78,7 @@
         "x": 41,
         "y": 549
       },
-      "path": "/w/sbTQ5sma94"
+      "path": "/w/PDrIxnftye?tab=billing"
     },
     {
       "kind": "outcome",
@@ -88,7 +88,7 @@
         "x": 41,
         "y": 549
       },
-      "path": "/w/sbTQ5sma94"
+      "path": "/w/PDrIxnftye?tab=billing"
     },
     {
       "kind": "approach",
@@ -98,7 +98,7 @@
         "x": 121,
         "y": 615
       },
-      "path": "/w/sbTQ5sma94"
+      "path": "/w/PDrIxnftye?tab=billing"
     },
     {
       "kind": "outcome",
@@ -130,7 +130,7 @@
         "x": 348,
         "y": 42
       },
-      "path": "/w/sbTQ5sma94",
+      "path": "/w/PDrIxnftye?tab=billing",
       "highlights": [
         {
           "label": "Team",
@@ -162,7 +162,7 @@
         "x": 348,
         "y": 42
       },
-      "path": "/w/sbTQ5sma94"
+      "path": "/w/PDrIxnftye?tab=billing"
     },
     {
       "kind": "approach",
@@ -172,7 +172,7 @@
         "x": 317,
         "y": 573
       },
-      "path": "/w/sbTQ5sma94"
+      "path": "/w/PDrIxnftye?tab=billing"
     },
     {
       "kind": "outcome",
@@ -182,7 +182,7 @@
         "x": 317,
         "y": 573
       },
-      "path": "/w/sbTQ5sma94"
+      "path": "/w/PDrIxnftye?tab=billing"
     },
     {
       "kind": "approach",
@@ -192,7 +192,7 @@
         "x": 279,
         "y": 595
       },
-      "path": "/w/sbTQ5sma94"
+      "path": "/w/PDrIxnftye?tab=billing"
     },
     {
       "kind": "outcome",
@@ -202,7 +202,7 @@
         "x": 279,
         "y": 595
       },
-      "path": "/w/sbTQ5sma94"
+      "path": "/w/PDrIxnftye?tab=billing"
     },
     {
       "kind": "chapter",
@@ -217,7 +217,7 @@
         "x": 279,
         "y": 595
       },
-      "path": "/w/sbTQ5sma94"
+      "path": "/w/PDrIxnftye?tab=billing"
     },
     {
       "kind": "approach",
@@ -227,7 +227,7 @@
         "x": 344,
         "y": 706
       },
-      "path": "/w/sbTQ5sma94"
+      "path": "/w/PDrIxnftye?tab=billing"
     },
     {
       "kind": "outcome",
@@ -237,7 +237,7 @@
         "x": 344,
         "y": 706
       },
-      "path": "/w/sbTQ5sma94"
+      "path": "/w/PDrIxnftye?tab=billing"
     },
     {
       "kind": "chapter",
@@ -252,7 +252,7 @@
         "x": 344,
         "y": 706
       },
-      "path": "/w/sbTQ5sma94"
+      "path": "/w/PDrIxnftye?tab=billing"
     },
     {
       "kind": "approach",
@@ -262,7 +262,7 @@
         "x": 41,
         "y": 130
       },
-      "path": "/w/sbTQ5sma94"
+      "path": "/w/PDrIxnftye?tab=billing"
     },
     {
       "kind": "outcome",
@@ -272,7 +272,7 @@
         "x": 41,
         "y": 130
       },
-      "path": "/w/sbTQ5sma94"
+      "path": "/w/PDrIxnftye?tab=billing"
     },
     {
       "kind": "approach",
@@ -282,7 +282,7 @@
         "x": 195,
         "y": 252
       },
-      "path": "/w/sbTQ5sma94"
+      "path": "/w/PDrIxnftye?tab=billing"
     },
     {
       "kind": "outcome",
@@ -302,7 +302,7 @@
         "x": 348,
         "y": 42
       },
-      "path": "/w/sbTQ5sma94",
+      "path": "/w/PDrIxnftye?tab=billing",
       "highlights": [
         {
           "label": "Extra AI Points",

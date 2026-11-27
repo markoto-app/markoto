@@ -22,7 +22,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/fAL9SHPa2w"
+      "path": "/d/wlw8BN09Xn"
     },
     {
       "kind": "approach",
@@ -32,7 +32,7 @@
         "x": 20,
         "y": 98
       },
-      "path": "/d/fAL9SHPa2w",
+      "path": "/d/wlw8BN09Xn",
       "annotations": [
         {
           "label": "outline",
@@ -52,7 +52,7 @@
         "x": 20,
         "y": 98
       },
-      "path": "/d/fAL9SHPa2w"
+      "path": "/d/wlw8BN09Xn"
     },
     {
       "kind": "approach",
@@ -62,7 +62,7 @@
         "x": 141,
         "y": 485
       },
-      "path": "/d/fAL9SHPa2w"
+      "path": "/d/wlw8BN09Xn"
     },
     {
       "kind": "outcome",
@@ -72,7 +72,7 @@
         "x": 141,
         "y": 485
       },
-      "path": "/d/fAL9SHPa2w",
+      "path": "/d/wlw8BN09Xn",
       "hero": true
     },
     {
@@ -83,7 +83,7 @@
         "x": 514,
         "y": 194
       },
-      "path": "/d/fAL9SHPa2w"
+      "path": "/d/wlw8BN09Xn"
     },
     {
       "kind": "outcome",
@@ -93,7 +93,7 @@
         "x": 514,
         "y": 194
       },
-      "path": "/d/fAL9SHPa2w"
+      "path": "/d/wlw8BN09Xn"
     },
     {
       "kind": "chapter",
@@ -108,7 +108,7 @@
         "x": 514,
         "y": 194
       },
-      "path": "/d/fAL9SHPa2w"
+      "path": "/d/wlw8BN09Xn"
     },
     {
       "kind": "approach",
@@ -118,7 +118,7 @@
         "x": 129,
         "y": 134
       },
-      "path": "/d/fAL9SHPa2w"
+      "path": "/d/wlw8BN09Xn"
     },
     {
       "kind": "outcome",
@@ -128,7 +128,7 @@
         "x": 129,
         "y": 134
       },
-      "path": "/d/fAL9SHPa2w"
+      "path": "/d/wlw8BN09Xn"
     },
     {
       "kind": "approach",
@@ -138,7 +138,7 @@
         "x": 141,
         "y": 261
       },
-      "path": "/d/fAL9SHPa2w"
+      "path": "/d/wlw8BN09Xn"
     },
     {
       "kind": "outcome",
@@ -148,7 +148,7 @@
         "x": 141,
         "y": 261
       },
-      "path": "/d/fdGg4EqCxv"
+      "path": "/d/Pv07s8QO0x"
     },
     {
       "kind": "chapter",
@@ -158,19 +158,19 @@
     {
       "kind": "narration",
       "text": "Ctrl + Shift + E (Cmd + Shift + E on a Mac) shows and hides the panel and puts you on its tabs. In the outline and the document list, the arrow keys move between entries, Right and Left open and close a section, and Enter jumps to it.",
-      "file": "11.webp",
+      "file": "12.webp",
       "cursor": null,
-      "path": "/d/fdGg4EqCxv"
+      "path": "/d/Pv07s8QO0x"
     },
     {
       "kind": "outcome",
-      "file": "12.webp",
+      "file": "13.webp",
       "caption": "Press Ctrl + Shift + E to hide the panel",
       "cursor": {
         "x": 19,
         "y": 383
       },
-      "path": "/d/fdGg4EqCxv"
+      "path": "/d/Pv07s8QO0x"
     }
   ],
   "next": {

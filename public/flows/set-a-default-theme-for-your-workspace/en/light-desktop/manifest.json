@@ -19,7 +19,7 @@
       "text": "Each workspace can pick the theme every new doc starts with. Admins set it once; every member who starts a blank doc in this workspace gets that design. They can still pick a template with its own design, but the baseline is yours.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/w/WbrCodG7oR"
+      "path": "/w/a1IbRN2mBu"
     },
     {
       "kind": "approach",
@@ -29,7 +29,7 @@
         "x": 371,
         "y": 231
       },
-      "path": "/w/WbrCodG7oR",
+      "path": "/w/a1IbRN2mBu",
       "annotations": [
         {
           "label": "Settings tab",
@@ -49,7 +49,7 @@
         "x": 371,
         "y": 231
       },
-      "path": "/w/WbrCodG7oR"
+      "path": "/w/a1IbRN2mBu?tab=settings"
     },
     {
       "kind": "chapter",
@@ -64,25 +64,25 @@
         "x": 371,
         "y": 231
       },
-      "path": "/w/WbrCodG7oR"
+      "path": "/w/a1IbRN2mBu?tab=settings"
     },
     {
       "kind": "approach",
       "file": "04.webp",
       "caption": "Pick the Corporate report preset",
       "cursor": {
-        "x": 930,
+        "x": 494,
         "y": 400
       },
-      "path": "/w/WbrCodG7oR",
+      "path": "/w/a1IbRN2mBu?tab=settings",
       "annotations": [
         {
           "label": "Corporate report preset",
           "kind": "arrow",
-          "x": 644,
-          "y": -5.5,
-          "w": 572,
-          "h": 810.25
+          "x": 355,
+          "y": 190.65625,
+          "w": 279,
+          "h": 419.578125
         }
       ]
     },
@@ -91,10 +91,10 @@
       "file": "05.webp",
       "caption": "The Corporate report card is now selected, every blank doc in this workspace starts with this design.",
       "cursor": {
-        "x": 930,
+        "x": 494,
         "y": 400
       },
-      "path": "/w/WbrCodG7oR"
+      "path": "/w/a1IbRN2mBu?tab=settings"
     },
     {
       "kind": "chapter",
@@ -106,10 +106,10 @@
       "text": "Pick New → New document in the workspace. Under Template, Blank is a page in the workspace design, Corporate report, your pick. The other templates bring a design of their own; the theme panel switches any document to another one later.",
       "file": "06.webp",
       "cursor": {
-        "x": 930,
+        "x": 494,
         "y": 400
       },
-      "path": "/w/WbrCodG7oR"
+      "path": "/w/a1IbRN2mBu?tab=settings"
     },
     {
       "kind": "approach",
@@ -119,7 +119,7 @@
         "x": 1182,
         "y": 343
       },
-      "path": "/w/WbrCodG7oR"
+      "path": "/w/a1IbRN2mBu"
     },
     {
       "kind": "outcome",
@@ -129,7 +129,7 @@
         "x": 1182,
         "y": 343
       },
-      "path": "/w/WbrCodG7oR"
+      "path": "/w/a1IbRN2mBu"
     },
     {
       "kind": "approach",
@@ -139,7 +139,7 @@
         "x": 1182,
         "y": 385
       },
-      "path": "/w/WbrCodG7oR"
+      "path": "/w/a1IbRN2mBu"
     },
     {
       "kind": "outcome",
@@ -149,7 +149,7 @@
         "x": 1182,
         "y": 385
       },
-      "path": "/w/WbrCodG7oR"
+      "path": "/w/a1IbRN2mBu"
     },
     {
       "kind": "approach",
@@ -159,7 +159,7 @@
         "x": 640,
         "y": 425
       },
-      "path": "/w/WbrCodG7oR"
+      "path": "/w/a1IbRN2mBu"
     },
     {
       "kind": "outcome",
@@ -169,7 +169,7 @@
         "x": 640,
         "y": 425
       },
-      "path": "/w/WbrCodG7oR"
+      "path": "/w/a1IbRN2mBu"
     },
     {
       "kind": "approach",
@@ -179,7 +179,7 @@
         "x": 640,
         "y": 473
       },
-      "path": "/w/WbrCodG7oR"
+      "path": "/w/a1IbRN2mBu"
     },
     {
       "kind": "outcome",
@@ -189,7 +189,7 @@
         "x": 640,
         "y": 473
       },
-      "path": "/w/WbrCodG7oR"
+      "path": "/w/a1IbRN2mBu"
     },
     {
       "kind": "outcome",
@@ -199,7 +199,7 @@
         "x": 640,
         "y": 473
       },
-      "path": "/w/WbrCodG7oR",
+      "path": "/w/a1IbRN2mBu",
       "highlights": [
         {
           "label": "Workspace default",

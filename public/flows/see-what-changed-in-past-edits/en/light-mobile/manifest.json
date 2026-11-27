@@ -22,7 +22,7 @@
         "x": 195,
         "y": 306
       },
-      "path": "/d/c1Ci90JbBh"
+      "path": "/d/_7126sSwf7"
     },
     {
       "kind": "approach",
@@ -32,7 +32,7 @@
         "x": 292,
         "y": 695
       },
-      "path": "/d/c1Ci90JbBh"
+      "path": "/d/_7126sSwf7"
     },
     {
       "kind": "outcome",
@@ -42,7 +42,7 @@
         "x": 292,
         "y": 695
       },
-      "path": "/d/c1Ci90JbBh"
+      "path": "/d/_7126sSwf7"
     },
     {
       "kind": "chapter",
@@ -57,21 +57,21 @@
         "x": 292,
         "y": 695
       },
-      "path": "/d/c1Ci90JbBh"
+      "path": "/d/_7126sSwf7"
     },
     {
       "kind": "approach",
-      "file": "03.webp",
+      "file": "04.webp",
       "caption": "Click the row to expand its diff",
       "cursor": null,
-      "path": "/d/c1Ci90JbBh"
+      "path": "/d/_7126sSwf7"
     },
     {
       "kind": "outcome",
-      "file": "04.webp",
+      "file": "05.webp",
       "caption": "The diff drawer expands inline, green for added lines, red for removed, line numbers down the gutter.",
       "cursor": null,
-      "path": "/d/c1Ci90JbBh",
+      "path": "/d/_7126sSwf7",
       "hero": true
     }
   ],

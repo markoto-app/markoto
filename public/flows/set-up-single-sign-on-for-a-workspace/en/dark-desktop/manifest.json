@@ -19,7 +19,7 @@
       "text": "Workspace admins find single sign-on in its own tab. Choose OpenID Connect or SAML and enter what your identity provider gave you when you registered markoto there.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/w/l1oxlnvHHu"
+      "path": "/w/W12tIPPPHa"
     },
     {
       "kind": "approach",
@@ -29,7 +29,7 @@
         "x": 710,
         "y": 257
       },
-      "path": "/w/l1oxlnvHHu",
+      "path": "/w/W12tIPPPHa",
       "annotations": [
         {
           "label": "Single sign-on",
@@ -49,7 +49,7 @@
         "x": 662,
         "y": 708
       },
-      "path": "/w/l1oxlnvHHu",
+      "path": "/w/W12tIPPPHa?tab=sso",
       "highlights": [
         {
           "label": "Identity provider",
@@ -68,7 +68,7 @@
         "x": 110,
         "y": 565
       },
-      "path": "/w/l1oxlnvHHu"
+      "path": "/w/W12tIPPPHa?tab=sso"
     },
     {
       "kind": "outcome",
@@ -78,7 +78,7 @@
         "x": 110,
         "y": 565
       },
-      "path": "/w/l1oxlnvHHu"
+      "path": "/w/W12tIPPPHa?tab=sso"
     },
     {
       "kind": "outcome",
@@ -88,7 +88,7 @@
         "x": 110,
         "y": 565
       },
-      "path": "/w/l1oxlnvHHu",
+      "path": "/w/W12tIPPPHa?tab=sso",
       "highlights": [
         {
           "label": "Redirect URI",
@@ -112,7 +112,7 @@
         "x": 110,
         "y": 565
       },
-      "path": "/w/l1oxlnvHHu"
+      "path": "/w/W12tIPPPHa?tab=sso"
     },
     {
       "kind": "outcome",
@@ -122,7 +122,7 @@
         "x": 397,
         "y": 784
       },
-      "path": "/w/l1oxlnvHHu",
+      "path": "/w/W12tIPPPHa?tab=sso",
       "highlights": [
         {
           "label": "TXT record",
@@ -146,7 +146,7 @@
         "x": 397,
         "y": 784
       },
-      "path": "/w/l1oxlnvHHu"
+      "path": "/w/W12tIPPPHa?tab=sso"
     },
     {
       "kind": "outcome",
@@ -156,7 +156,7 @@
         "x": 397,
         "y": 784
       },
-      "path": "/w/l1oxlnvHHu",
+      "path": "/w/W12tIPPPHa?tab=sso",
       "annotations": [
         {
           "label": "Test sign-in",
@@ -176,7 +176,7 @@
         "x": 1238,
         "y": 42
       },
-      "path": "/w/l1oxlnvHHu",
+      "path": "/w/W12tIPPPHa?tab=sso",
       "highlights": [
         {
           "label": "On",
@@ -205,7 +205,7 @@
       "file": "12.webp",
       "caption": "Ben opens the workspace and is asked to sign in with the organisation",
       "cursor": null,
-      "path": "/w/l1oxlnvHHu",
+      "path": "/w/W12tIPPPHa",
       "highlights": [
         {
           "label": "Sign in with your organisation",

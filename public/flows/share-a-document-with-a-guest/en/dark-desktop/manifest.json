@@ -19,22 +19,22 @@
       "text": "A guest is someone outside your team, a client, a freelancer, whom you invite to the workspace with the role \"Guest\". A guest sees only the documents you share with them, takes no seat, and uses their own AI budget. Lena from Harbourline already accepted her invitation.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/ijG1At5rjd"
+      "path": "/d/qlS4ZNqqC-"
     },
     {
       "kind": "approach",
       "file": "02.webp",
       "caption": "Open the share dialog",
       "cursor": {
-        "x": 915,
+        "x": 896,
         "y": 26
       },
-      "path": "/d/ijG1At5rjd",
+      "path": "/d/qlS4ZNqqC-",
       "annotations": [
         {
           "label": "Share",
           "kind": "arrow",
-          "x": 903.59375,
+          "x": 884.03125,
           "y": 14,
           "w": 24,
           "h": 24
@@ -49,7 +49,7 @@
         "x": 701,
         "y": 481
       },
-      "path": "/d/ijG1At5rjd",
+      "path": "/d/qlS4ZNqqC-",
       "highlights": [
         {
           "label": "Guests of the workspace",
@@ -68,7 +68,7 @@
         "x": 834,
         "y": 481
       },
-      "path": "/d/ijG1At5rjd"
+      "path": "/d/qlS4ZNqqC-"
     },
     {
       "kind": "outcome",
@@ -78,7 +78,7 @@
         "x": 834,
         "y": 481
       },
-      "path": "/d/ijG1At5rjd",
+      "path": "/d/qlS4ZNqqC-",
       "highlights": [
         {
           "label": "Shared with Lena",
@@ -128,7 +128,7 @@
       "file": "08.webp",
       "caption": "She edits it like any document",
       "cursor": null,
-      "path": "/d/ijG1At5rjd",
+      "path": "/d/qlS4ZNqqC-",
       "actor": "guest"
     }
   ],

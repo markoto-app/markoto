@@ -19,7 +19,7 @@
       "text": "Every new document opens with a cover page in the Editorial layout: logo at the top, the title a third of the way down, today's date below. The Cover page section of the theme panel changes all of it: four layouts (Classic, Editorial, Banner, Minimal), a switch for every field, and a slider for the title size.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/0v80tAapYd"
+      "path": "/d/ZjdTjBVJ6v"
     },
     {
       "kind": "approach",
@@ -29,7 +29,7 @@
         "x": 357,
         "y": 695
       },
-      "path": "/d/0v80tAapYd"
+      "path": "/d/ZjdTjBVJ6v"
     },
     {
       "kind": "outcome",
@@ -39,14 +39,14 @@
         "x": 357,
         "y": 695
       },
-      "path": "/d/0v80tAapYd"
+      "path": "/d/ZjdTjBVJ6v"
     },
     {
       "kind": "approach",
       "file": "03.webp",
       "caption": "Open the Cover page section",
       "cursor": null,
-      "path": "/d/0v80tAapYd",
+      "path": "/d/ZjdTjBVJ6v",
       "annotations": [
         {
           "label": "Cover page accordion",
@@ -63,7 +63,7 @@
       "file": "04.webp",
       "caption": "The cover-page editor expands, every field on one scroll-length panel.",
       "cursor": null,
-      "path": "/d/0v80tAapYd"
+      "path": "/d/ZjdTjBVJ6v"
     },
     {
       "kind": "chapter",
@@ -73,32 +73,32 @@
     {
       "kind": "narration",
       "text": "Editorial is the default. Banner puts the logo and the title in a tinted band across the top of the page. The preview updates as soon as you pick a layout.",
-      "file": "04.webp",
+      "file": "05.webp",
       "cursor": {
         "x": 357,
         "y": 695
       },
-      "path": "/d/0v80tAapYd"
+      "path": "/d/ZjdTjBVJ6v"
     },
     {
       "kind": "outcome",
-      "file": "05.webp",
+      "file": "06.webp",
       "caption": "Open the layout dropdown",
       "cursor": {
         "x": 195,
         "y": 514
       },
-      "path": "/d/0v80tAapYd"
+      "path": "/d/ZjdTjBVJ6v"
     },
     {
       "kind": "outcome",
-      "file": "06.webp",
+      "file": "07.webp",
       "caption": "Pick \"Banner\"",
       "cursor": {
         "x": 26,
         "y": 514
       },
-      "path": "/d/0v80tAapYd"
+      "path": "/d/ZjdTjBVJ6v"
     },
     {
       "kind": "chapter",
@@ -108,40 +108,40 @@
     {
       "kind": "narration",
       "text": "A short line under the title, such as a version, a team or \"Internal draft\". The subtitle is off by default: switch it on, then type.",
-      "file": "06.webp",
+      "file": "07.webp",
       "cursor": {
         "x": 195,
         "y": 622
       },
-      "path": "/d/0v80tAapYd"
+      "path": "/d/ZjdTjBVJ6v"
     },
     {
       "kind": "approach",
-      "file": "07.webp",
+      "file": "08.webp",
       "caption": "Flip the \"Show subtitle\" toggle on",
       "cursor": null,
-      "path": "/d/0v80tAapYd"
+      "path": "/d/ZjdTjBVJ6v"
     },
     {
       "kind": "outcome",
-      "file": "08.webp",
+      "file": "09.webp",
       "caption": "The subtitle field appears underneath, ready for input.",
       "cursor": null,
-      "path": "/d/0v80tAapYd"
+      "path": "/d/ZjdTjBVJ6v"
     },
     {
       "kind": "approach",
-      "file": "09.webp",
+      "file": "10.webp",
       "caption": "Type a subtitle line",
       "cursor": null,
-      "path": "/d/0v80tAapYd"
+      "path": "/d/ZjdTjBVJ6v"
     },
     {
       "kind": "outcome",
-      "file": "10.webp",
+      "file": "11.webp",
       "caption": "The subtitle appears on the cover. The PDF will open on this page.",
       "cursor": null,
-      "path": "/d/0v80tAapYd",
+      "path": "/d/ZjdTjBVJ6v",
       "highlights": [
         {
           "label": "Subtitle",

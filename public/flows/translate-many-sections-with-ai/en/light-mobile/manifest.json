@@ -19,7 +19,7 @@
       "text": "For a change that applies to a large part of the document in the same way, such as a translation, the AI tries it on a sample first and then works through the sections in the background. Code samples stay exactly as they are. For a few short sections the AI makes the change itself.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/z-EgbGpz6b"
+      "path": "/d/B4V_MD3tJe"
     },
     {
       "kind": "approach",
@@ -29,7 +29,7 @@
         "x": 159,
         "y": 602
       },
-      "path": "/d/z-EgbGpz6b"
+      "path": "/d/B4V_MD3tJe"
     },
     {
       "kind": "approach",
@@ -39,7 +39,7 @@
         "x": 76,
         "y": 603
       },
-      "path": "/d/z-EgbGpz6b"
+      "path": "/d/B4V_MD3tJe"
     },
     {
       "kind": "outcome",
@@ -49,7 +49,7 @@
         "x": 76,
         "y": 603
       },
-      "path": "/d/z-EgbGpz6b"
+      "path": "/d/B4V_MD3tJe"
     },
     {
       "kind": "approach",
@@ -59,7 +59,7 @@
         "x": 350,
         "y": 602
       },
-      "path": "/d/z-EgbGpz6b"
+      "path": "/d/B4V_MD3tJe"
     },
     {
       "kind": "outcome",
@@ -69,7 +69,7 @@
         "x": 350,
         "y": 602
       },
-      "path": "/d/z-EgbGpz6b"
+      "path": "/d/B4V_MD3tJe"
     },
     {
       "kind": "approach",
@@ -79,7 +79,7 @@
         "x": 333,
         "y": 506
       },
-      "path": "/d/z-EgbGpz6b"
+      "path": "/d/B4V_MD3tJe"
     },
     {
       "kind": "outcome",
@@ -89,7 +89,7 @@
         "x": 333,
         "y": 506
       },
-      "path": "/d/z-EgbGpz6b"
+      "path": "/d/B4V_MD3tJe"
     },
     {
       "kind": "chapter",
@@ -104,7 +104,7 @@
         "x": 333,
         "y": 506
       },
-      "path": "/d/z-EgbGpz6b",
+      "path": "/d/B4V_MD3tJe",
       "hero": true
     },
     {
@@ -120,7 +120,7 @@
         "x": 292,
         "y": 695
       },
-      "path": "/d/z-EgbGpz6b"
+      "path": "/d/B4V_MD3tJe"
     },
     {
       "kind": "outcome",
@@ -130,45 +130,45 @@
         "x": 292,
         "y": 695
       },
-      "path": "/d/z-EgbGpz6b"
+      "path": "/d/B4V_MD3tJe"
     },
     {
       "kind": "approach",
       "file": "09.webp",
       "caption": "Click Undo job",
       "cursor": null,
-      "path": "/d/z-EgbGpz6b"
+      "path": "/d/B4V_MD3tJe"
     },
     {
       "kind": "outcome",
       "file": "10.webp",
       "caption": "markoto asks before it puts the German text back.",
       "cursor": null,
-      "path": "/d/z-EgbGpz6b"
+      "path": "/d/B4V_MD3tJe"
     },
     {
       "kind": "approach",
       "file": "10.webp",
       "caption": "Confirm",
       "cursor": null,
-      "path": "/d/z-EgbGpz6b"
+      "path": "/d/B4V_MD3tJe"
     },
     {
       "kind": "outcome",
       "file": "11.webp",
       "caption": "The chapters are German again, together with any fixes markoto made to them right after the job. Parts someone else edited after the job would have stayed as they are.",
       "cursor": null,
-      "path": "/d/z-EgbGpz6b"
+      "path": "/d/B4V_MD3tJe"
     },
     {
       "kind": "outcome",
       "file": "12.webp",
       "caption": "The German text is back in every chapter the job had translated.",
       "cursor": {
-        "x": 292,
-        "y": 695
+        "x": 348,
+        "y": 42
       },
-      "path": "/d/z-EgbGpz6b"
+      "path": "/d/B4V_MD3tJe"
     }
   ],
   "next": {
