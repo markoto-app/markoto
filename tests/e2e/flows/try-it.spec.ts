@@ -89,6 +89,9 @@ test('Try markoto without a document', { tag: '@marketing' }, async ({ page, flo
   )
 
   const downloadPromise = page.waitForEvent('download', { timeout: 60_000 })
+  // The page fetches the PDF (the API redirects to the server render) and
+  // saves it as a blob under the title, so the render shows up as a response.
+  const pdfResponse = page.waitForResponse(r => /\/renders\/.+\.pdf/.test(r.url()), { timeout: 60_000 })
   const pdfButton = page.getByTestId('try-it-pdf')
   await flow.click('Click "Download PDF"', pdfButton, {
     annotations: [{ label: 'creates a document', selector: '[data-testid="try-it-notice"]', kind: 'box' }],
@@ -109,7 +112,7 @@ test('Try markoto without a document', { tag: '@marketing' }, async ({ page, flo
 
   // ASSERTION: a real server-rendered PDF with the typed text's title.
   const download = await downloadPromise
-  expect(download.url()).toMatch(/\/renders\/.+\.pdf/)
+  expect((await pdfResponse).status()).toBe(200)
   const pdf = await readFile(await download.path())
   expect(pdf.subarray(0, 5).toString('latin1')).toBe('%PDF-')
   expect(download.suggestedFilename()).toBe('Field notes.pdf')

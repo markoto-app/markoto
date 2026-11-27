@@ -80,7 +80,7 @@ export const SUB_PROCESSORS: readonly SubProcessor[] = [
   {
     id: 'staan',
     name: 'Staan (European Search Perspective SAS)',
-    purpose: 'Web search for the AI writing assistant, via a proprietary European search index (EU-only routing), and reading single web pages the AI is asked to open (fetch-URL tool). The search query or the page URL is sent for every user, including users with their own AI provider',
+    purpose: 'Web search for the AI writing assistant, via a proprietary European search index (EU-only routing), and reading single web pages the AI is asked to open (fetch-URL tool). The search query or the page URL is sent for every user, including users with their own AI provider. Staan caches fetched pages for up to 4 hours',
     location: 'eu',
     transferMechanism: 'intra_eu',
     dpfCertified: false,
