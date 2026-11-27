@@ -4,7 +4,7 @@ description: What the free tier includes on markoto.app and when self-hosted, an
 category: plans
 order: 1
 featured: true
-updated: '2026-11-25'
+updated: '2026-11-27'
 ---
 
 # Plans and limits
@@ -35,7 +35,7 @@ What you see depends on where markoto runs:
 | **markoto.app** | Everyone starts on Free. The [pricing page](/pricing) shows three cards: Free, Pro and Teams (switch the Teams card between Team and Business), with prices in euros or Swiss francs, monthly or annual, per seat for Team and Business. Pro is bought for yourself ([Upgrade](/docs/plans/upgrade)); Team and Business are bought for a workspace and billed per seat ([Team and Business](/docs/plans/team-plan)). Plans are sold through Link, a Stripe company. |
 | **A self-hosted instance** | No plans, no pricing page tiers, no purchase. Everyone is on the free tier, and the operator decides the limits (workspaces, knowledge storage, AI Points). |
 
-::flow{id="what-you-get-on-each-plan" hide-title}
+::flow{id="pricing-with-paid-plans-live" hide-title}
 ::
 
 ## What limits a plan sets
@@ -67,8 +67,14 @@ include; nothing is deleted.
 
 Buying extra AI Points on top of a plan's monthly allowance is not
 available on markoto.app yet. When a month's AI Points run out early, the
-AI works again with the next month's allowance, or right away with
-[your own AI provider](/docs/ai/provider).
+AI bar says so and offers an Upgrade button that opens the pricing page.
+The AI works again with the next month's allowance, right away on a plan
+with a larger allowance, or right away with
+[your own AI provider](/docs/ai/provider). More on this in
+[AI Points and what happens when you run out](/docs/plans/ai-budget#when-the-allowance-is-used-up).
+
+::flow{id="what-happens-when-you-hit-the-ai-cap" hide-title}
+::
 
 ## Seeing your usage
 

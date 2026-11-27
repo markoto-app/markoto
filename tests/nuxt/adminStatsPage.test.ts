@@ -235,6 +235,19 @@ describe('admin product stats page', () => {
     expect(text).toContain('450')
     expect(w.find('[data-testid="admin-stats-funnel-off"]').exists()).toBe(false)
     expect(w.find('[data-testid="admin-stats-funnel-no-visits"]').exists()).toBe(false)
+    expect(w.find('[data-testid="admin-stats-funnel-exceeds"]').exists()).toBe(false)
+  })
+
+  it('shows no share where a step outgrows the one before, and says visits are undercounted', async () => {
+    const { rows, total } = funnelRows({ direct: { visits: 1, documents: 65, signups: 13 } }, true)
+    registerEndpoint('/api/admin/stats/funnel', () => ({ window, trackingEnabled: true, visitsAvailable: true, rows, total }))
+    const w = await open('?tab=funnel&range=30')
+    const text = w.get('[data-testid="admin-stats-funnel"]').text()
+    expect(text).not.toContain('6,500')
+    expect(text).not.toContain('6500')
+    expect(text).toContain('13 · 20 %')
+    expect(w.find('[data-testid="admin-stats-funnel-exceeds"]').text()).toContain('Visits are undercounted')
+    stats('funnel', funnel)
   })
 
   it('says when sources are not recorded and visits are unavailable', async () => {

@@ -48,13 +48,13 @@ const DOCS_DIR = 'content/docs'
 
 // Only flows a docs page embeds (`::flow{id="<slug>" ...}`) are published.
 // The suite's second pass runs the `@billing` flows on a billing-ON
-// server so the paid-plan UI keeps its regression coverage
-// (scripts/flows-ephemeral.ts), but some of them (`upgrade-to-pro`,
-// `what-happens-when-you-hit-the-ai-cap`) show purchase UI no public
-// instance offers today. No docs page embeds them, so they must not ship
-// to public/flows either. Publishing by reference keeps the rule in one
-// place: embed a flow in a docs page and it gets published; drop the
-// embed and the next build reaps it.
+// server (scripts/flows-ephemeral.ts), the shape markoto.app runs since
+// paid plans went live; the docs embed some of them (the pricing page,
+// running out of AI Points, the Team plan). Flows nobody embeds (for
+// example the billing-off "coming soon" pricing page) keep their
+// regression coverage but must not ship to public/flows. Publishing by
+// reference keeps the rule in one place: embed a flow in a docs page and
+// it gets published; drop the embed and the next build reaps it.
 
 interface RunStats {
   publishedVariants: number

@@ -8,7 +8,7 @@
 # To bump: resolve the new tag's multi-arch index digest, update below, rebuild,
 # run the Python unit tests in the image (ci.yml) and verify a docx + pdf import
 # smoke-converts end-to-end via /api/import.
-FROM python:3.14.10-slim@sha256:9aaa474097d094040649f2162a627c0049b408f52138d980916788d80f04802f
+FROM python:3.14.10-slim@sha256:22eafb370920ad8b429e0aec3fff433e0669968519f5d60469d83729c138b28b
 
 # Debian security fixes that landed after the base image was built (the
 # CI image scan flags fixable HIGH CVEs in base packages such as zlib1g).
@@ -34,9 +34,13 @@ WORKDIR /app
 # packages, and pip (plus the ensurepip wheel bundled with the base
 # image) vendors urllib3/msgpack/setuptools copies carrying fixable HIGH
 # CVEs that the CI image scan flags even though they never execute here.
+# lxml stays below 6.2: with lxml 6.2.0 every DOCX fails ("Could not find
+# the body element"), checked against tests/repos/importWorker.test.ts.
+# Lift the cap once a newer lxml (or mammoth) converts DOCX again.
 RUN pip install --no-cache-dir --only-binary=:all: \
     'fastapi==0.162.0' \
     'markitdown[all]==0.1.9' \
+    'lxml==6.1.3' \
     'uvicorn[standard]==0.54.0' \
  && pip uninstall -y pip \
  && rm -rf /usr/local/lib/python3.14/ensurepip/_bundled

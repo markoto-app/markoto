@@ -3374,6 +3374,7 @@
       "note": "Visits come from the visitor statistics; documents, sign-ups, checkouts and paid accounts from the database, so they count even where an ad blocker hides the visit. Each step shows its count and the share of the step before.",
       "notTracking": "Sources are recorded only while visitor statistics are on (NUXT_PUBLIC_ANALYTICS_WEBSITE_ID). Everything counts as direct here.",
       "noVisits": "Visits are not available: the statistics database cannot be read.",
+      "exceedsPrevious": "Visits are undercounted: ad blockers, privacy settings and automated tests hide many of them, while first documents (including anonymous ones) come from the database. Where a step counts more than the one before, it shows no percentage.",
       "bySource": "Funnel by source",
       "source": "Source",
       "unavailable": "n/a",

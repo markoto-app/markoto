@@ -1,0 +1,55 @@
+{
+  "version": 2,
+  "title": "Pricing with paid plans live",
+  "slug": "pricing-with-paid-plans-live",
+  "locale": "en",
+  "variant": "light-mobile",
+  "viewport": {
+    "w": 390,
+    "h": 720
+  },
+  "entries": [
+    {
+      "kind": "chapter",
+      "level": 3,
+      "text": "What you get on each plan"
+    },
+    {
+      "kind": "narration",
+      "text": "Free, Pro and Teams, where Teams switches between Team and Business. Plans differ in AI Points per month, workspaces you can own and storage. The numbers on this page are the limits markoto applies.",
+      "file": "01.webp",
+      "cursor": null,
+      "path": "/pricing"
+    },
+    {
+      "kind": "outcome",
+      "file": "02.webp",
+      "caption": "Your current plan (Free) is marked; Team covers a whole workspace, billed per seat.",
+      "cursor": null,
+      "path": "/pricing",
+      "annotations": [
+        {
+          "label": "you are here · Free",
+          "kind": "box",
+          "x": 16,
+          "y": 273,
+          "w": 358,
+          "h": 396.5
+        },
+        {
+          "label": "a workspace plan, per seat",
+          "kind": "box",
+          "x": 16,
+          "y": 1124,
+          "w": 358,
+          "h": 426.5
+        }
+      ],
+      "hero": true
+    }
+  ],
+  "next": {
+    "slug": "use-your-own-ai-provider",
+    "why": "Connect your own AI provider: it is never limited by a plan"
+  }
+}

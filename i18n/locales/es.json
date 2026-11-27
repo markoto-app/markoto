@@ -3374,6 +3374,7 @@
       "note": "Las visitas provienen de las estadísticas de visitantes; los documentos, registros, pagos y cuentas de pago, de la base de datos, por lo que se cuentan aunque un bloqueador de anuncios oculte la visita. Cada paso muestra su número y la proporción respecto al paso anterior.",
       "notTracking": "Las fuentes solo se registran mientras las estadísticas de visitantes están activadas (NUXT_PUBLIC_ANALYTICS_WEBSITE_ID). Aquí todo cuenta como directo.",
       "noVisits": "Las visitas no están disponibles: no se puede leer la base de datos de estadísticas.",
+      "exceedsPrevious": "Las visitas se cuentan de menos: los bloqueadores de anuncios, los ajustes de privacidad y las pruebas automatizadas ocultan muchas, mientras que los primeros documentos (también los anónimos) provienen de la base de datos. Cuando un paso cuenta más que el anterior, no muestra porcentaje.",
       "bySource": "Embudo por fuente",
       "source": "Fuente",
       "unavailable": "n/d",

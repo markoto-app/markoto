@@ -3374,6 +3374,7 @@
       "note": "Les visites proviennent des statistiques de visite ; les documents, inscriptions, paiements et comptes payants de la base de données, ils sont donc comptés même lorsqu’un bloqueur de publicité masque la visite. Chaque étape indique son nombre et la part de l’étape précédente.",
       "notTracking": "Les sources ne sont enregistrées que lorsque les statistiques de visite sont activées (NUXT_PUBLIC_ANALYTICS_WEBSITE_ID). Tout compte ici comme direct.",
       "noVisits": "Les visites ne sont pas disponibles : la base de données des statistiques ne peut pas être lue.",
+      "exceedsPrevious": "Les visites sont sous-estimées : les bloqueurs de publicité, les réglages de confidentialité et les tests automatisés en masquent beaucoup, alors que les premiers documents (y compris anonymes) proviennent de la base de données. Lorsqu’une étape compte plus que la précédente, elle n’affiche pas de pourcentage.",
       "bySource": "Entonnoir par source",
       "source": "Source",
       "unavailable": "n/d",

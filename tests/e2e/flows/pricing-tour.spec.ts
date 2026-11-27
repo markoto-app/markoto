@@ -2,15 +2,15 @@ import { test, expect } from '../fixtures/flow'
 
 // Two flows on the pricing page.
 //
-// 1. "What you get on each plan" (untagged → billing-OFF pass, the
-//    markoto.app shape the docs describe): three cards (Free, Pro, Teams
-//    with a Team / Business switch). Every account is on Free; Pro and
-//    Teams show PLANNED prices with no purchase button, and one waitlist
-//    bar sits above the cards. This is the flow
-//    content/docs/plans/limits.md embeds.
+// 1. "What you get on each plan" (untagged → billing-OFF pass, paid
+//    plans "coming soon"): three cards (Free, Pro, Teams with a Team /
+//    Business switch). Every account is on Free; Pro and Teams show
+//    PLANNED prices with no purchase button, and one waitlist bar sits
+//    above the cards. Kept for regression coverage of that shape; no docs
+//    page embeds it, so scripts/build-flows.ts never publishes it.
 // 2. "Pricing with paid plans live" (`@billing`): the same page on an
-//    instance that sells plans. Kept for regression coverage only, no
-//    docs page embeds it, so scripts/build-flows.ts never publishes it.
+//    instance that sells plans, the markoto.app shape the docs describe.
+//    This is the flow content/docs/plans/limits.md embeds.
 //
 // Works on desktop AND mobile: the cards stack below `lg`, every card
 // keeps its testid.

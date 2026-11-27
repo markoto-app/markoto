@@ -119,7 +119,7 @@ test('What happens when you hit the AI cap', { tag: '@billing' }, async ({ page,
   await expect(page.locator('[data-testid="pricing-tier-free"]')).toHaveAttribute('data-current', 'true')
 
   flow.next({
-    slug: 'what-you-get-on-each-plan',
-    why: 'See what every plan includes, and what the paid plans will add'
+    slug: 'pricing-with-paid-plans-live',
+    why: 'See what every plan includes and what Pro, Team and Business add'
   })
 })

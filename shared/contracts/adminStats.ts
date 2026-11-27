@@ -351,13 +351,33 @@ export interface FunnelStats {
   total: FunnelRow
 }
 
-/** Step-to-step conversion in percent (one decimal); null when the step before is unknown or 0. */
-export function stepConversion(row: FunnelRow, step: FunnelStep): number | null {
+/** The count of the step before `step` (null for the first step or when unknown). */
+function stepBefore(row: FunnelRow, step: FunnelStep): number | null {
   const i = FUNNEL_STEPS.indexOf(step)
-  if (i <= 0) return null
-  const before = row[FUNNEL_STEPS[i - 1] as FunnelStep]
+  return i <= 0 ? null : row[FUNNEL_STEPS[i - 1] as FunnelStep]
+}
+
+/**
+ * True when `step` counts more than the step before it. The steps come from
+ * different sources (visits from the cookieless visitor statistics, which ad
+ * blockers and scripts miss; documents incl. anonymous ones from the
+ * database), so a step can outgrow the one before. A share above 100 % would
+ * mean nothing there.
+ */
+export function stepExceedsPrevious(row: FunnelRow, step: FunnelStep): boolean {
+  const before = stepBefore(row, step)
   const value = row[step]
-  if (before === null || value === null || before === 0) return null
+  return before !== null && value !== null && value > before
+}
+
+/**
+ * Step-to-step conversion in percent (one decimal); null when the step before
+ * is unknown or 0, or smaller than this step (see `stepExceedsPrevious`).
+ */
+export function stepConversion(row: FunnelRow, step: FunnelStep): number | null {
+  const before = stepBefore(row, step)
+  const value = row[step]
+  if (before === null || value === null || before === 0 || value > before) return null
   return pct(value, before)
 }
 
