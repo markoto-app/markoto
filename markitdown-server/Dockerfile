@@ -34,9 +34,13 @@ WORKDIR /app
 # packages, and pip (plus the ensurepip wheel bundled with the base
 # image) vendors urllib3/msgpack/setuptools copies carrying fixable HIGH
 # CVEs that the CI image scan flags even though they never execute here.
+# lxml stays below 6.2: with lxml 6.2.0 every DOCX fails ("Could not find
+# the body element"), checked against tests/repos/importWorker.test.ts.
+# Lift the cap once a newer lxml (or mammoth) converts DOCX again.
 RUN pip install --no-cache-dir --only-binary=:all: \
     'fastapi==0.162.0' \
     'markitdown[all]==0.1.9' \
+    'lxml==6.1.3' \
     'uvicorn[standard]==0.54.0' \
  && pip uninstall -y pip \
  && rm -rf /usr/local/lib/python3.14/ensurepip/_bundled
