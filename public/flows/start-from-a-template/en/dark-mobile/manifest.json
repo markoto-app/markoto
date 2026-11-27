@@ -64,7 +64,7 @@
     {
       "kind": "narration",
       "text": "A template is a starting text in a design that suits it: a report with a cover page and contents, a paper with a title block and numbered sections, a runbook with numbered steps and framed commands. Demo, picked for your first document, is a short tour of markdown and of markoto itself; Blank is an empty page in your default design. Grey comments in each skeleton say what goes where; the preview and the PDF never show them.",
-      "file": "04.webp",
+      "file": "05.webp",
       "cursor": {
         "x": 195,
         "y": 395
@@ -79,7 +79,7 @@
     {
       "kind": "narration",
       "text": "Each card shows the template's first page in its design, its name and one line about what is in it. The tabs sort them by who they are for: engineering, academic, business, writing.",
-      "file": "04.webp",
+      "file": "05.webp",
       "cursor": {
         "x": 195,
         "y": 395
@@ -88,7 +88,7 @@
     },
     {
       "kind": "approach",
-      "file": "04.webp",
+      "file": "05.webp",
       "caption": "Hover \"Demo\"",
       "cursor": {
         "x": 118,
@@ -98,7 +98,7 @@
     },
     {
       "kind": "approach",
-      "file": "04.webp",
+      "file": "05.webp",
       "caption": "Hover \"Blank\"",
       "cursor": {
         "x": 272,
@@ -108,7 +108,7 @@
     },
     {
       "kind": "approach",
-      "file": "05.webp",
+      "file": "06.webp",
       "caption": "Hover \"On-call runbook\"",
       "cursor": {
         "x": 272,
@@ -118,7 +118,7 @@
     },
     {
       "kind": "approach",
-      "file": "06.webp",
+      "file": "07.webp",
       "caption": "Hover \"arXiv preprint\"",
       "cursor": {
         "x": 272,
@@ -128,7 +128,7 @@
     },
     {
       "kind": "approach",
-      "file": "07.webp",
+      "file": "08.webp",
       "caption": "Hover \"Client proposal\"",
       "cursor": {
         "x": 118,
@@ -138,7 +138,7 @@
     },
     {
       "kind": "approach",
-      "file": "08.webp",
+      "file": "09.webp",
       "caption": "Hover \"Resume\"",
       "cursor": {
         "x": 118,
@@ -148,7 +148,7 @@
     },
     {
       "kind": "approach",
-      "file": "09.webp",
+      "file": "05.webp",
       "caption": "Open the \"Business\" tab",
       "cursor": {
         "x": 265,
@@ -239,7 +239,7 @@
         "x": 293,
         "y": 672
       },
-      "path": "/d/ag5Uxq1FpJ",
+      "path": "/d/SvksKhZMtm",
       "highlights": [
         {
           "label": "Ready-made structure",

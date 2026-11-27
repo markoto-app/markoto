@@ -22,7 +22,7 @@
         "x": 195,
         "y": 306
       },
-      "path": "/d/4E8HtTsLg0"
+      "path": "/d/g6wvLbdt4D"
     },
     {
       "kind": "approach",
@@ -32,7 +32,7 @@
         "x": 330,
         "y": 20
       },
-      "path": "/d/4E8HtTsLg0"
+      "path": "/d/g6wvLbdt4D"
     },
     {
       "kind": "outcome",
@@ -42,17 +42,17 @@
         "x": 330,
         "y": 20
       },
-      "path": "/d/4E8HtTsLg0"
+      "path": "/d/g6wvLbdt4D"
     },
     {
       "kind": "outcome",
-      "file": "02.webp",
+      "file": "03.webp",
       "caption": "Pick \"Anyone can view\", anyone with the link can read the doc but not change it.",
       "cursor": {
         "x": 46,
         "y": 158
       },
-      "path": "/d/4E8HtTsLg0",
+      "path": "/d/g6wvLbdt4D",
       "annotations": [
         {
           "label": "view-only",
@@ -72,19 +72,19 @@
     {
       "kind": "narration",
       "text": "A visitor opens the link in their own browser. The document opens read-only: no caret, no formatting toolbar, no AI prompt bar: and markoto refuses any change from them on the server too, not just in the interface. They can read; they can't change.",
-      "file": "03.webp",
+      "file": "04.webp",
       "cursor": {
         "x": 330,
         "y": 20
       },
-      "path": "/d/4E8HtTsLg0"
+      "path": "/d/g6wvLbdt4D"
     },
     {
       "kind": "outcome",
-      "file": "04.webp",
+      "file": "05.webp",
       "caption": "The visitor lands in the doc, but the editor is read-only. No caret blink, no formatting toolbar, no AI prompt bar. The lock icon in the topbar reflects the view-only mode.",
       "cursor": null,
-      "path": "/d/4E8HtTsLg0",
+      "path": "/d/g6wvLbdt4D",
       "highlights": [
         {
           "label": "Read-only preview",

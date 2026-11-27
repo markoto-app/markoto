@@ -22,7 +22,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/mUqdnnBJnE"
+      "path": "/d/9FlBgLDMzK"
     },
     {
       "kind": "approach",
@@ -32,7 +32,7 @@
         "x": 1122,
         "y": 98
       },
-      "path": "/d/mUqdnnBJnE",
+      "path": "/d/9FlBgLDMzK",
       "annotations": [
         {
           "label": "document tab",
@@ -52,7 +52,7 @@
         "x": 1122,
         "y": 98
       },
-      "path": "/d/mUqdnnBJnE"
+      "path": "/d/9FlBgLDMzK"
     },
     {
       "kind": "chapter",
@@ -67,7 +67,7 @@
         "x": 1122,
         "y": 98
       },
-      "path": "/d/mUqdnnBJnE"
+      "path": "/d/9FlBgLDMzK"
     },
     {
       "kind": "approach",
@@ -77,7 +77,7 @@
         "x": 987,
         "y": 273
       },
-      "path": "/d/mUqdnnBJnE"
+      "path": "/d/9FlBgLDMzK"
     },
     {
       "kind": "outcome",
@@ -87,7 +87,7 @@
         "x": 987,
         "y": 273
       },
-      "path": "/d/mUqdnnBJnE"
+      "path": "/d/9FlBgLDMzK"
     },
     {
       "kind": "approach",
@@ -97,7 +97,7 @@
         "x": 1120,
         "y": 538
       },
-      "path": "/d/mUqdnnBJnE"
+      "path": "/d/9FlBgLDMzK"
     },
     {
       "kind": "outcome",
@@ -107,7 +107,7 @@
         "x": 1120,
         "y": 538
       },
-      "path": "/d/mUqdnnBJnE"
+      "path": "/d/9FlBgLDMzK"
     },
     {
       "kind": "approach",
@@ -117,7 +117,7 @@
         "x": 1120,
         "y": 357
       },
-      "path": "/d/mUqdnnBJnE"
+      "path": "/d/9FlBgLDMzK"
     },
     {
       "kind": "outcome",
@@ -127,7 +127,7 @@
         "x": 1120,
         "y": 357
       },
-      "path": "/d/mUqdnnBJnE"
+      "path": "/d/9FlBgLDMzK"
     },
     {
       "kind": "approach",
@@ -137,7 +137,7 @@
         "x": 987,
         "y": 426
       },
-      "path": "/d/mUqdnnBJnE"
+      "path": "/d/9FlBgLDMzK"
     },
     {
       "kind": "outcome",
@@ -147,7 +147,7 @@
         "x": 987,
         "y": 426
       },
-      "path": "/d/mUqdnnBJnE"
+      "path": "/d/9FlBgLDMzK"
     },
     {
       "kind": "approach",
@@ -157,7 +157,7 @@
         "x": 1120,
         "y": 470
       },
-      "path": "/d/mUqdnnBJnE"
+      "path": "/d/9FlBgLDMzK"
     },
     {
       "kind": "outcome",
@@ -167,7 +167,7 @@
         "x": 1120,
         "y": 470
       },
-      "path": "/d/mUqdnnBJnE"
+      "path": "/d/9FlBgLDMzK"
     },
     {
       "kind": "chapter",
@@ -182,7 +182,7 @@
         "x": 1120,
         "y": 470
       },
-      "path": "/d/mUqdnnBJnE"
+      "path": "/d/9FlBgLDMzK"
     },
     {
       "kind": "approach",
@@ -192,7 +192,7 @@
         "x": 604,
         "y": 722
       },
-      "path": "/d/mUqdnnBJnE",
+      "path": "/d/9FlBgLDMzK",
       "annotations": [
         {
           "label": "prompt bar",
@@ -212,57 +212,57 @@
         "x": 604,
         "y": 722
       },
-      "path": "/d/mUqdnnBJnE"
+      "path": "/d/9FlBgLDMzK"
     },
     {
       "kind": "approach",
-      "file": "13.webp",
+      "file": "14.webp",
       "caption": "Type a plain-English ask",
       "cursor": {
         "x": 316,
         "y": 723
       },
-      "path": "/d/mUqdnnBJnE"
+      "path": "/d/9FlBgLDMzK"
     },
     {
       "kind": "outcome",
-      "file": "14.webp",
+      "file": "15.webp",
       "caption": "The ask is short and English. The audience + language fields do the rest of the work.",
       "cursor": {
         "x": 316,
         "y": 723
       },
-      "path": "/d/mUqdnnBJnE"
+      "path": "/d/9FlBgLDMzK"
     },
     {
       "kind": "approach",
-      "file": "15.webp",
+      "file": "16.webp",
       "caption": "Send it",
       "cursor": {
         "x": 1000,
         "y": 722
       },
-      "path": "/d/mUqdnnBJnE"
+      "path": "/d/9FlBgLDMzK"
     },
     {
       "kind": "outcome",
-      "file": "16.webp",
+      "file": "17.webp",
       "caption": "The AI is working, the bar pulses until it is done.",
       "cursor": {
         "x": 1000,
         "y": 722
       },
-      "path": "/d/mUqdnnBJnE"
+      "path": "/d/9FlBgLDMzK"
     },
     {
       "kind": "outcome",
-      "file": "17.webp",
+      "file": "18.webp",
       "caption": "The AI added a one-line intro in German with a marketing tone, although the draft and the prompt are English: the document settings did that.",
       "cursor": {
         "x": 1000,
         "y": 722
       },
-      "path": "/d/mUqdnnBJnE",
+      "path": "/d/9FlBgLDMzK",
       "highlights": [
         {
           "label": "AI's edits",

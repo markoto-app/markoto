@@ -22,7 +22,7 @@
         "x": 640,
         "y": 26
       },
-      "path": "/d/br_z_yBOFE"
+      "path": "/d/WNXtiUSyHt"
     },
     {
       "kind": "chapter",
@@ -32,32 +32,32 @@
     {
       "kind": "narration",
       "text": "Maya adds the release date to her announcement. A few seconds later she types her meeting notes into the wrong window: the whole announcement is selected and replaced.",
-      "file": "02.webp",
+      "file": "01.webp",
       "cursor": {
         "x": 640,
         "y": 26
       },
-      "path": "/d/br_z_yBOFE"
+      "path": "/d/WNXtiUSyHt"
     },
     {
       "kind": "outcome",
-      "file": "03.webp",
+      "file": "02.webp",
       "caption": "Maya adds the release date at the end of the announcement.",
       "cursor": {
         "x": 19,
         "y": 383
       },
-      "path": "/d/br_z_yBOFE"
+      "path": "/d/WNXtiUSyHt"
     },
     {
       "kind": "outcome",
-      "file": "04.webp",
+      "file": "03.webp",
       "caption": "Oops: the announcement is gone, replaced by a line of meeting notes. Undo would fix it right away, but not after the tab is closed.",
       "cursor": {
         "x": 19,
         "y": 383
       },
-      "path": "/d/br_z_yBOFE"
+      "path": "/d/WNXtiUSyHt"
     },
     {
       "kind": "chapter",
@@ -66,23 +66,23 @@
     },
     {
       "kind": "approach",
-      "file": "05.webp",
+      "file": "04.webp",
       "caption": "Click the Activity tab",
       "cursor": {
         "x": 1208,
         "y": 98
       },
-      "path": "/d/br_z_yBOFE"
+      "path": "/d/WNXtiUSyHt"
     },
     {
       "kind": "outcome",
-      "file": "06.webp",
+      "file": "05.webp",
       "caption": "The newest change is at the top: the edit that replaced the announcement.",
       "cursor": {
         "x": 1208,
         "y": 98
       },
-      "path": "/d/br_z_yBOFE"
+      "path": "/d/WNXtiUSyHt"
     },
     {
       "kind": "chapter",
@@ -92,52 +92,52 @@
     {
       "kind": "narration",
       "text": "Restore on an entry brings the document back to how it was just before that change. To undo the mistake, use Restore on the mistake itself: the newest entry, at the top.",
-      "file": "06.webp",
+      "file": "05.webp",
       "cursor": {
         "x": 1208,
         "y": 98
       },
-      "path": "/d/br_z_yBOFE"
+      "path": "/d/WNXtiUSyHt"
     },
     {
       "kind": "approach",
-      "file": "07.webp",
+      "file": "06.webp",
       "caption": "Click Restore on the newest entry, the mistake",
       "cursor": {
         "x": 1225,
         "y": 295
       },
-      "path": "/d/br_z_yBOFE"
+      "path": "/d/WNXtiUSyHt"
     },
     {
       "kind": "outcome",
-      "file": "08.webp",
+      "file": "07.webp",
       "caption": "markoto asks you to confirm before it changes the document for everyone.",
       "cursor": {
         "x": 1225,
         "y": 295
       },
-      "path": "/d/br_z_yBOFE"
+      "path": "/d/WNXtiUSyHt"
     },
     {
       "kind": "approach",
-      "file": "09.webp",
+      "file": "08.webp",
       "caption": "Click Restore in the confirmation",
       "cursor": {
         "x": 824,
         "y": 485
       },
-      "path": "/d/br_z_yBOFE"
+      "path": "/d/WNXtiUSyHt"
     },
     {
       "kind": "outcome",
-      "file": "10.webp",
+      "file": "09.webp",
       "caption": "The announcement is back, release date included. Only the mistake is gone.",
       "cursor": {
         "x": 824,
         "y": 485
       },
-      "path": "/d/br_z_yBOFE",
+      "path": "/d/WNXtiUSyHt",
       "hero": true
     }
   ],
