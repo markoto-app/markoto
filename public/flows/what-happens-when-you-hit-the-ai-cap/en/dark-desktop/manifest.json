@@ -19,14 +19,14 @@
       "text": "You've been prompting markoto all month and have hit the cap. Instead of letting your next prompt fail with a cryptic toast, the prompt bar tells you what's up, directly, in the field where you would have typed.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/EkWTd8E31H"
+      "path": "/d/Hq7NvXmqTj"
     },
     {
       "kind": "outcome",
-      "file": "02.webp",
+      "file": "01.webp",
       "caption": "The prompt bar is greyed out. \"Out of AI Points: upgrade to continue\" replaces the normal placeholder. The send button, mic button, and even the input itself are disabled.",
       "cursor": null,
-      "path": "/d/EkWTd8E31H",
+      "path": "/d/Hq7NvXmqTj",
       "annotations": [
         {
           "label": "exhausted state",
@@ -47,13 +47,13 @@
     {
       "kind": "narration",
       "text": "The topbar shows your AI Points at all times, a small badge tucked next to your avatar. When the cap is hit, the badge's popover shows an Upgrade button that takes you straight to the pricing page.",
-      "file": "03.webp",
+      "file": "02.webp",
       "cursor": null,
-      "path": "/d/EkWTd8E31H"
+      "path": "/d/Hq7NvXmqTj"
     },
     {
       "kind": "outcome",
-      "file": "04.webp",
+      "file": "03.webp",
       "caption": "You land on /pricing with every plan side by side. Free is your current plan; Pro raises the monthly AI Points.",
       "cursor": null,
       "path": "/pricing",

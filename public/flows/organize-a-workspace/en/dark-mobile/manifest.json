@@ -19,14 +19,14 @@
       "text": "The Documents tab of a workspace works like the file manager on your computer: folders on the left, the open folder on the right. Here five documents sit loose at the top level; let's give them a home.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/w/o4sUAyl0vv"
+      "path": "/w/RwcV3dmwtA"
     },
     {
       "kind": "outcome",
       "file": "01.webp",
       "caption": "Five documents, no folders yet.",
       "cursor": null,
-      "path": "/w/o4sUAyl0vv",
+      "path": "/w/RwcV3dmwtA",
       "highlights": [
         {
           "label": "Documents",
@@ -50,7 +50,7 @@
         "x": 344,
         "y": 339
       },
-      "path": "/w/o4sUAyl0vv"
+      "path": "/w/RwcV3dmwtA"
     },
     {
       "kind": "outcome",
@@ -60,7 +60,7 @@
         "x": 344,
         "y": 339
       },
-      "path": "/w/o4sUAyl0vv"
+      "path": "/w/RwcV3dmwtA"
     },
     {
       "kind": "approach",
@@ -70,7 +70,7 @@
         "x": 307,
         "y": 413
       },
-      "path": "/w/o4sUAyl0vv"
+      "path": "/w/RwcV3dmwtA"
     },
     {
       "kind": "outcome",
@@ -80,7 +80,7 @@
         "x": 307,
         "y": 413
       },
-      "path": "/w/o4sUAyl0vv",
+      "path": "/w/RwcV3dmwtA",
       "highlights": [
         {
           "label": "Research",
@@ -99,7 +99,7 @@
         "x": 344,
         "y": 339
       },
-      "path": "/w/o4sUAyl0vv"
+      "path": "/w/RwcV3dmwtA"
     },
     {
       "kind": "outcome",
@@ -109,7 +109,7 @@
         "x": 344,
         "y": 339
       },
-      "path": "/w/o4sUAyl0vv"
+      "path": "/w/RwcV3dmwtA"
     },
     {
       "kind": "approach",
@@ -119,7 +119,7 @@
         "x": 307,
         "y": 413
       },
-      "path": "/w/o4sUAyl0vv"
+      "path": "/w/RwcV3dmwtA"
     },
     {
       "kind": "outcome",
@@ -129,7 +129,7 @@
         "x": 307,
         "y": 413
       },
-      "path": "/w/o4sUAyl0vv",
+      "path": "/w/RwcV3dmwtA",
       "highlights": [
         {
           "label": "Planning",
@@ -153,27 +153,27 @@
         "x": 307,
         "y": 413
       },
-      "path": "/w/o4sUAyl0vv"
+      "path": "/w/RwcV3dmwtA"
     },
     {
       "kind": "approach",
-      "file": "07.webp",
+      "file": "08.webp",
       "caption": "Tap \"Select\"",
       "cursor": {
         "x": 264,
         "y": 339
       },
-      "path": "/w/o4sUAyl0vv"
+      "path": "/w/RwcV3dmwtA"
     },
     {
       "kind": "outcome",
-      "file": "08.webp",
+      "file": "09.webp",
       "caption": "Every row gets a check box.",
       "cursor": {
         "x": 264,
         "y": 339
       },
-      "path": "/w/o4sUAyl0vv"
+      "path": "/w/RwcV3dmwtA"
     },
     {
       "kind": "approach",
@@ -183,7 +183,7 @@
         "x": 36,
         "y": 556
       },
-      "path": "/w/o4sUAyl0vv"
+      "path": "/w/RwcV3dmwtA"
     },
     {
       "kind": "approach",
@@ -193,7 +193,7 @@
         "x": 36,
         "y": 515
       },
-      "path": "/w/o4sUAyl0vv"
+      "path": "/w/RwcV3dmwtA"
     },
     {
       "kind": "outcome",
@@ -203,7 +203,7 @@
         "x": 36,
         "y": 515
       },
-      "path": "/w/o4sUAyl0vv"
+      "path": "/w/RwcV3dmwtA"
     },
     {
       "kind": "approach",
@@ -213,7 +213,7 @@
         "x": 294,
         "y": 708
       },
-      "path": "/w/o4sUAyl0vv"
+      "path": "/w/RwcV3dmwtA"
     },
     {
       "kind": "outcome",
@@ -223,7 +223,7 @@
         "x": 294,
         "y": 708
       },
-      "path": "/w/o4sUAyl0vv"
+      "path": "/w/RwcV3dmwtA"
     },
     {
       "kind": "approach",
@@ -233,7 +233,7 @@
         "x": 294,
         "y": 554
       },
-      "path": "/w/o4sUAyl0vv"
+      "path": "/w/RwcV3dmwtA"
     },
     {
       "kind": "outcome",
@@ -243,7 +243,7 @@
         "x": 294,
         "y": 554
       },
-      "path": "/w/o4sUAyl0vv"
+      "path": "/w/RwcV3dmwtA"
     },
     {
       "kind": "approach",
@@ -253,7 +253,7 @@
         "x": 119,
         "y": 413
       },
-      "path": "/w/o4sUAyl0vv"
+      "path": "/w/RwcV3dmwtA"
     },
     {
       "kind": "approach",
@@ -263,7 +263,7 @@
         "x": 314,
         "y": 481
       },
-      "path": "/w/o4sUAyl0vv"
+      "path": "/w/RwcV3dmwtA"
     },
     {
       "kind": "outcome",
@@ -273,7 +273,7 @@
         "x": 314,
         "y": 481
       },
-      "path": "/w/o4sUAyl0vv",
+      "path": "/w/RwcV3dmwtA",
       "highlights": [
         {
           "label": "Research",
@@ -298,14 +298,14 @@
         "x": 195,
         "y": 465
       },
-      "path": "/w/o4sUAyl0vv"
+      "path": "/w/RwcV3dmwtA"
     },
     {
       "kind": "outcome",
       "file": "20.webp",
       "caption": "The folder has its own address; the path above the list shows where you are.",
       "cursor": null,
-      "path": "/w/o4sUAyl0vv/f/676gvg4xF57D",
+      "path": "/w/RwcV3dmwtA/f/2zVq7M4V0U8N",
       "highlights": [
         {
           "label": "Path",
@@ -324,7 +324,7 @@
         "x": 344,
         "y": 339
       },
-      "path": "/w/o4sUAyl0vv/f/676gvg4xF57D"
+      "path": "/w/RwcV3dmwtA/f/2zVq7M4V0U8N"
     },
     {
       "kind": "outcome",
@@ -334,7 +334,7 @@
         "x": 344,
         "y": 339
       },
-      "path": "/w/o4sUAyl0vv/f/676gvg4xF57D"
+      "path": "/w/RwcV3dmwtA/f/2zVq7M4V0U8N"
     },
     {
       "kind": "approach",
@@ -344,7 +344,7 @@
         "x": 307,
         "y": 413
       },
-      "path": "/w/o4sUAyl0vv/f/676gvg4xF57D"
+      "path": "/w/RwcV3dmwtA/f/2zVq7M4V0U8N"
     },
     {
       "kind": "outcome",
@@ -354,7 +354,7 @@
         "x": 307,
         "y": 413
       },
-      "path": "/w/o4sUAyl0vv/f/676gvg4xF57D",
+      "path": "/w/RwcV3dmwtA/f/2zVq7M4V0U8N",
       "highlights": [
         {
           "label": "Interviews",
@@ -373,14 +373,14 @@
         "x": 195,
         "y": 433
       },
-      "path": "/w/o4sUAyl0vv/f/676gvg4xF57D"
+      "path": "/w/RwcV3dmwtA/f/2zVq7M4V0U8N"
     },
     {
       "kind": "outcome",
       "file": "25.webp",
       "caption": "Product team / Research / Interviews.",
       "cursor": null,
-      "path": "/w/o4sUAyl0vv/f/HXZ6Dn-XfnCa",
+      "path": "/w/RwcV3dmwtA/f/J7DwIjLINGBw",
       "highlights": [
         {
           "label": "Path",
@@ -399,14 +399,14 @@
         "x": 195,
         "y": 433
       },
-      "path": "/w/o4sUAyl0vv/f/676gvg4xF57D"
+      "path": "/w/RwcV3dmwtA/f/2zVq7M4V0U8N"
     },
     {
       "kind": "outcome",
       "file": "27.webp",
       "caption": "And Forward again",
       "cursor": null,
-      "path": "/w/o4sUAyl0vv/f/HXZ6Dn-XfnCa"
+      "path": "/w/RwcV3dmwtA/f/J7DwIjLINGBw"
     },
     {
       "kind": "approach",
@@ -416,7 +416,7 @@
         "x": 132,
         "y": 265
       },
-      "path": "/w/o4sUAyl0vv/f/HXZ6Dn-XfnCa"
+      "path": "/w/RwcV3dmwtA/f/J7DwIjLINGBw"
     },
     {
       "kind": "outcome",
@@ -426,7 +426,7 @@
         "x": 132,
         "y": 265
       },
-      "path": "/w/o4sUAyl0vv"
+      "path": "/w/RwcV3dmwtA"
     },
     {
       "kind": "chapter",
@@ -438,7 +438,7 @@
       "text": "The search box looks at titles and text. It searches the open folder and its subfolders; tick \"All folders\" to search the whole workspace.",
       "file": "28.webp",
       "cursor": null,
-      "path": "/w/o4sUAyl0vv"
+      "path": "/w/RwcV3dmwtA"
     },
     {
       "kind": "approach",
@@ -448,7 +448,7 @@
         "x": 26,
         "y": 303
       },
-      "path": "/w/o4sUAyl0vv"
+      "path": "/w/RwcV3dmwtA"
     },
     {
       "kind": "outcome",
@@ -458,7 +458,7 @@
         "x": 26,
         "y": 303
       },
-      "path": "/w/o4sUAyl0vv?q=pricing"
+      "path": "/w/RwcV3dmwtA?q=pricing"
     }
   ],
   "next": {

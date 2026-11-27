@@ -19,7 +19,7 @@
       "text": "Keep your sources in the document's bibliography: paste a BibTeX entry from Zotero, Google Scholar or a publisher page, or add a DOI. Cite with [@key] and markoto writes the citation and the reference list in the style you pick, in the preview and in the PDF.",
       "file": "01.webp",
       "cursor": null,
-      "path": "/d/QJHVHljz_Z"
+      "path": "/d/DODEwfo2cR"
     },
     {
       "kind": "approach",
@@ -29,7 +29,7 @@
         "x": 32,
         "y": 695
       },
-      "path": "/d/QJHVHljz_Z"
+      "path": "/d/DODEwfo2cR"
     },
     {
       "kind": "approach",
@@ -39,7 +39,7 @@
         "x": 54,
         "y": 657
       },
-      "path": "/d/QJHVHljz_Z"
+      "path": "/d/DODEwfo2cR"
     },
     {
       "kind": "outcome",
@@ -49,7 +49,7 @@
         "x": 54,
         "y": 657
       },
-      "path": "/d/QJHVHljz_Z"
+      "path": "/d/DODEwfo2cR"
     },
     {
       "kind": "approach",
@@ -59,7 +59,7 @@
         "x": 168,
         "y": 503
       },
-      "path": "/d/QJHVHljz_Z"
+      "path": "/d/DODEwfo2cR"
     },
     {
       "kind": "approach",
@@ -69,7 +69,7 @@
         "x": 26,
         "y": 589
       },
-      "path": "/d/QJHVHljz_Z"
+      "path": "/d/DODEwfo2cR"
     },
     {
       "kind": "outcome",
@@ -79,7 +79,7 @@
         "x": 26,
         "y": 589
       },
-      "path": "/d/QJHVHljz_Z"
+      "path": "/d/DODEwfo2cR"
     },
     {
       "kind": "approach",
@@ -89,7 +89,7 @@
         "x": 356,
         "y": 675
       },
-      "path": "/d/QJHVHljz_Z"
+      "path": "/d/DODEwfo2cR"
     },
     {
       "kind": "outcome",
@@ -99,7 +99,7 @@
         "x": 356,
         "y": 675
       },
-      "path": "/d/QJHVHljz_Z"
+      "path": "/d/DODEwfo2cR"
     },
     {
       "kind": "approach",
@@ -109,7 +109,7 @@
         "x": 332,
         "y": 578
       },
-      "path": "/d/QJHVHljz_Z"
+      "path": "/d/DODEwfo2cR"
     },
     {
       "kind": "outcome",
@@ -119,7 +119,7 @@
         "x": 332,
         "y": 578
       },
-      "path": "/d/QJHVHljz_Z"
+      "path": "/d/DODEwfo2cR"
     },
     {
       "kind": "chapter",
@@ -131,7 +131,7 @@
       "file": "09.webp",
       "caption": "The PDF has the citation in the text and the formatted entry under References.",
       "cursor": null,
-      "path": "/api/docs/QJHVHljz_Z/pdf?inline=1",
+      "path": "/api/docs/DODEwfo2cR/pdf?inline=1",
       "actor": "pdf"
     }
   ],
