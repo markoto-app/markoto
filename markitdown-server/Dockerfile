@@ -8,7 +8,7 @@
 # To bump: resolve the new tag's multi-arch index digest, update below, rebuild,
 # run the Python unit tests in the image (ci.yml) and verify a docx + pdf import
 # smoke-converts end-to-end via /api/import.
-FROM python:3.14.10-slim@sha256:9aaa474097d094040649f2162a627c0049b408f52138d980916788d80f04802f
+FROM python:3.14.10-slim@sha256:22eafb370920ad8b429e0aec3fff433e0669968519f5d60469d83729c138b28b
 
 # Debian security fixes that landed after the base image was built (the
 # CI image scan flags fixable HIGH CVEs in base packages such as zlib1g).
